@@ -6,6 +6,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import confusion_matrix, accuracy_score
 
 import phylotypy
+import utilities
 
 ##
 """
@@ -49,3 +50,14 @@ print(classified_df.head())
 # Check accuracy
 accuracy = accuracy_score(y_test, classified_df["full lineage"]) * 100
 print(f"accuracy score: {accuracy:.1f}%")
+
+##
+# Testing unkown sequences
+unknown_seq = utilities.fasta_to_dataframe("data/orio_16s.txt") # pd.Dataframe
+
+
+classify_unknown = classify.predict(unknown_seq["Sequence"].to_list(),
+                                    unknown_seq["SequenceName"].to_list())
+
+classify_unknown_df = phylotypy.summarize_predictions(classify_unknown, unknown_seq["SequenceName"].to_list())
+print(classify_unknown_df[["id", "Genus", "stat"]])

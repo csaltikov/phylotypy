@@ -25,13 +25,13 @@ def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
 
 
 def seq_to_base4(sequence: str | list):
-    def convert_dna(seq):
-        seq = seq.upper()
-        seq = re.sub(r"[^ACGT]", "N", seq)
+    def convert_dna(dna_seq):
+        dna_seq = dna_seq.upper()
+        dna_seq = re.sub(r"[^ACGT]", "N", dna_seq)
         dna = "ACGT"
         base4 = "0123"
-        translation_mapping = seq.maketrans(dna, base4)
-        return seq.translate(translation_mapping)
+        translation_mapping = dna_seq.maketrans(dna, base4)
+        return dna_seq.translate(translation_mapping)
 
     # check if 'sequence' is list or string
     if isinstance(sequence, str):
@@ -107,7 +107,7 @@ def calc_genus_conditional_prob(detect_list: list,
 
     # loop through the incoming genera
     # i is a specific organism
-    # get the list of kmer indicies and fill in 1 or 0
+    # get the list of kmer indices and fill in 1 or 0
     for i in range(n_sequences):
         genus_count[detect_list[i], genera[i]] = genus_count[detect_list[i], genera[i]] + 1
 
@@ -133,10 +133,11 @@ def genera_str_to_index(genera: list) -> list:
 def index_genus_mapper(genera_list: list) -> dict:
     # Create a dictionary mapping unique values to integers
     unique_genera = np.unique(genera_list)
-    factor_map = {idx: val for idx, val in enumerate(unique_genera)}
+    # factor_map = {idx: val for idx, val in enumerate(unique_genera)}
 
     # return factor_map
     return unique_genera
+
 
 def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
     n_kmers = kmers.shape[0] // kmer_size
@@ -188,8 +189,8 @@ def create_con(arr: np.array):
 def get_max(col):
     """Helper for create_con determines id and fraction"""
     freq = Counter(col)
-    id, frac = freq.most_common(1)[0]
-    return id, (frac / len(col))
+    taxa_id, frac = freq.most_common(1)[0]
+    return taxa_id, (frac / len(col))
 
 
 def filter_scores(scores: np.array):
@@ -223,9 +224,3 @@ def genera_str_to_unique(genera: list) -> np.array:
     genera_factors = np.array([factor_map[val] for val in genera])
     return genera_factors
 
-
-def kmer_db_remove_zeros(kmer_db):
-    db_mask = (~np.all(kmer_db == 0, axis=1) & ~np.all(kmer_db == 1, axis=1))
-    # indicies for columns to keep
-    true_idx = np.array([idx for idx, val in enumerate(db_mask) if val])
-    return true_idx

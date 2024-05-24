@@ -62,7 +62,7 @@ class Phylotypy:
             # get the max_idx from the list and it's percent
             predict_taxa, certainty = self.consensus_bs_class(max_idx_arr)
             # In case you want to see the progress
-            if i % (len(genera_list) // 50) == 0 and self.verbose:
+            if i != 0 and i % (len(genera_list) // 50) == 0 and self.verbose:
                 print(f"Processed {i * 100 / len(genera_list):.1f}% of the sequences")
             predict_taxa_arr[i] = predict_taxa
             certainty_arr[i] = certainty
