@@ -12,4 +12,4 @@ Training the model with the full reference database from RDP takes about 40 seco
 You can modify the vignette at the end to classify your own sequences. I've done this using DAD2's output files.
 I made a utility that lets you take a fasta file of DNA seqences and process into a dataframe for runing this classifier.
 
-I'll make a separate tutorial on how to do this and classify 16S sequence data from QIIME, DAD2, or text files. 
+I'll make a separate tutorial on how to do this and classify 16S sequence data from QIIME, DADA2, or text files. 
