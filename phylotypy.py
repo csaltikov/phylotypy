@@ -18,6 +18,7 @@ class Phylotypy:
         self.ref_genera_idx = None
         self.boot = 10
         self.verbose = True
+        self.n_levels = 6
 
     def fit(self, X, y, kmer_size: int = 8, verbose: bool = False):
         self.verbose = verbose
@@ -74,7 +75,7 @@ class Phylotypy:
         n_samples = len(kmer_index) // 8
         i = 0
         # Set the seed
-        np.random.seed(2112)
+        # np.random.seed(2112)
         while i < n_bootstraps:
             kmer_samples = np.random.choice(kmer_index, size=n_samples, replace=True)
             max_id = self.classify_bs(kmer_samples)
@@ -134,11 +135,10 @@ class Phylotypy:
         else:
             return np.argmax(scores)
 
-    @staticmethod
-    def print_taxonomy(taxonomy: np.array, n_levels=6) -> str:
+    def print_taxonomy(self, taxonomy: np.array,) -> str:
         taxonomy_split: list = re.findall(r'[^;]+', taxonomy)
         n_taxa_levels = len(taxonomy_split)
-        updated_taxonomy = taxonomy_split + ["unclassified"] * (n_levels - n_taxa_levels)
+        updated_taxonomy = taxonomy_split + ["unclassified"] * (self.n_levels - n_taxa_levels)
         return ";".join(updated_taxonomy)
 
 
