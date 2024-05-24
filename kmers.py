@@ -106,7 +106,7 @@ def calc_genus_conditional_prob(detect_list: list,
     genus_count = np.zeros((n_kmers, n_genera))
 
     # loop through the incoming genera
-    # i is a specific organism
+    # `i` is a specific organism
     # get the list of kmer indices and fill in 1 or 0
     for i in range(n_sequences):
         genus_count[detect_list[i], genera[i]] = genus_count[detect_list[i], genera[i]] + 1
@@ -202,6 +202,7 @@ def filter_scores(scores: np.array):
     else:
         return np.argmax(scores)
 
+
 def print_taxonomy(consensus: dict, n_levels=6):
     taxonomy = consensus["taxonomy"]
     confidence = np.array(consensus["confidence"]) * 100
@@ -237,4 +238,3 @@ def genera_str_to_unique(genera: list) -> np.array:
     # Convert genera to factors using the mapping
     genera_factors = np.array([factor_map[val] for val in genera])
     return genera_factors
-

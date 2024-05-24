@@ -1,6 +1,6 @@
-from collections import Counter, defaultdict
+from collections import Counter
 import re
-from typing import Tuple, Any, List, Dict
+from typing import Any
 
 import numpy as np
 import pandas as pd
