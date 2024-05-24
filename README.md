@@ -11,7 +11,7 @@ If it does then you can classify your own sequences
 
 ```
 # prepare your data:
-import utilities  # you need to install Bioptyon
+import utilities  # you need to install Biopython
 
 unknown_seq = utilities.fasta_to_dataframe("data/orio_16s.txt") # pd.Dataframe
 print(unknown_seq.columns)
