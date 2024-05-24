@@ -15,4 +15,4 @@ There's also utility.py that lets you take a fasta file of DNA seqences and proc
 
 I'll make a separate vignette on how to do this and classify 16S sequence data from QIIME, DADA2, or text files.
 
-Thanks Riffomona's for the inspiration.
+Thanks Riffomonas for the inspiration.  Check out the videos on his Youtube channel https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j
