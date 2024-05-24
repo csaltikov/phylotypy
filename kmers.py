@@ -2,17 +2,16 @@ from collections import OrderedDict, Counter
 import re
 
 import numpy as np
-import pandas as pd
 
 
 def build_kmer_database(sequences: list, genera: list, kmer_size: int = 8, verbose: bool = False):
     detected_kmers = detect_kmers_across_sequences(sequences, kmer_size=kmer_size)
 
-    priors = calc_word_specific_priors(detected_kmers, kmer_size)
+    priors = calc_word_specific_priors(detected_kmers, kmer_size, verbose)
 
     genera_idx = genera_str_to_index(genera)
 
-    cond_prob = calc_genus_conditional_prob(detected_kmers, genera_idx, priors)
+    cond_prob = calc_genus_conditional_prob(detected_kmers, genera_idx, priors, verbose)
     genera_names = index_genus_mapper(genera)
 
     return dict(conditional_prob=cond_prob, genera_idx=genera_idx, genera_names=genera_names)
@@ -79,8 +78,9 @@ def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: 
     return kmer_list
 
 
-def calc_word_specific_priors(detect_list, kmer_size):
-    print("Calculating word specific priors")
+def calc_word_specific_priors(detect_list, kmer_size, verbose: bool = False):
+    if verbose:
+        print("Calculating word specific priors")
     kmer_list = [item for sublist in detect_list for item in sublist]
     n_seqs = len(detect_list)
     kmer_idx, counts = np.unique(kmer_list, return_counts=True)
@@ -90,8 +90,12 @@ def calc_word_specific_priors(detect_list, kmer_size):
     return (priors + 0.5) / (n_seqs + 1)
 
 
-def calc_genus_conditional_prob(detect_list: list, genera: list, word_specific_priors) -> np.array:
-    print("Calculating genus conditional probability")
+def calc_genus_conditional_prob(detect_list: list,
+                                genera: list,
+                                word_specific_priors,
+                                verbose: bool = False) -> np.array:
+    if verbose:
+        print("Calculating genus conditional probability")
     genus_arr = np.array(genera)  # put the list of genera into an array
     genus_counts = np.unique(genus_arr, return_counts=True)[1]  # get counts of each unique genera
     n_genera = len(genus_counts)  # get number of unique genera
@@ -225,37 +229,3 @@ def kmer_db_remove_zeros(kmer_db):
     # indicies for columns to keep
     true_idx = np.array([idx for idx, val in enumerate(db_mask) if val])
     return true_idx
-
-
-if __name__ == '__main__':
-    kmersize = 3
-    X_train = ["ATGCGCTA",
-               "CCTCGCTG",
-               "CCTCGCTG",
-               "TTCGGAAC",
-               "TTCCGAGC",
-               "TTCCGAGC"]
-
-    y_train = ["A", "B", "B", "C", "D", "D"]
-
-    X_test = ["CCTCCCTG", "TTaCGAGC"]
-    y_test = ["uknB", "unkD"]
-
-    db = build_kmer_database(X_train, y_train, kmersize)
-
-    model = db["conditional_prob"]
-    train_genera = db["genera_names"]
-    train_genera_idx = db["genera_idx"]
-
-    kmer_list_test = [seq_to_base4(seq) for seq in X_test]
-    # Get a list of kmer indices for each sequence in the database, a list of lists
-    detect_list = detect_kmers_across_sequences(kmer_list_test, kmersize)
-
-    for i, test_org in enumerate(y_test):
-        class_prod = [None] * model.shape[1]
-        kmer_index = detect_list[i]
-        for idx in range(model.shape[1]):
-            model_mask = model[kmer_index, idx]
-            class_prod[idx] = np.prod(model_mask)
-        max_idx = np.argmax(class_prod)
-        print(f"{test_org}: matches {db['genera_names'][max_idx]}")

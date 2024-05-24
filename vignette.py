@@ -10,12 +10,13 @@ import phylotypy
 ##
 """
 Notes:
-Load data, can use trainset.py to download and produce trainset19_072023_db.csv
+Load data, can use traindata.py to download and produce trainset19_072023_db.csv
 or do it yourself another way.
 """
 db_file_path = Path("data/trainset19_072023_db.csv")
 db_test = pd.read_csv(db_file_path)
 
+# uncomment for faster testing
 # db_test = db_test[db_test["Class"].str.contains("Alphaproteobacteria")]
 
 genus_mapper = phylotypy.genera_index_mapper(db_test["Genus"])
@@ -36,8 +37,8 @@ print(f"Testing {len(X_test)} sequences")
 # Reload the module in case I edit the code
 kmersize = 8
 classify = phylotypy.Phylotypy()
-classify.fit(X_train, y_train, kmer_size=kmersize, verbose=False)
-classify.verbose = True
+classify.fit(X_train, y_train, kmer_size=kmersize, verbose=True)
+# classify.verbose = False
 classified_test_seqs = classify.predict(X_test, y_test, kmer_size=kmersize, boot=10)
 
 ##
