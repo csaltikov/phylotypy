@@ -202,8 +202,22 @@ def filter_scores(scores: np.array):
     else:
         return np.argmax(scores)
 
+def print_taxonomy(consensus: dict, n_levels=6):
+    taxonomy = consensus["taxonomy"]
+    confidence = np.array(consensus["confidence"]) * 100
+    confidence = confidence.astype(int)
 
-def print_taxonomy(taxonomy, n_levels=6):
+    n_taxa_levels = len(taxonomy)
+    updated_taxonomy = taxonomy + [f"{taxonomy[-1]}_unclassified"] * (n_levels - n_taxa_levels)
+
+    new_confidence = np.array([confidence[-1]] * (n_levels - n_taxa_levels), dtype=int)
+    updated_confidence = np.concatenate((confidence, new_confidence))
+
+    updated_classification = [f"{taxa}({(updated_confidence[i])})" for i, taxa in enumerate(updated_taxonomy)]
+    return ";".join(updated_classification)
+
+
+def print_taxonomy_unsplit(taxonomy, n_levels=6):
     taxonomy_split: list = re.findall(r'[^;]+', taxonomy)
     n_taxa_levels = len(taxonomy_split)
     updated_taxonomy = taxonomy_split + ["unclassified"] * (n_levels - n_taxa_levels)

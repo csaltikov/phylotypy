@@ -1,4 +1,3 @@
-import sys
 import unittest
 
 import numpy as np
@@ -251,6 +250,26 @@ class TestGetKmers(unittest.TestCase):
 
         observed = kmers.consensus_bs_class(bs_class, db)
         self.assertTrue(np.array_equal(observed["frac"], expected["confidence"]))
+
+    def test_consensus_taxonomy(self):
+        oscillospiraceae = dict(taxonomy=["Bacteria", "Bacillota", "Clostridia", "Eubacteriales", "Oscillospiraceae"],
+                                confidence=[1.00, 1.00, 0.99, 0.99, 0.98]
+                                )
+
+        expected = "Bacteria(100);Bacillota(100);Clostridia(99);Eubacteriales(99);Oscillospiraceae(98);Oscillospiraceae_unclassified(98)"
+
+        tax_string = kmers.print_taxonomy(oscillospiraceae, n_levels=6)
+
+        self.assertEqual(tax_string, expected)
+
+        bacteroidales = dict()
+        bacteroidales["taxonomy"] = ["Bacteria", "Bacteroidota", "Bacteroidia", "Bacteroidales"]
+        bacteroidales["confidence"] = [1.00, 1.00, 0.97, 0.97]
+        expected = "Bacteria(100);Bacteroidota(100);Bacteroidia(97);Bacteroidales(97);Bacteroidales_unclassified(97);Bacteroidales_unclassified(97)"
+
+        tax_string = kmers.print_taxonomy(bacteroidales, n_levels=6)
+
+        self.assertEqual(tax_string, expected)
 
 
 if __name__ == '__main__':
