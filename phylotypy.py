@@ -25,7 +25,7 @@ class Phylotypy:
         print("Fitting model")
         self.y_refs = y
         self.kmer_size = kmer_size
-        db_model = kmers.build_kmer_database(X, self.y_refs, self.kmer_size)
+        db_model = kmers.build_kmer_database(X, self.y_refs, self.kmer_size, self.verbose)
         self.model = db_model["conditional_prob"]
         self.ref_genera = db_model["genera_names"]
         self.ref_genera_idx = db_model["genera_idx"]

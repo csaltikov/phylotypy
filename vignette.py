@@ -1,5 +1,6 @@
 ##
 from pathlib import Path
+import time
 
 import pandas as pd
 from sklearn.model_selection import train_test_split
@@ -52,12 +53,27 @@ accuracy = accuracy_score(y_test, classified_df["full lineage"]) * 100
 print(f"accuracy score: {accuracy:.1f}%")
 
 ##
-# Testing unkown sequences
+# Train model with all reference sequences
+start = time.time()
+
+classify_ref = phylotypy.Phylotypy()
+classify_ref.fit(X_ref, y_ref, kmer_size=kmersize, verbose=True)
+
+end = time.time()
+##
+print(f"Run time {(end - start):.1f} seconds")
+
+##
+# Testing unknown sequences
 unknown_seq = utilities.fasta_to_dataframe("data/orio_16s.txt") # pd.Dataframe
+print(unknown_seq.columns)
 
+# prepare the sequences and sequence name lists
+X_unk = unknown_seq["Sequence"].to_list()
+y_unk =  unknown_seq["SequenceName"].to_list()
 
-classify_unknown = classify.predict(unknown_seq["Sequence"].to_list(),
-                                    unknown_seq["SequenceName"].to_list())
+##
+classify_unknown = classify_ref.predict(X_unk, y_unk)
 
 classify_unknown_df = phylotypy.summarize_predictions(classify_unknown, unknown_seq["SequenceName"].to_list())
 print(classify_unknown_df[["id", "Genus", "stat"]])
