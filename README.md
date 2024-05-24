@@ -40,7 +40,7 @@ db_test = (db_test.assign(taxonomy=lambda df_: df_["taxonomy"].str.rstrip(";")))
 print(f"Size of the database: {db_test.shape}")
 ```
 ```
->>> Size of the database: (24642, 10)
+>>> Size of the database: (24642, 9)
 ```
 ```
 X_ref = db_test["sequences"].tolist(),
