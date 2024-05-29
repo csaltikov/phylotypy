@@ -6,3 +6,6 @@ dumpster.py
 data/svm.fasta
 data/svm_sequences.csv
 *.pyc
+/utilities/clustering.py
+/data/model.npz
+data/rep-seqs-dada2.qza

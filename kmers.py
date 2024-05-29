@@ -1,7 +1,22 @@
-from collections import OrderedDict, Counter
 import re
+from typing import Dict, Any
 
 import numpy as np
+
+
+'''
+Naive Bayes Classifier for DNA sequences. The project is inspired by the 
+following paper. The approach is to convert a DNA sequence to kmers and 
+determine the probability of each kmer in the sequence.
+
+Wang Q, Garrity GM, Tiedje JM, Cole JR. 
+Naive Bayesian classifier for rapid assignment of rRNA sequences into 
+the new bacterial taxonomy. 
+Appl Environ Microbiol. 2007 Aug;73(16):5261-7. 
+doi: 10.1128/AEM.00062-07. Epub 2007 Jun 22.
+PMID: 17586664; PMCID: PMC1950982.
+https://pubmed.ncbi.nlm.nih.gov/17586664/
+'''
 
 
 def build_kmer_database(sequences: list, genera: list, kmer_size: int = 8, verbose: bool = False):
@@ -106,7 +121,7 @@ def calc_genus_conditional_prob(detect_list: list,
     genus_count = np.zeros((n_kmers, n_genera))
 
     # loop through the incoming genera
-    # `i` is a specific organism
+    # i is a specific organism
     # get the list of kmer indices and fill in 1 or 0
     for i in range(n_sequences):
         genus_count[detect_list[i], genera[i]] = genus_count[detect_list[i], genera[i]] + 1
@@ -124,7 +139,6 @@ def genera_str_to_index(genera: list) -> list:
     # Create a dictionary mapping unique values to integers
     unique_genera = np.unique(genera)
     factor_map = {val: idx for idx, val in enumerate(unique_genera)}
-
     # Convert genera to factors using the mapping
     genera_factors = [factor_map[val] for val in genera]
     return genera_factors
@@ -133,8 +147,6 @@ def genera_str_to_index(genera: list) -> list:
 def index_genus_mapper(genera_list: list) -> dict:
     # Create a dictionary mapping unique values to integers
     unique_genera = np.unique(genera_list)
-    # factor_map = {idx: val for idx, val in enumerate(unique_genera)}
-
     # return factor_map
     return unique_genera
 
@@ -145,96 +157,96 @@ def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
 
 
 def classify_bs(kmer_index: list, db):
-    """Screens a test sequence against all classes in the model"""
+    """Screens a tests sequence against all classes in the model"""
     model_mask = db["conditional_prob"][kmer_index, :]
-    class_prod = np.prod(model_mask, axis=0, keepdims=True)
-    max_idx = np.argmax(class_prod)
+    class_log = np.log(model_mask)
+    class_sum = np.sum(class_log, axis=0, keepdims=True)
+    max_idx = np.argmax(class_sum)
+
     return max_idx
 
 
-def consensus_bs_class(bs_class: np.array, db) -> np.array:
+def consensus_bs_class(bs_class: np.array, db) -> dict[str, list | Any]:
     # Convert the indices in the bootstrap array to taxonomy
     taxonomy: np.array = db["genera"][bs_class]
     # sometimes taxonomy is empty or has "none" value
     mask = taxonomy != None
     taxonomy_filtered = taxonomy[mask]
+
     taxonomy_split = np.array([line.split(";") for line in taxonomy_filtered])
-    # predict_taxa, certainty = update_lineage(taxonomy_split)
-    # return predict_taxa, certainty
-
-    return create_con(taxonomy_split)
-
-
-def create_con(arr: np.array):
-    # taxa = np.empty(arr.shape[1], dtype=object)
-    # scores = np.empty(arr.shape[1], dtype=object)
 
     def cumulative_join(col):
-        return [";".join(col[:i + 1]) for i in range(len(col))]
+        join_taxa = [";".join(col[:i + 1]) for i in range(len(col))]
+        return join_taxa
 
-    taxa_arr = np.apply_along_axis(cumulative_join, 1, arr)
+    taxa_cum_join_arr = np.apply_along_axis(cumulative_join, 1, taxonomy_split)
 
-    # for k in range(taxa_arr.shape[1]):
-    #     taxa[k], scores[k] = self.get_max(taxa_arr[:, k])
+    taxa_string, confidence = np.apply_along_axis(get_consensus, axis=0, arr=taxa_cum_join_arr)
 
-    taxa, scores = np.apply_along_axis(get_max, 0, taxa_arr)
-
-    # best_id = filter_scores(scores)
-    # best_taxa = print_taxonomy(taxa[best_id])
-    # return best_taxa, scores[best_id]
-
-    return dict(frac=scores.astype(float), id=taxa)
+    return dict(taxonomy=np.array(taxa_string[-1].split(";")),
+                confidence=confidence)
 
 
-def get_max(col):
-    """Helper for create_con determines id and fraction"""
-    freq = Counter(col)
-    taxa_id, frac = freq.most_common(1)[0]
-    return taxa_id, (frac / len(col))
+def get_consensus(taxa_cum_join_arr: np.ndarray[str]):
+    """Helper for consensus_bs_class determines best taxon and confidence level"""
+    # get best ID and score for each column of the taxa array
+    taxonomy_table = np.unique(taxa_cum_join_arr, return_counts=True)
+    max_id = np.argmax(taxonomy_table[1])
+
+    id_fraction_arr = np.full(2, fill_value=["unclassified", 0], dtype=list)
+
+    fraction = taxonomy_table[1][max_id].item() / taxonomy_table[1].sum()
+
+    id_fraction_arr[0] = taxonomy_table[0][max_id].item()
+    id_fraction_arr[1] = int(100 * fraction)
+
+    return id_fraction_arr
 
 
-def filter_scores(scores: np.array):
+def filter_taxonomy(classification: dict, min_confidence: float = 80) -> Dict:
     """Helper for create_con determines finds the best id"""
-    threshold = scores >= 80
-    scores_filt = np.where(threshold)[0]
-    if scores_filt.size > 0:
-        return scores_filt[-1]
+
+    n_levels = classification["confidence"].shape[0]
+
+    high_confidence = np.where(classification["confidence"] >= min_confidence)[0]
+
+    if high_confidence.size == 0:
+        taxonomy = np.array(["unclassified"] * n_levels)
+        confidence = np.zeros(n_levels, dtype=int)
     else:
-        return np.argmax(scores)
+        taxonomy = classification["taxonomy"][high_confidence]
+        confidence = classification["confidence"][high_confidence]
+
+    return dict(
+        taxonomy=taxonomy,
+        confidence=confidence
+    )
 
 
-def print_taxonomy(consensus: dict, n_levels=6):
-    taxonomy = consensus["taxonomy"]
-    confidence = np.array(consensus["confidence"]) * 100
-    confidence = confidence.astype(int)
+def print_taxonomy(consensus: dict, n_levels=6) -> str:
+    original_levels = consensus["taxonomy"].shape[0]
+    given_levels = original_levels
+    extra_levels = n_levels - given_levels
 
-    n_taxa_levels = len(taxonomy)
-    updated_taxonomy = taxonomy + [f"{taxonomy[-1]}_unclassified"] * (n_levels - n_taxa_levels)
+    taxa_idx = np.arange(consensus["taxonomy"].shape[0])
 
-    new_confidence = np.array([confidence[-1]] * (n_levels - n_taxa_levels), dtype=int)
-    updated_confidence = np.concatenate((confidence, new_confidence))
+    last_taxa = consensus["taxonomy"][taxa_idx[-1]]
+    last_confidence = consensus["confidence"][taxa_idx[-1]]
+    unclassified = f"{last_taxa}_unclassified"
 
-    updated_classification = [f"{taxa}({(updated_confidence[i])})" for i, taxa in enumerate(updated_taxonomy)]
+    taxonomy = np.concatenate((consensus["taxonomy"], [unclassified] * extra_levels), axis=0)
+    confidence = np.concatenate((consensus["confidence"], [last_confidence] * extra_levels), axis=0)
+
+    # Construct the classification string
+    updated_classification = [f"{taxa}({conf})" for taxa, conf in zip(taxonomy, confidence.astype(int))]
+
     return ";".join(updated_classification)
 
 
 def print_taxonomy_unsplit(taxonomy, n_levels=6):
     taxonomy_split: list = re.findall(r'[^;]+', taxonomy)
     n_taxa_levels = len(taxonomy_split)
-    updated_taxonomy = taxonomy_split + ["unclassified"] * (n_levels - n_taxa_levels)
+    last_taxa = taxonomy[-1]
+    updated_taxonomy = taxonomy_split + [f"{last_taxa}_unclassified"] * (n_levels - n_taxa_levels)
     return ";".join(updated_taxonomy)
 
-
-def get_unique_genera(genera: list) -> list:
-    unique_genera = list(OrderedDict.fromkeys(genera))
-    return unique_genera
-
-
-def genera_str_to_unique(genera: list) -> np.array:
-    # Create a dictionary mapping unique values to integers
-    unique_genera = np.unique(genera)
-    factor_map = {val: idx for idx, val in enumerate(unique_genera)}
-
-    # Convert genera to factors using the mapping
-    genera_factors = np.array([factor_map[val] for val in genera])
-    return genera_factors
