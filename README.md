@@ -65,9 +65,9 @@ print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is
 ## Example classification output:
 The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are separated by ";".  The numbers in the () represent the confidence in the classificaiton.  The default confidence is 80%.
 ```
->>> Bacteria(100);Pseudomonadota(99);Alphaproteobacteria(99);Rhodospirillales(99);Acetobacteraceae(99);Roseomonas(83),Bacteria(100),Pseudomonadota(99),Alphaproteobacteria(99),Rhodospirillales(99),Acetobacteraceae(99),Roseomonas(83)
+>>> Bacteria(100);Pseudomonadota(99);Alphaproteobacteria(99);Rhodospirillales(99);Acetobacteraceae(99);Roseomonas(83)
 
->>> Bacteria(99);Bacteroidota(97);Bacteroidia(93);Bacteroidales(93);Bacteroidales_unclassified(93);Bacteroidales_unclassified(93),Bacteria(99),Bacteroidota(97),Bacteroidia(93),Bacteroidales(93),Bacteroidales_unclassified(93),Bacteroidales_unclassified(93)
+>>> Bacteria(99);Bacteroidota(97);Bacteroidia(93);Bacteroidales(93);Bacteroidales_unclassified(93);Bacteroidales_unclassified(93)
 
 ```
 
