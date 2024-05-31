@@ -1,7 +1,10 @@
-from typing import Any
+from typing import Any, Dict
 
 import numpy as np
 import pandas as pd
+import re
+
+from numpy import ndarray, dtype
 
 import kmers
 
@@ -106,7 +109,7 @@ class Phylotypy:
         max_idx = np.argmax(class_prod)
         return max_idx
 
-    def consensus_bs_class(self, incoming_bootstrap: np.array) -> np.ndarray[str]:
+    def consensus_bs_class(self, incoming_bootstrap: np.array) -> dict[str, ndarray[Any, dtype[Any]] | Any]:
         # Convert the indices in the bootstrap array to taxonomy
         taxonomy: np.array = self.ref_genera[incoming_bootstrap]
         # sometimes taxonomy is empty or has "none" value
@@ -121,16 +124,18 @@ class Phylotypy:
 
         taxa_cum_join_arr = np.apply_along_axis(cumulative_join, 1, taxonomy_split)
 
-        taxa_string, confidence = np.apply_along_axis(kmers.get_consensus, axis=0, arr=taxa_cum_join_arr)
+        # taxa_string, confidence = np.apply_along_axis(kmers.get_consensus, axis=0, arr=taxa_cum_join_arr)
+        taxa_confidence = np.apply_along_axis(kmers.get_consensus, axis=0, arr=taxa_cum_join_arr)
 
-        return dict(taxonomy=np.array(taxa_string[-1].split(";")),
-                    confidence=confidence)
+        return {'taxonomy': np.array(taxa_confidence[0][-1].split(";")), 'confidence': taxa_confidence[1]}
 
 
 def summarize_predictions(classified: dict) -> pd.DataFrame:
     classified_df = pd.DataFrame.from_dict(classified)
     taxa_levels = ["Domain", "Phylum", "Class", "Order", "Family", "Genus"]
-    classified_df[taxa_levels] = classified_df["classification"].str.split(";", expand=True)
+    # classified_df[taxa_levels] = classified_df["classification"].str.split(";", expand=True)
+    taxa_pattern = r'\\b[a-zA-Z_]+\\b'
+    classified_df.loc[:, taxa_levels] = classified_df["classification"].apply(lambda col: re.findall(taxa_pattern, col)).tolist()
     return classified_df
 
 
@@ -140,6 +145,7 @@ def genera_index_mapper(genera_list: list) -> dict:
     factor_map = {val: idx for idx, val in enumerate(unique_genera)}
 
     return factor_map
+
 
 if __name__ == "__main__":
     print("hello")

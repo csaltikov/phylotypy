@@ -187,10 +187,10 @@ def consensus_bs_class(bs_class: np.array, db) -> dict[str, list | Any]:
                 confidence=confidence)
 
 
-def get_consensus(taxa_cum_join_arr: np.ndarray[str]):
+def get_consensus(taxa_cumm_join_arr: np.ndarray):
     """Helper for consensus_bs_class determines best taxon and confidence level"""
     # get best ID and score for each column of the taxa array
-    taxonomy_table = np.unique(taxa_cum_join_arr, return_counts=True)
+    taxonomy_table = np.unique(taxa_cumm_join_arr, return_counts=True)
     max_id = np.argmax(taxonomy_table[1])
 
     id_fraction_arr = np.full(2, fill_value=["unclassified", 0], dtype=list)

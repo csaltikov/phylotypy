@@ -19,8 +19,7 @@ db_file_path = Path("data/trainset19_072023_db.csv")
 db_test = pd.read_csv(db_file_path)
 
 # remove the trailing ; of the taxonomy string
-db_test = (db_test.assign(
-                          taxonomy=lambda df_: df_["taxonomy"].str.rstrip(";")
+db_test = (db_test.assign(taxonomy=lambda df_: df_["taxonomy"].str.rstrip(";")
                           )
            )
 print(f"Size of the database: {db_test.shape}")

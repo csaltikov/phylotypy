@@ -238,6 +238,21 @@ class TestGetKmers(unittest.TestCase):
         detected_classification = kmers.classify_bs(unknown_kmers, db)
         self.assertEqual(detected_classification, expected_classification)
 
+    def test_classify_bs(self):
+        kmer_size = 2
+        sequences = ["CTGCGCTA", "ATGCGCTC", "ATGCGCTC"]
+        genera = ["A", "B", "B"]
+        db = kmers.build_kmer_database(sequences, genera, kmer_size)
+        kmers_list = [3, 6, 13, 14]
+        expected = 1
+        observed = kmers.classify_bs(kmers_list, db)
+        self.assertEqual(observed, expected)
+
+        kmers_list = [9, 12, 15]
+        expected = 0
+        observed = kmers.classify_bs(kmers_list, db)
+        self.assertEqual(observed, expected)
+
     def test_consensus_classified_bootstrap_samples(self):
         db = dict()
         db["genera"] = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
@@ -253,6 +268,19 @@ class TestGetKmers(unittest.TestCase):
         self.assertTrue(np.array_equal(expected["confidence"], observed["confidence"]))
 
         self.assertTrue(np.array_equal(expected["taxonomy"], observed["taxonomy"]))
+
+    def test_get_consensus(self):
+        taxa_cumm_join_arr = np.array(
+            [['A', 'A;a', 'A;a;A'],
+             ['A', 'A;a', 'A;a;A'],
+             ['A', 'A;a', 'A;a;A'],
+             ['A', 'A;a', 'A;a;B']])
+
+        expected = np.array(['A;a;A', 75], dtype='<U20')
+        observed = kmers.get_consensus(taxa_cumm_join_arr[:, 2]).astype('<U20')
+
+        truth = np.array_equal(expected, observed)
+        self.assertTrue(truth)
 
     def test_consensus_taxonomy(self):
         oscillospiraceae = dict(
