@@ -16,7 +16,7 @@ except ImportError:
 
 class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
-        self.classifier = phylotypy.Phylotypy()
+        self.classifier = phylotypy.Classify()
         self.X_train = ["CCGCTGA", "CCGCTGA", "GTGGAAT", "GTGGAAT", "TATGCAC"]
         self.y_train = ["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"]
         self.detect_list = kmers.detect_kmers_across_sequences(self.X_train, 2)
@@ -56,7 +56,7 @@ class TestGetKmers(unittest.TestCase):
         bs_class = [0, 0, 0, 0, 3]
         genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 
-        classifier = phylotypy.Phylotypy()
+        classifier = phylotypy.Classify()
         classifier.n_levels = 3
         classifier.ref_genera = genera
         observed = classifier.consensus_bs_class(bs_class)

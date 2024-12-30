@@ -21,15 +21,19 @@ class Classify:
         self.detect_list = None
         self.ref_genera_idx = None
         self.boot = 100
-        self.save_db = True
+        self.save_db = False
         self.verbose = True
         self.n_levels = 6  # defaults levels down to genus
+        self.multi_processing = False
 
     def fit(self, X, y, kmer_size: int = 8, verbose: bool = False, **kwargs):
         self.verbose = verbose
         print("Fitting model")
         self.kmer_size = kmer_size
-        db_model = kmers.build_kmer_database(X, y, self.kmer_size, self.verbose)
+        db_model = kmers.build_kmer_database(X, y,
+                                             self.kmer_size,
+                                             self.verbose,
+                                             m_proc=self.multi_processing)
 
         self.model = db_model["conditional_prob"]
         self.ref_genera = db_model["genera_names"]
@@ -48,7 +52,9 @@ class Classify:
             self.boot: int = kwargs["boot"]
         # Convert each nucleotide sequence in the database to base4
         # Get a list of kmer indices for each sequence in the database, a list of lists
-        self.detect_list = kmers.detect_kmers_across_sequences(nuc_sequences, kmer_size, self.verbose)
+        self.detect_list = kmers.detect_kmers_across_sequences_mp(nuc_sequences,
+                                                                  kmer_size,
+                                                                  verbose=self.verbose)
         # Get the posteriors for each genera in the database
         posteriors = self.predict_(y_test)
         if self.verbose:

@@ -12,23 +12,23 @@ except ImportError:
 
 
 ##
-db_file_path = Path("../data/trainset19_072023_db.csv")
+db_file_path = Path("data/trainset19_072023_db.csv")
 db = pd.read_csv(db_file_path)
 
 # remove the trailing ; of the taxonomy string
 db = (db.assign(taxonomy=lambda df_: df_["taxonomy"].str.rstrip(";")))
 print(f"Size of the database: {db.shape}")
 
-X_ref, y_ref = db["sequences"].tolist(), db["taxonomy"].tolist()
+X_ref, y_ref = db["sequences"], db["taxonomy"]
 
 ##
 # Trains the model
-kmersize = 8
-classify = phylotypy.Phylotypy()
+kmer_size = 8
+classify = phylotypy.Classify()
 
 start = time.time()
 
-classify.fit(X_ref, y_ref, kmer_size=kmersize, verbose=True)
+classify.fit(X_ref, y_ref, kmer_size=kmer_size, verbose=True)
 classify.verbose = True
 
 end = time.time()

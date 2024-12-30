@@ -1,4 +1,5 @@
 import itertools
+import multiprocessing as mp
 import re
 from typing import Dict, Any
 
@@ -20,7 +21,10 @@ https://pubmed.ncbi.nlm.nih.gov/17586664/
 '''
 
 
-def build_kmer_database(sequences: list[str], genera: list[str], kmer_size: int = 8, verbose: bool = False):
+def build_kmer_database(sequences: list[str], genera: list[str],
+                        kmer_size: int = 8, verbose: bool = False,
+                        m_proc: bool = False,
+                        num_processes: int = mp.cpu_count()):
     """Creates a conditional probablity matrix from DNA sequences and associated genera or sequence ids.
 
     @param sequences: DNA seqeunce as strings in a list ["ATCGGA", "ATCGGA"]
@@ -29,16 +33,26 @@ def build_kmer_database(sequences: list[str], genera: list[str], kmer_size: int 
     @param verbose: set to True if you want to see the outputs
     @return: kmers database dictionary
     """
-    detected_kmers = detect_kmers_across_sequences(sequences, kmer_size=kmer_size)
+    if m_proc:
+        detected_kmers = detect_kmers_across_sequences_mp(sequences,
+                                                          kmer_size=kmer_size,
+                                                          num_processes=num_processes,
+                                                          verbose=verbose)
+    else:
+        detected_kmers = detect_kmers_across_sequences(sequences,
+                                                       kmer_size=kmer_size,
+                                                       verbose=verbose)
 
-    priors = calc_word_specific_priors(detected_kmers, kmer_size, verbose)
+    priors = calc_word_specific_priors(detected_kmers, kmer_size=kmer_size, verbose=verbose)
 
     genera_idx = genera_str_to_index(genera)
 
-    cond_prob = calc_genus_conditional_prob(detected_kmers, genera_idx, priors, verbose)
+    cond_prob = calc_genus_conditional_prob(detected_kmers, genera_idx, priors, verbose=verbose)
     genera_names = index_genus_mapper(genera)
 
-    return dict(conditional_prob=cond_prob, genera_idx=genera_idx, genera_names=genera_names)
+    return dict(conditional_prob=cond_prob,
+                genera_idx=genera_idx,
+                genera_names=genera_names)
 
 
 def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
@@ -91,7 +105,20 @@ def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: 
     return kmer_list
 
 
-def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = False):
+def detect_kmers_across_sequences_mp(sequences: list,
+                                     kmer_size: int = 8,
+                                     num_processes: int = 4,
+                                     verbose: bool = False) -> list:
+    if verbose:
+        print("Detecting kmers across sequences mp")
+    with mp.Pool(num_processes) as pool:
+        args_list = [(seq, kmer_size) for seq in sequences]
+        collected_results = pool.starmap_async(detect_kmers, args_list)
+        results = collected_results.get()
+    return results
+
+
+def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = False) -> np.ndarray:
     if verbose:
         print("Calculating word specific priors")
     # kmer_list = [item for sublist in detect_list for item in sublist]
@@ -129,8 +156,8 @@ def calc_genus_conditional_prob(detect_list: list,
     # (m(wi) + Pi) / (M + 1)
     wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
     m_1 = (genus_counts + 1)
-    genus_cond_prob = (wi_pi / m_1).astype(np.float32)
-    genus_cond_prob = np.log(genus_cond_prob)
+
+    genus_cond_prob = np.log((np.divide(wi_pi, m_1)).astype(np.float32))
 
     return np.round(genus_cond_prob, decimals=4, out=genus_cond_prob)
 
@@ -312,4 +339,4 @@ def base4_to_nucleotide(base4_seq: str | list):
 
 
 if __name__ == "__main__":
-    pass
+    mp.freeze_support()

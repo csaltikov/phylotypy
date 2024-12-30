@@ -107,6 +107,10 @@ class TestGetKmers(unittest.TestCase):
 
         self.assertTrue(np.array_equal(detect_list, expected))
 
+        detect_list_mp = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size, 6)
+        self.assertTrue(np.array_equal(detect_list_mp, expected))
+
+
     def test_calc_word_specific_priors(self):
         """Test Calcuate word specific priors"""
         kmer_size = 3
