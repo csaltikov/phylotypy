@@ -6,8 +6,12 @@ from sklearn.metrics import accuracy_score
 from sklearn.model_selection import train_test_split
 
 
-from phylotypy import kmers
-from phylotypy import phylotypy
+try:
+    import phylotypy.kmers as kmers
+    import phylotypy.phylotypy as phylotypy
+except ImportError:
+    import kmers
+    import phylotypy
 
 
 class TestGetKmers(unittest.TestCase):

@@ -1,3 +1,4 @@
+import itertools
 import re
 from typing import Dict, Any
 
@@ -19,7 +20,15 @@ https://pubmed.ncbi.nlm.nih.gov/17586664/
 '''
 
 
-def build_kmer_database(sequences: list, genera: list, kmer_size: int = 8, verbose: bool = False):
+def build_kmer_database(sequences: list[str], genera: list[str], kmer_size: int = 8, verbose: bool = False):
+    """Creates a conditional probablity matrix from DNA sequences and associated genera or sequence ids.
+
+    @param sequences: DNA seqeunce as strings in a list ["ATCGGA", "ATCGGA"]
+    @param genera: list of genera for building a model or list of ids for predicting genera
+    @param kmer_size: the 'chunck' size of DNA, 8 nucleotide kmers are the default
+    @param verbose: set to True if you want to see the outputs
+    @return: kmers database dictionary
+    """
     detected_kmers = detect_kmers_across_sequences(sequences, kmer_size=kmer_size)
 
     priors = calc_word_specific_priors(detected_kmers, kmer_size, verbose)
@@ -33,10 +42,7 @@ def build_kmer_database(sequences: list, genera: list, kmer_size: int = 8, verbo
 
 
 def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
-    kmer_list: list = []
-    for i in range(len(sequence) - kmer_size + 1):
-        kmer_list.append(sequence[i: i + kmer_size])
-    return kmer_list
+    return [sequence[i: i + kmer_size] for i in range(len(sequence) - kmer_size + 1)]
 
 
 def seq_to_base4(sequence: str | list):
@@ -62,13 +68,7 @@ def seq_to_base4(sequence: str | list):
 
 def base4_to_index(base4_str: list) -> list:
     """Converts base4 string to a numpy array of indices"""
-    keep_kmers: list = []
-    # Ignore kmers with N, can't convert those to base10
-    for item in base4_str:
-        if "N" not in item:
-            keep_kmers.append(str(item))
-    # Each base4 kmer has a unique number
-    converted_list = [int(s, 4) for s in keep_kmers]
+    converted_list: list = [int(item, 4) for item in base4_str if "N" not in item]
     return converted_list
 
 
@@ -86,17 +86,16 @@ def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: 
         print("Detecting kmers across sequences")
     n_sequences = len(sequences)
     kmer_list: list = [None] * n_sequences
-
     for i, seq in enumerate(sequences):
         kmer_list[i] = detect_kmers(seq, kmer_size)
-
     return kmer_list
 
 
-def calc_word_specific_priors(detect_list, kmer_size, verbose: bool = False):
+def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = False):
     if verbose:
         print("Calculating word specific priors")
-    kmer_list = [item for sublist in detect_list for item in sublist]
+    # kmer_list = [item for sublist in detect_list for item in sublist]
+    kmer_list = list(itertools.chain(*detect_list))
     n_seqs = len(detect_list)
     kmer_idx, counts = np.unique(kmer_list, return_counts=True)
     priors = np.zeros(4 ** kmer_size)
@@ -111,28 +110,29 @@ def calc_genus_conditional_prob(detect_list: list,
                                 verbose: bool = False) -> np.array:
     if verbose:
         print("Calculating genus conditional probability")
-    genus_arr = np.array(genera)  # put the list of genera into an array
+    genus_arr = np.array(genera)  # indices not the taxa names
     genus_counts = np.unique(genus_arr, return_counts=True)[1]  # get counts of each unique genera
-    n_genera = len(genus_counts)  # get number of unique genera
+    n_genera = len(genus_counts)
     n_sequences = len(genera)
     n_kmers = len(word_specific_priors)
 
-    # Create an array with zeros, rows are kmer indicies, columns number of unique genera
-    genus_count = np.zeros((n_kmers, n_genera))
+    # Create an array with zeros, rows are kmer indices, columns number of unique genera
+    genus_count = np.zeros((n_kmers, n_genera), dtype=np.float32)
 
     # loop through the incoming genera
     # i is a specific organism
     # get the list of kmer indices and fill in 1 or 0
     for i in range(n_sequences):
         genus_count[detect_list[i], genera[i]] = genus_count[detect_list[i], genera[i]] + 1
-
+        # np.add.at(genus_count, (detect_list[i], genera[i]), 1)
     # Calculate the likelihood for a genus to have a specific kmer
     # (m(wi) + Pi) / (M + 1)
-    wi_pi = (genus_count + np.array(word_specific_priors).reshape(-1, 1)).T
-    m_1 = (genus_counts + 1).reshape(-1, 1)
-    genus_cond_prob = (wi_pi / m_1).T
+    wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
+    m_1 = (genus_counts + 1)
+    genus_cond_prob = (wi_pi / m_1).astype(np.float32)
+    genus_cond_prob = np.log(genus_cond_prob)
 
-    return genus_cond_prob
+    return np.round(genus_cond_prob, decimals=4, out=genus_cond_prob)
 
 
 def genera_str_to_index(genera: list) -> list:
@@ -144,7 +144,7 @@ def genera_str_to_index(genera: list) -> list:
     return genera_factors
 
 
-def index_genus_mapper(genera_list: list) -> dict:
+def index_genus_mapper(genera_list: list):
     # Create a dictionary mapping unique values to integers
     unique_genera = np.unique(genera_list)
     # return factor_map
@@ -156,18 +156,32 @@ def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
     return np.random.choice(kmers, n_kmers, replace=True)
 
 
-def classify_bs(kmer_index: list, db):
-    """Screens a tests sequence against all classes in the model"""
-    model_mask = db["conditional_prob"][kmer_index, :]
-    class_log = np.log(model_mask)
-    class_sum = np.sum(class_log, axis=0, keepdims=True)
-    max_idx = np.argmax(class_sum)
+def bootstrap(kmer_index: list, n_bootstraps: int = 100):
+    n_samples = len(kmer_index) // 8
+    kmer_sample_arr = np.empty((n_bootstraps, n_samples), dtype=int)
+    for i in range(n_bootstraps):
+        kmer_sample_arr[i, :] = np.random.choice(kmer_index, size=n_samples, replace=True)
+    return kmer_sample_arr
 
+
+def classify_bs(kmer_index: list, db):
+    """Classify a single bootstrap sample of kmers from a sample"""
+    model_mask = db["conditional_prob"][kmer_index, :]
+    class_sum = np.sum(model_mask, axis=0)
+    max_idx = np.argmax(class_sum)
     return max_idx
 
 
+def classify_bootstraps(bs_indices: np.array, db: dict):
+    """"Classify an array of kmer bootstraps from a sample"""
+    def get_max(indices):
+        max_ids = np.argmax(np.sum(db["conditional_prob"][indices, :], axis=0))
+        return max_ids
+    return np.apply_along_axis(get_max, axis=1, arr=bs_indices)
+
+
 def consensus_bs_class(bs_class: np.array, db) -> dict[str, list | Any]:
-    # Convert the indices in the bootstrap array to taxonomy
+    """Convert the indices in the bootstrap array to taxonomy"""
     taxonomy: np.array = db["genera"][bs_class]
     # sometimes taxonomy is empty or has "none" value
     mask = taxonomy != None
@@ -177,7 +191,7 @@ def consensus_bs_class(bs_class: np.array, db) -> dict[str, list | Any]:
 
     def cumulative_join(col):
         join_taxa = [";".join(col[:i + 1]) for i in range(len(col))]
-        return join_taxa
+        return np.array(join_taxa, dtype='<U300')
 
     taxa_cum_join_arr = np.apply_along_axis(cumulative_join, 1, taxonomy_split)
 
@@ -190,14 +204,14 @@ def consensus_bs_class(bs_class: np.array, db) -> dict[str, list | Any]:
 def get_consensus(taxa_cumm_join_arr: np.ndarray):
     """Helper for consensus_bs_class determines best taxon and confidence level"""
     # get best ID and score for each column of the taxa array
-    taxonomy_table = np.unique(taxa_cumm_join_arr, return_counts=True)
-    max_id = np.argmax(taxonomy_table[1])
+    taxonomy, counts = np.unique(taxa_cumm_join_arr, return_counts=True)
+    max_id = np.argmax(counts)
 
     id_fraction_arr = np.full(2, fill_value=["unclassified", 0], dtype=list)
 
-    fraction = taxonomy_table[1][max_id].item() / taxonomy_table[1].sum()
+    fraction = counts[max_id].item() / counts.sum()
 
-    id_fraction_arr[0] = taxonomy_table[0][max_id].item()
+    id_fraction_arr[0] = taxonomy[max_id].item()
     id_fraction_arr[1] = int(100 * fraction)
 
     return id_fraction_arr
@@ -216,7 +230,6 @@ def filter_taxonomy(classification: dict, min_confidence: float = 80) -> Dict:
     else:
         taxonomy = classification["taxonomy"][high_confidence]
         confidence = classification["confidence"][high_confidence]
-
     return dict(
         taxonomy=taxonomy,
         confidence=confidence
@@ -250,3 +263,53 @@ def print_taxonomy_unsplit(taxonomy, n_levels=6):
     updated_taxonomy = taxonomy_split + [f"{last_taxa}_unclassified"] * (n_levels - n_taxa_levels)
     return ";".join(updated_taxonomy)
 
+
+def fix_taxonomy(taxa_string: str, n_levels: int = 6) -> str:
+    taxa_string = taxa_string.rstrip(";")
+    original_levels = taxa_string.count(";") + 1
+    given_levels = original_levels
+    extra_levels = n_levels - given_levels
+    taxonomy = taxa_string.split(";")
+    last_taxa = taxonomy[-1]
+    unclassified = f"{last_taxa}_unclassified"
+    taxonomy = taxonomy + [unclassified] * extra_levels
+    updated_classification = ";".join(taxonomy)
+    return updated_classification
+
+
+def get_ref_genera(genera: list):
+    genera_names = index_genus_mapper(genera)
+    return genera_names
+
+
+def base10_base4(kmer: int, kmer_size: int = 8) -> str:
+    base4: str = ""
+    i = 1
+    while i <= kmer_size:
+        kmer, remainder = divmod(kmer, 4)
+        base4 += str(remainder)
+        i += 1
+    return base4[::-1]
+
+
+def base4_to_nucleotide(base4_seq: str | list):
+    def convert_base4(base4_str: str):
+        dna = "ACGT"
+        base4 = "0123"
+        translation_mapping = base4_str.maketrans(base4, dna)
+        return base4_str.translate(translation_mapping)
+
+    # check if 'sequence' is list or string
+    if isinstance(base4_seq, str):
+        return convert_base4(base4_seq)
+    elif isinstance(base4_seq, list):
+        converted = []
+        for seq in base4_seq:
+            converted.append(convert_base4(seq))
+        return converted
+    else:
+        raise ValueError(f"Input should be a list or string")
+
+
+if __name__ == "__main__":
+    pass

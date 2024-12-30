@@ -5,7 +5,11 @@ import time
 
 import pandas as pd
 
-import phylotypy
+try:
+    import phylotypy
+except ImportError:
+    import phylotypy.phylotypy as phylotypy
+
 
 ##
 db_file_path = Path("../data/trainset19_072023_db.csv")

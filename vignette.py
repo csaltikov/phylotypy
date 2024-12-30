@@ -16,23 +16,15 @@ or do it yourself another way.
 """
 
 db_file_path = Path("data/trainset19_072023_db.csv")
-db_test = pd.read_csv(db_file_path)
-
-# remove the trailing ; of the taxonomy string
-db_test = (db_test.assign(taxonomy=lambda df_: df_["taxonomy"].str.rstrip(";")
-                          )
-           )
-print(f"Size of the database: {db_test.shape}")
-
-##
-X_ref, y_ref = db_test["sequences"].tolist(), db_test["taxonomy"].tolist()
+db = pd.read_csv(db_file_path)
+print(f"Size of the database: {db.shape}")
 
 ##
 # Reload the module in case I edit the code
 kmer_size = 8
-classify = phylotypy.Phylotypy()
+classify = phylotypy.Classify()
 start = time.time()
-classify.fit(X_ref, y_ref, kmer_size=kmer_size, verbose=True)
+classify.fit(db["sequences"], db["taxonomy"], kmer_size=kmer_size, verbose=True)
 classify.verbose = False
 end = time.time()
 print(f"Run time {(end - start):.1f} seconds")
@@ -43,8 +35,8 @@ print(f"Run time {(end - start):.1f} seconds")
 moving_pic = fasta_to_dataframe("data/dna_moving_pictures.fasta")
 
 # prepare the sequences and sequence name lists
-X_mov_pic = moving_pic["Sequence"].to_list()
-y_mov_pic = moving_pic["SequenceName"].to_list()
+X_mov_pic = moving_pic["Sequence"]
+y_mov_pic = moving_pic["SequenceName"]
 
 # Classify
 predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)
