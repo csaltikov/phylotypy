@@ -1,4 +1,6 @@
+from collections import defaultdict
 from pathlib import Path
+import re
 
 from Bio import SeqIO, Seq
 import pandas as pd
@@ -53,22 +55,20 @@ def fasta_to_dataframe(fasta_file, **kwargs):
     - pandas DataFrame: DataFrame containing sequence names and sequences.
     """
     # Initialize lists to store sequence names and sequences
-    seq_names = []
-    seq_sequences = []
+    seq_id_dict = defaultdict(list)
 
     # Iterate over sequences in the FASTA file
     for record in SeqIO.parse(fasta_file, "fasta"):
         # Append sequence name and sequence to lists
-        seq_names.append(record.id)
-        sequence = str(record.seq)
+        seq_id_dict["id"].append(record.id)
+        seq_id_dict["sequence"].append(str(record.seq))
         if "translate" in kwargs:
             if kwargs["translate"]:
-                sequence = translate_sequence(sequence)
-        seq_sequences.append(sequence)
+                sequence = translate_sequence(str(record.seq))
+                seq_id_dict["protein"].append(sequence)
 
     # Create a DataFrame from the lists
-    df = pd.DataFrame({'SequenceName': seq_names,
-                       'Sequence': seq_sequences})
+    df = pd.DataFrame(seq_id_dict)
     if "gene" in kwargs:
         df["gene"] = kwargs["gene"]
         return df
@@ -82,11 +82,16 @@ def taxa_to_dataframe(taxa_file):
         print("Taxa file not found")
         return None
     taxa_table_df = pd.read_csv(file_path, sep="\t", names=["accession", "taxonomy"])
-    taxa_levels = ["Domain", "Phylum", "Class", "Order", "Family", "Genus", "_"]
+    taxa_levels = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "_"]
     taxa_table_df[taxa_levels] = taxa_table_df['taxonomy'].str.split(';', expand=True)
     taxa_table_df['taxonomy'] = taxa_table_df['taxonomy'].str.rstrip(';')
     taxa_table_df.drop(["_"], axis="columns", inplace=True)
     return taxa_table_df
+
+
+def fix_qiime_taxa(taxa_string):
+    taxonomy = re.sub(r"\w__", "", taxa_string)
+    return taxonomy
 
 
 def convert_dict_keys_to_int(d):

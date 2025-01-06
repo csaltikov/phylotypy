@@ -8,6 +8,12 @@ class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
         self.kmers = kmers
         self.sequence = "ATGCGCTAGTAGCATGC"
+        self.expected_cond_prods = {
+            25: (np.array([1, 2]) + 0.875) / (np.array([1, 2]) + 1),  # [0.9375, 0.95833333]
+            28: (np.array([1, 0]) + 0.375) / (np.array([1, 2]) + 1),  # [0.6875, 0.125 ]
+            29: (np.array([0, 2]) + 0.625) / (np.array([1, 2]) + 1),  # [0.3125, 0.875 ]
+            62: (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)   # [0.0625, 0.04166667]
+        }
 
     def test_get_all_kmers(self):
         """Test that can extract all possible 8-mers from a sequence"""
@@ -39,9 +45,9 @@ class TestGetKmers(unittest.TestCase):
         base4_seq = kmers.seq_to_base4(self.sequence)
         self.assertEqual(base4_seq, expected, msg="base4_seq is not equal to expected")
 
-        seq_with_R = "ATGCGCTRGTAGCATGC"
+        seq_with_r = "ATGCGCTRGTAGCATGC"
         expected = "0321213N230210321"
-        base4_seq = kmers.seq_to_base4(seq_with_R)
+        base4_seq = kmers.seq_to_base4(seq_with_r)
         self.assertEqual(base4_seq, expected, msg="base4_seq is not equal to expected")
 
         seq_lower = "ATGCGCTRGTAGCATGC".lower()
@@ -110,7 +116,6 @@ class TestGetKmers(unittest.TestCase):
         detect_list_mp = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size, 6)
         self.assertTrue(np.array_equal(detect_list_mp, expected))
 
-
     def test_calc_word_specific_priors(self):
         """Test Calcuate word specific priors"""
         kmer_size = 3
@@ -143,20 +148,13 @@ class TestGetKmers(unittest.TestCase):
 
         # (m(wi) + Pi) / (M + 1)
 
-        expected_cond_prods = {
-            25: (np.array([1, 2]) + 0.875) / (np.array([1, 2]) + 1),  # [0.9375, 0.95833333]
-            28: (np.array([1, 0]) + 0.375) / (np.array([1, 2]) + 1),  # [0.6875, 0.125 ]
-            29: (np.array([0, 2]) + 0.625) / (np.array([1, 2]) + 1),  # [0.3125, 0.875 ]
-            62: (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)   # [0.0625, 0.04166667]
-        }
-
         conditional_prob = kmers.calc_genus_conditional_prob(detect_list,
                                                              genera,
                                                              priors)
 
-        for pos, cond_prod in expected_cond_prods.items():
+        for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
-            self.assertTrue(np.array_equal(conditional_prob[pos,], np.round(log_cond_prod, 4).astype(np.float32)))
+            self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
 
     def test_build_kmer_database(self):
         kmer_size = 3
@@ -166,20 +164,15 @@ class TestGetKmers(unittest.TestCase):
         # list
         db = kmers.build_kmer_database(sequences, genera, kmer_size)
 
-        cond_prods = {
-            25: (np.array([1, 2]) + 0.875) / (np.array([1, 2]) + 1),
-            28: (np.array([1, 0]) + 0.375) / (np.array([1, 2]) + 1),
-            29: (np.array([0, 2]) + 0.625) / (np.array([1, 2]) + 1),
-            62: (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)
-        }
+        for pos, cond_prod in self.expected_cond_prods.items():
+            log_cond_prod = np.log(cond_prod).astype(np.float16)
+            print(log_cond_prod, db.conditional_prob[pos,])
+            self.assertTrue(np.array_equal(db.conditional_prob[pos,],
+                                           log_cond_prod)
+                            )
 
-        for pos, cond_prod in cond_prods.items():
-            log_cond_prod = np.log(cond_prod)
-            self.assertTrue(np.array_equal(db["conditional_prob"][pos,],
-                                           np.round(log_cond_prod, 4).astype(np.float32)))
-
-        self.assertEqual(db["genera_names"][0], "A")
-        self.assertEqual(db["genera_names"][1], "B")
+        self.assertEqual(db.genera_names[0], "A")
+        self.assertEqual(db.genera_names[1], "B")
 
     def test_create_kmer_database(self):
         kmer_size = 3
@@ -187,39 +180,39 @@ class TestGetKmers(unittest.TestCase):
         genera = ["A", "B", "B"]
         db = kmers.build_kmer_database(sequences, genera, kmer_size)
 
-        observed = db["conditional_prob"][25, ]  # np.array
+        observed = db.conditional_prob[25, ]  # np.array
         expected = (np.array([1, 2], dtype=float) + 0.875) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.round(np.log(expected), 4).astype(np.float32)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
 
-        observed = db["conditional_prob"][28,]  # np.array
+        observed = db.conditional_prob[28,]  # np.array
         expected = (np.array([1, 0]) + 0.375) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.round(np.log(expected), 4).astype(np.float32)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
 
-        observed = db["conditional_prob"][29,]  # np.array
+        observed = db.conditional_prob[29,]  # np.array
         expected = (np.array([0, 2]) + 0.625) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.round(np.log(expected), 4).astype(np.float32)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
 
-        observed = db["conditional_prob"][63,]  # np.array
+        observed = db.conditional_prob[63,]  # np.array
         expected = (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.round(np.log(expected), 4).astype(np.float32)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
 
-        observed = db["genera_idx"][0]
+        observed = db.genera_idx[0]
         expected = 0
         self.assertTrue(np.array_equal(observed, expected))
 
-        observed = db["genera_idx"][1]
+        observed = db.genera_idx[1]
         expected = 1
         self.assertTrue(np.array_equal(observed, expected))
 
-        observed = db["genera_idx"][2]
+        observed = db.genera_idx[2]
         expected = 1
         self.assertTrue(np.array_equal(observed, expected))
 
-        observed = db["genera_names"][0]
+        observed = db.genera_names[0]
         expected = "A"
         self.assertTrue(np.array_equal(observed, expected))
 
-        observed = db["genera_names"][1]
+        observed = db.genera_names[1]
         expected = "B"
         self.assertTrue(np.array_equal(observed, expected))
 
@@ -262,8 +255,7 @@ class TestGetKmers(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_consensus_classified_bootstrap_samples(self):
-        db = dict()
-        db["genera"] = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
+        ref_genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 
         bs_class = np.array([0, 0, 0, 0, 3], dtype=int)
 
@@ -271,7 +263,7 @@ class TestGetKmers(unittest.TestCase):
         expected["taxonomy"] = np.array(["A", "a", "A"])
         expected["confidence"] = np.array([100, 80, 80])
 
-        observed = kmers.consensus_bs_class(bs_class, db)
+        observed = kmers.consensus_bs_class(bs_class, ref_genera)
         print(observed["taxonomy"])
         self.assertTrue(np.array_equal(expected["confidence"], observed["confidence"]))
 
@@ -302,18 +294,17 @@ class TestGetKmers(unittest.TestCase):
 
         self.assertEqual(expected, tax_string)
 
-        bacteroidales = dict(taxonomy=np.array(["Bacteria", "Bacteroidota", "Bacteroidia", "Bacteroidales"]),
-                             confidence=np.array([100, 100, 97, 97]))
+        # bacteroidales = dict(taxonomy=np.array(["Bacteria", "Bacteroidota", "Bacteroidia", "Bacteroidales"]),
+        #                      confidence=np.array([100, 100, 97, 97]))
 
     def test_consensus_bs_to_print_taxonomy(self):
-        db = dict()
-        db["genera"] = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
+        ref_genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 
         bs_class = np.array([0, 0, 0, 2, 3], dtype=int)
 
         expected = "A(100);a(80);a_unclassified(80)"
 
-        classified = kmers.consensus_bs_class(bs_class, db)
+        classified = kmers.consensus_bs_class(bs_class, ref_genera)
         filtered_classified = kmers.filter_taxonomy(classified)
         tax_string = kmers.print_taxonomy(filtered_classified, n_levels=3)
 
@@ -329,6 +320,12 @@ class TestGetKmers(unittest.TestCase):
 
         observed = kmers.base4_to_nucleotide(my_base4)
         self.assertEqual(my_seq, observed)
+
+    def test_genera_str_to_index(self):
+        genera = ["A;a;A", "A;a;B", "A;a;C", "A;a;A", "A;a;B", "A;b;C"]
+        observed: list = kmers.genera_str_to_index(genera)
+        expected: list = [0, 1, 2, 0, 1, 3]
+        self.assertEqual(expected, observed)
 
 
 if __name__ == '__main__':

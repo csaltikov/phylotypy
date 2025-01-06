@@ -18,9 +18,11 @@ class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
         self.classifier = phylotypy.Classify()
         self.X_train = ["CCGCTGA", "CCGCTGA", "GTGGAAT", "GTGGAAT", "TATGCAC"]
-        self.y_train = ["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"]
-        self.detect_list = kmers.detect_kmers_across_sequences(self.X_train, 2)
-        # self.db = kmers.build_kmer_database(self.X_train, self.y_train, 2)
+        self.y_train = ["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B"]
+        self.detect_list = kmers.detect_kmers_across_sequences(self.X_train, 2, verbose=True)
+        self.priors = kmers.calc_word_specific_priors(self.detect_list, kmer_size=2)
+        self.genera_idx = kmers.genera_str_to_index(self.y_train)
+        self.db = kmers.build_kmer_database(self.X_train, self.y_train, 2)
 
     def test_classifier_fit(self):
         kmer_size = 3
@@ -49,6 +51,22 @@ class TestGetKmers(unittest.TestCase):
         expected = "B;C;d"
         self.assertEqual(observed, expected)
 
+    def test_classifier_predict(self):
+        self.classifier = phylotypy.Classify()
+        self.classifier.n_levels = 3
+        kmer_size = 4
+        sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
+        genera = ["A;B;c", "B;C;d", "B;C;d"]
+        self.classifier.fit(sequences, genera, kmer_size=kmer_size)
+
+        X = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC", "ATGCGCTA"]
+        y = ["A;B;c", "B;C;d", "B;C;d", "unk"]
+
+        predicted = self.classifier.predict(X, y)
+
+        expected = ['A(100);B(100);c(100)', 'A(100);B(100);c(100)', 'A(100);B(100);c(100)', 'A(100);B(100);c(100)']
+
+        self.assertEqual(expected, predicted["classification"])
 
     def test_classifier_bootstrap(self):
         # TODO

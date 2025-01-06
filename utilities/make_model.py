@@ -28,7 +28,7 @@ classify = phylotypy.Classify()
 
 start = time.time()
 
-classify.fit(X_ref, y_ref, kmer_size=kmer_size, verbose=True)
+classify.fit(X_ref, y_ref, kmer_size=kmer_size)
 classify.verbose = True
 
 end = time.time()

@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 import itertools
 import multiprocessing as mp
 import re
@@ -21,15 +22,24 @@ https://pubmed.ncbi.nlm.nih.gov/17586664/
 '''
 
 
+@dataclass(slots=True)
+class KmerDB:
+    conditional_prob: np.ndarray
+    genera_idx: list
+    genera_names: np.ndarray
+
+
 def build_kmer_database(sequences: list[str], genera: list[str],
                         kmer_size: int = 8, verbose: bool = False,
                         m_proc: bool = False,
-                        num_processes: int = mp.cpu_count()):
+                        num_processes: int = mp.cpu_count()) -> KmerDB:
     """Creates a conditional probablity matrix from DNA sequences and associated genera or sequence ids.
 
     @param sequences: DNA seqeunce as strings in a list ["ATCGGA", "ATCGGA"]
     @param genera: list of genera for building a model or list of ids for predicting genera
-    @param kmer_size: the 'chunck' size of DNA, 8 nucleotide kmers are the default
+    @param kmer_size: the 'chunk' size of DNA, 8 nucleotide kmers are the default
+    @param m_proc: whether to use multiprocessing or not
+    @param num_processes: the number of processes to use
     @param verbose: set to True if you want to see the outputs
     @return: kmers database dictionary
     """
@@ -50,9 +60,7 @@ def build_kmer_database(sequences: list[str], genera: list[str],
     cond_prob = calc_genus_conditional_prob(detected_kmers, genera_idx, priors, verbose=verbose)
     genera_names = index_genus_mapper(genera)
 
-    return dict(conditional_prob=cond_prob,
-                genera_idx=genera_idx,
-                genera_names=genera_names)
+    return KmerDB(conditional_prob=cond_prob, genera_idx=genera_idx, genera_names=genera_names)
 
 
 def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
@@ -132,15 +140,15 @@ def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = Fals
 
 
 def calc_genus_conditional_prob(detect_list: list,
-                                genera: list,
+                                genera_idx: list,
                                 word_specific_priors,
-                                verbose: bool = False) -> np.array:
+                                verbose: bool = False) -> np.ndarray:
     if verbose:
         print("Calculating genus conditional probability")
-    genus_arr = np.array(genera)  # indices not the taxa names
-    genus_counts = np.unique(genus_arr, return_counts=True)[1]  # get counts of each unique genera
+    # genus_arr = np.array(genera_idx)  # indices not the taxa names
+    genus_counts = np.unique(genera_idx, return_counts=True)[1]  # get counts of each unique genera
     n_genera = len(genus_counts)
-    n_sequences = len(genera)
+    n_sequences = len(genera_idx)
     n_kmers = len(word_specific_priors)
 
     # Create an array with zeros, rows are kmer indices, columns number of unique genera
@@ -150,22 +158,22 @@ def calc_genus_conditional_prob(detect_list: list,
     # i is a specific organism
     # get the list of kmer indices and fill in 1 or 0
     for i in range(n_sequences):
-        genus_count[detect_list[i], genera[i]] = genus_count[detect_list[i], genera[i]] + 1
+        genus_count[detect_list[i], genera_idx[i]] = genus_count[detect_list[i], genera_idx[i]] + 1
         # np.add.at(genus_count, (detect_list[i], genera[i]), 1)
     # Calculate the likelihood for a genus to have a specific kmer
     # (m(wi) + Pi) / (M + 1)
     wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
     m_1 = (genus_counts + 1)
 
-    genus_cond_prob = np.log((np.divide(wi_pi, m_1)).astype(np.float32))
+    genus_cond_prob = np.log(np.divide(wi_pi, m_1)).astype(np.float16)
 
-    return np.round(genus_cond_prob, decimals=4, out=genus_cond_prob)
+    return genus_cond_prob
 
 
 def genera_str_to_index(genera: list) -> list:
     # Create a dictionary mapping unique values to integers
     unique_genera = np.unique(genera)
-    factor_map = {val: idx for idx, val in enumerate(unique_genera)}
+    factor_map = {genus: idx for idx, genus in enumerate(unique_genera)}
     # Convert genera to factors using the mapping
     genera_factors = [factor_map[val] for val in genera]
     return genera_factors
@@ -193,23 +201,23 @@ def bootstrap(kmer_index: list, n_bootstraps: int = 100):
 
 def classify_bs(kmer_index: list, db):
     """Classify a single bootstrap sample of kmers from a sample"""
-    model_mask = db["conditional_prob"][kmer_index, :]
+    model_mask = db.conditional_prob[kmer_index, :]
     class_sum = np.sum(model_mask, axis=0)
     max_idx = np.argmax(class_sum)
     return max_idx
 
 
-def classify_bootstraps(bs_indices: np.array, db: dict):
+def classify_bootstraps(bs_indices: np.array, db: KmerDB):
     """"Classify an array of kmer bootstraps from a sample"""
     def get_max(indices):
-        max_ids = np.argmax(np.sum(db["conditional_prob"][indices, :], axis=0))
+        max_ids = np.argmax(np.sum(db.conditional_prob[indices, :], axis=0))
         return max_ids
     return np.apply_along_axis(get_max, axis=1, arr=bs_indices)
 
 
-def consensus_bs_class(bs_class: np.array, db) -> dict[str, list | Any]:
+def consensus_bs_class(bs_class: np.array, ref_genera: list) -> dict[str, list | Any]:
     """Convert the indices in the bootstrap array to taxonomy"""
-    taxonomy: np.array = db["genera"][bs_class]
+    taxonomy: np.array = ref_genera[bs_class]
     # sometimes taxonomy is empty or has "none" value
     mask = taxonomy != None
     taxonomy_filtered = taxonomy[mask]
@@ -229,7 +237,7 @@ def consensus_bs_class(bs_class: np.array, db) -> dict[str, list | Any]:
 
 
 def get_consensus(taxa_cumm_join_arr: np.ndarray):
-    """Helper for consensus_bs_class determines best taxon and confidence level"""
+    """Helper for consensus_bs_class to find the best taxon and confidence level"""
     # get best ID and score for each column of the taxa array
     taxonomy, counts = np.unique(taxa_cumm_join_arr, return_counts=True)
     max_id = np.argmax(counts)

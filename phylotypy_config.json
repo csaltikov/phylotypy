@@ -1,0 +1,8 @@
+{
+    "model_file": "data/model_raw.rbf",
+    "genera": "data/ref_genera.npy",
+    "model_shape": [
+        65536,
+        3883
+    ]
+}

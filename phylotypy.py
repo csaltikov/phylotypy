@@ -26,8 +26,7 @@ class Classify:
         self.n_levels = 6  # defaults levels down to genus
         self.multi_processing = False
 
-    def fit(self, X, y, kmer_size: int = 8, verbose: bool = False, **kwargs):
-        self.verbose = verbose
+    def fit(self, X, y, kmer_size: int = 8, **kwargs):
         print("Fitting model")
         self.kmer_size = kmer_size
         db_model = kmers.build_kmer_database(X, y,
@@ -35,14 +34,14 @@ class Classify:
                                              self.verbose,
                                              m_proc=self.multi_processing)
 
-        self.model = db_model["conditional_prob"]
-        self.ref_genera = db_model["genera_names"]
-        self.ref_genera_idx = db_model["genera_idx"]
+        self.model = db_model.conditional_prob
+        self.ref_genera = db_model.genera_names
+        self.ref_genera_idx = db_model.genera_idx
         print("Done fitting model")
 
         # Save config file
         if self.save_db:
-            db_model["conditional_prob"].tofile("model_raw.rbf")
+            db_model.conditional_prob.tofile("model_raw.rbf")
             np.save("ref_genera.npy", self.ref_genera)
             json_config = kwargs.get('config', "phylotypy_config.json")
             self.save_config(json_config)
@@ -82,7 +81,7 @@ class Classify:
 
             try:
                 # Classify boostrap samples
-                classification = self.consensus_bs_class(max_idx_arr)
+                classification = kmers.consensus_bs_class(max_idx_arr, self.ref_genera)
 
                 # Filter classification by min confidence score
                 classification_filtered = kmers.filter_taxonomy(classification, min_confid)

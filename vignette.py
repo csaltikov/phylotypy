@@ -5,7 +5,7 @@ import time
 
 import pandas as pd
 
-from utilities import fasta_to_dataframe
+from utilities import utilities
 import phylotypy
 
 if __name__ == "__main__":
@@ -28,19 +28,20 @@ if __name__ == "__main__":
     classify = phylotypy.Classify()
     classify.multi_processing = True
     start = time.time()
-    classify.fit(db["sequences"], db["taxonomy"], kmer_size=kmer_size, verbose=True)
-    classify.verbose = False
+    classify.fit(db["sequences"], db["taxonomy"], kmer_size=kmer_size)
     end = time.time()
     print(f"Run time {(end - start):.1f} seconds")
 
     ##
     # Classifying QIIME2 Moving Pictures rep-seqs-dada2.qza
     # https://docs.qiime2.org/2024.2/tutorials/moving-pictures/
-    moving_pic = fasta_to_dataframe("data/dna_moving_pictures.fasta")
+    moving_pic = utilities.fasta_to_dataframe("data/dna_moving_pictures.fasta")
 
     # prepare the sequences and sequence name lists
-    X_mov_pic = moving_pic["Sequence"]
-    y_mov_pic = moving_pic["SequenceName"]
+    X_mov_pic = moving_pic["sequence"]
+    y_mov_pic = moving_pic["id"]
+
+    ##
 
     # Classify
     predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)
@@ -51,11 +52,11 @@ if __name__ == "__main__":
 
     ##
     # Testing a single organism sequences
-    orio = fasta_to_dataframe("data/orio_16s.txt")  # pd.Dataframe
+    orio = utilities.fasta_to_dataframe("data/orio_16s.txt")  # pd.Dataframe
 
     # prepare the sequences and sequence name lists
-    X_unk = orio["Sequence"]
-    y_unk = orio["SequenceName"]
+    X_unk = orio["sequence"]
+    y_unk = orio["id"]
 
     # Classify the sequence
     predict_orio = classify.predict(X_unk, y_unk)
