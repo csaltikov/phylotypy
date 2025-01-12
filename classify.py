@@ -21,7 +21,21 @@ except ImportError:
 
 
 # Argparse setup
-parser = argparse.ArgumentParser(description='Classify sequences using a model')
+parser = argparse.ArgumentParser(
+    description='Classify sequences using a preformatted naïve Bayes classifier.',
+    epilog='''Example:
+        python classify.py -m models/silva/model_config.json -f data/fg_sequences.fasta -o results/fg_classified.csv
+
+        Output: 
+                 id                                     classification
+        0  ASV1  d__Bacteria(100);p__Firmicutes(100);c__Clostri...
+        1  ASV2  d__Bacteria(100);p__Firmicutes(100);c__Clostri...
+        2  ASV3  d__Bacteria(100);p__Bacteroidota(100);c__Bacte...
+        3  ASV4  d__Bacteria(100);p__Firmicutes(100);c__Clostri...
+        4  ASV5  d__Bacteria(100);p__Actinobacteriota(100);c__A...''',
+    formatter_class=argparse.RawDescriptionHelpFormatter
+                                 )
+
 parser.add_argument('-m', '--model', required=True, help='Path to the reference database config json file')
 parser.add_argument('-f', '--fasta', required=True, help='Path to the input FASTA file')
 parser.add_argument('-o', '--output', required=True, help='Path to the output CSV file')
@@ -173,20 +187,6 @@ taxa_levels = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus']
 
 ##
 if __name__ == "__main__":
-    """
-    Example:
-    python classify.py -m models/silva/model_config.json -f data/fg_sequences.fasta -o results/fg_classified.csv
-     
-    Output: 
-             id                                     classification
-    0  ASV1  d__Bacteria(100);p__Firmicutes(100);c__Clostri...
-    1  ASV2  d__Bacteria(100);p__Firmicutes(100);c__Clostri...
-    2  ASV3  d__Bacteria(100);p__Bacteroidota(100);c__Bacte...
-    3  ASV4  d__Bacteria(100);p__Firmicutes(100);c__Clostri...
-    4  ASV5  d__Bacteria(100);p__Actinobacteriota(100);c__A...
-
-    """
-
     fasta_sequences = read_fasta.read_fasta_file(args.fasta)
     output = args.output
     out_path = Path(output)
@@ -194,19 +194,8 @@ if __name__ == "__main__":
         print(f"Output directory {out_path} does not exist")
         sys.exit(1)
 
-    # genera_file = Path("../training_data/trainset19_072023.rdp.tax")
-    # genera = read_fasta.read_taxonomy(genera_file)
-    #
-    # taxonomy = Path('../training_data/trainset19_072023.rdp.fasta')
-    # fasta_df = read_fasta.read_fasta_file(taxonomy)
-
-    # db_df = pd.merge(fasta_df, genera, on="id", how='left')
-
-    # db_test = db_df.sample(n=200)
-    # remove the trailing ; of the taxonomy string
     logging.info(f"Size of the database: {fasta_sequences.shape}")
     X_test, y_test = fasta_sequences["sequence"].tolist(), fasta_sequences["id"].tolist()
-    print(X_test[0:2])
 
     ##
     start = perf_counter()
