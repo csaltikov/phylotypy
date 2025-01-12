@@ -3,7 +3,6 @@ import unittest
 import numpy as np
 from phylotypy import kmers
 
-
 class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
         self.kmers = kmers
@@ -109,7 +108,7 @@ class TestGetKmers(unittest.TestCase):
         expected[0] = kmers.base4_to_index(kmers.get_all_kmers(base4_sequences[0], kmer_size))
         expected[1] = kmers.base4_to_index(kmers.get_all_kmers(base4_sequences[1], kmer_size))
 
-        detect_list = kmers.detect_kmers_across_sequences(sequences, kmer_size)
+        detect_list = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size)
 
         self.assertTrue(np.array_equal(detect_list, expected))
 
@@ -120,7 +119,7 @@ class TestGetKmers(unittest.TestCase):
         """Test Calcuate word specific priors"""
         kmer_size = 3
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
-        detect_list = kmers.detect_kmers_across_sequences(sequences, kmer_size)
+        detect_list = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size)
         detect_matrix = np.array(detect_list).T
         self.assertEqual((6, 3), detect_matrix.shape)
 
@@ -137,13 +136,33 @@ class TestGetKmers(unittest.TestCase):
         self.assertEqual(priors[29], 0.625)
         self.assertEqual(priors[62], 0.125)
 
-    def test_calc_genus_conditional_prob(self):
+    def test_calc_genus_conditional_prob_old(self):
         """Calculate genus-specific conditional probabilities"""
         kmer_size = 3
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
         genera = [0, 1, 1]
 
-        detect_list = kmers.detect_kmers_across_sequences(sequences, kmer_size)
+        detect_list = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size)
+        priors = kmers.calc_word_specific_priors(detect_list, kmer_size)
+
+        # (m(wi) + Pi) / (M + 1)
+
+        conditional_prob = kmers.calc_genus_conditional_prob_old(detect_list,
+                                                             genera,
+                                                             priors)
+
+        for pos, cond_prod in self.expected_cond_prods.items():
+            log_cond_prod = np.log(cond_prod)
+            self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
+
+
+    def test_calc_genus_conditional_prob_dev(self):
+        """Calculate genus-specific conditional probabilities"""
+        kmer_size = 3
+        sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
+        genera = [0, 1, 1]
+
+        detect_list = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size)
         priors = kmers.calc_word_specific_priors(detect_list, kmer_size)
 
         # (m(wi) + Pi) / (M + 1)
@@ -155,6 +174,7 @@ class TestGetKmers(unittest.TestCase):
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
             self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
+
 
     def test_build_kmer_database(self):
         kmer_size = 3
@@ -257,13 +277,17 @@ class TestGetKmers(unittest.TestCase):
     def test_consensus_classified_bootstrap_samples(self):
         ref_genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 
+        db = kmers.KmerDB(genera_names=ref_genera,
+                          conditional_prob=np.empty(0),
+                          genera_idx=list(ref_genera))
+
         bs_class = np.array([0, 0, 0, 0, 3], dtype=int)
 
         expected = dict()
         expected["taxonomy"] = np.array(["A", "a", "A"])
         expected["confidence"] = np.array([100, 80, 80])
 
-        observed = kmers.consensus_bs_class(bs_class, ref_genera)
+        observed = kmers.consensus_bs_class(bs_class, db.genera_names)
         print(observed["taxonomy"])
         self.assertTrue(np.array_equal(expected["confidence"], observed["confidence"]))
 
@@ -298,13 +322,17 @@ class TestGetKmers(unittest.TestCase):
         #                      confidence=np.array([100, 100, 97, 97]))
 
     def test_consensus_bs_to_print_taxonomy(self):
-        ref_genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
+        genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
+        db = kmers.KmerDB(genera_names=genera,
+                                  conditional_prob=np.empty(genera.shape),
+                                  genera_idx=kmers.genera_str_to_index(list(genera))
+        )
 
         bs_class = np.array([0, 0, 0, 2, 3], dtype=int)
 
         expected = "A(100);a(80);a_unclassified(80)"
 
-        classified = kmers.consensus_bs_class(bs_class, ref_genera)
+        classified = kmers.consensus_bs_class(bs_class, db.genera_names)
         filtered_classified = kmers.filter_taxonomy(classified)
         tax_string = kmers.print_taxonomy(filtered_classified, n_levels=3)
 

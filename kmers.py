@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 import itertools
 import multiprocessing as mp
+from pathlib import Path
 import re
 from typing import Dict, Any
 
@@ -139,9 +140,9 @@ def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = Fals
     return (priors + 0.5) / (n_seqs + 1)
 
 
-def calc_genus_conditional_prob(detect_list: list,
+def calc_genus_conditional_prob_old(detect_list: list[list[int]],
                                 genera_idx: list,
-                                word_specific_priors,
+                                word_specific_priors: np.ndarray,
                                 verbose: bool = False) -> np.ndarray:
     if verbose:
         print("Calculating genus conditional probability")
@@ -170,8 +171,75 @@ def calc_genus_conditional_prob(detect_list: list,
     return genus_cond_prob
 
 
+def calc_genus_conditional_prob(detect_list: list[list[int]],
+                                    genera_idx: list,
+                                    word_specific_priors: np.ndarray,
+                                    verbose: bool = False,
+                                    **kwargs) -> np.array:
+    if verbose:
+        print("Calculating genus conditional probability")
+    genus_arr = np.array(genera_idx)  # indices not the taxa names
+    genus_counts = np.unique(genus_arr, return_counts=True)[1]  # get counts of each unique genera
+    n_genera = len(genus_counts)
+    n_sequences = len(genera_idx)
+    n_kmers = len(word_specific_priors)
+
+    chunk_size: int = kwargs.get('chunk_size', 5000)
+
+    # Create an array with zeros, rows are kmer indices, columns number of unique genera
+    genus_count_dat = Path("genus_count.dat")
+    genus_count = np.memmap(genus_count_dat,
+                            dtype='float32',
+                            mode='w+',
+                            shape=(n_kmers, n_genera))
+
+    if verbose:
+        print("Genus conditional probability: start looping")
+
+    # Start filling out genus_count array
+    def chunks():
+        for start in range(0, n_sequences, chunk_size):
+            end = min(start + chunk_size, n_sequences)
+
+            # Process a chunk of the data
+            for i in range(start, end):
+                genus_count[detect_list[i], genera_idx[i]] += 1
+
+            # Optionally, flush changes to disk periodically
+            genus_count.flush()
+        return genus_count
+
+    if n_sequences > 5000:
+        chunks()
+    else:
+        # get the list of kmer indices and fill in 1 or 0
+        for i in range(n_sequences):
+            genus_count[detect_list[i], genera_idx[i]] += 1
+            # genus_count[detect_list[i], genera_idx[i]] = genus_count[detect_list[i], genera_idx[i]] + 1
+
+    if verbose:
+        print("Genus conditional probability: done looping")
+
+    genus_count.flush()
+
+    # Calculate the likelihood for a genus to have a specific kmer
+    # (m(wi) + Pi) / (M + 1)
+    wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
+    m_1 = (genus_counts + 1)
+
+    genus_cond_prob = np.log(np.divide(wi_pi, m_1)).astype(np.float16)
+
+    # Delete the memmap object
+    del genus_count
+    # Remove the temporary file
+    if genus_count_dat.exists():
+        genus_count_dat.unlink()
+
+    return genus_cond_prob
+
+
 def genera_str_to_index(genera: list) -> list:
-    # Create a dictionary mapping unique values to integers
+    """Find unique genera, and convert the genera names to indices"""
     unique_genera = np.unique(genera)
     factor_map = {genus: idx for idx, genus in enumerate(unique_genera)}
     # Convert genera to factors using the mapping
@@ -207,17 +275,38 @@ def classify_bs(kmer_index: list, db):
     return max_idx
 
 
-def classify_bootstraps(bs_indices: np.array, db: KmerDB):
+def classify_bootstraps(bs_indices: np.array, conditional_prob):
     """"Classify an array of kmer bootstraps from a sample"""
     def get_max(indices):
-        max_ids = np.argmax(np.sum(db.conditional_prob[indices, :], axis=0))
+        max_ids = np.argmax(np.sum(conditional_prob[indices, :], axis=0))
         return max_ids
     return np.apply_along_axis(get_max, axis=1, arr=bs_indices)
 
 
-def consensus_bs_class(bs_class: np.array, ref_genera: list) -> dict[str, list | Any]:
+def consensus_bs_class_old(bs_class: np.array, ref_genera: list) -> dict[str, list | Any]:
     """Convert the indices in the bootstrap array to taxonomy"""
     taxonomy: np.array = ref_genera[bs_class]
+    # sometimes taxonomy is empty or has "none" value
+    mask = taxonomy != None
+    taxonomy_filtered = taxonomy[mask]
+
+    taxonomy_split = np.array([line.split(";") for line in taxonomy_filtered])
+
+    def cumulative_join(col):
+        join_taxa = [";".join(col[:i + 1]) for i in range(len(col))]
+        return np.array(join_taxa, dtype='<U300')
+
+    taxa_cum_join_arr = np.apply_along_axis(cumulative_join, 1, taxonomy_split)
+
+    taxa_string, confidence = np.apply_along_axis(get_consensus, axis=0, arr=taxa_cum_join_arr)
+
+    return dict(taxonomy=np.array(taxa_string[-1].split(";")),
+                confidence=confidence)
+
+
+def consensus_bs_class(bs_class: np.array, genera_names) -> dict[str, list | Any]:
+    """Convert the indices in the bootstrap array to taxonomy"""
+    taxonomy: np.array = genera_names[bs_class]
     # sometimes taxonomy is empty or has "none" value
     mask = taxonomy != None
     taxonomy_filtered = taxonomy[mask]

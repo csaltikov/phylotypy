@@ -15,9 +15,9 @@ def fasta_to_dataframe_taxa(fasta_file, taxafile, save: bool = False):
     records = []
     for record in SeqIO.parse(fasta_file, "fasta"):
         records.append((record.id, str(record.seq)))
-    df = pd.DataFrame(records, columns=["accession", "sequences"])
+    df = pd.DataFrame(records, columns=["id", "sequence"])
     taxtable_df = taxa_to_dataframe(taxafile)
-    refdb = df.merge(taxtable_df, on="accession", how="left")
+    refdb = df.merge(taxtable_df, on="id", how="left")
     if save:
         save_file = data_dir.joinpath(fasta_file.name.split(".")[0] + "_db.csv")
         refdb.to_csv(save_file, index=False)
@@ -81,7 +81,7 @@ def taxa_to_dataframe(taxa_file):
     if not file_path.is_file():
         print("Taxa file not found")
         return None
-    taxa_table_df = pd.read_csv(file_path, sep="\t", names=["accession", "taxonomy"])
+    taxa_table_df = pd.read_csv(file_path, sep="\t", names=["id", "taxonomy"])
     taxa_levels = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "_"]
     taxa_table_df[taxa_levels] = taxa_table_df['taxonomy'].str.split(';', expand=True)
     taxa_table_df['taxonomy'] = taxa_table_df['taxonomy'].str.rstrip(';')
