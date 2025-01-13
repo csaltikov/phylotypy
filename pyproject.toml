@@ -18,3 +18,5 @@ dependencies = [
 test = [
     "pytest>=7.0",
 ]
+[tool.setuptools.packages.find]
+include = ["data*", "training_data*"]
