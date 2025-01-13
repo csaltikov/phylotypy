@@ -11,6 +11,9 @@ on:
       - 'training_data/**'
   pull_request:
     branches: [ "main" ]
+    paths-ignore:
+      - 'data/**'
+      - 'training_data/**'
 
 jobs:
   build:
