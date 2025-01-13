@@ -198,6 +198,7 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
 
     # Start filling out genus_count array
     def chunks():
+        nonlocal genus_count
         for start in range(0, n_sequences, chunk_size):
             end = min(start + chunk_size, n_sequences)
 

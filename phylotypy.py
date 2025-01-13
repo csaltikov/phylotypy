@@ -184,5 +184,6 @@ def genera_index_mapper(genera_list: list) -> dict:
 
     return factor_map
 
+
 if __name__ == "__main__":
     print("Phylotypy v1.0")
