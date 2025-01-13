@@ -6,6 +6,9 @@ name: phylotypy
 on:
   push:
     branches: [ "main" ]
+    paths-ignore:
+      - 'data/**'
+      - 'training_data/**'
   pull_request:
     branches: [ "main" ]
 
