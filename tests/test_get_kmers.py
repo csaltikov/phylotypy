@@ -136,7 +136,27 @@ class TestGetKmers(unittest.TestCase):
         self.assertEqual(priors[29], 0.625)
         self.assertEqual(priors[62], 0.125)
 
-    def test_calc_genus_conditional_prob(self):
+    def test_calc_genus_conditional_prob_old(self):
+        """Calculate genus-specific conditional probabilities"""
+        kmer_size = 3
+        sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
+        genera = [0, 1, 1]
+
+        detect_list = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size)
+        priors = kmers.calc_word_specific_priors(detect_list, kmer_size)
+
+        # (m(wi) + Pi) / (M + 1)
+
+        conditional_prob = kmers.calc_genus_conditional_prob_old(detect_list,
+                                                             genera,
+                                                             priors)
+
+        for pos, cond_prod in self.expected_cond_prods.items():
+            log_cond_prod = np.log(cond_prod)
+            self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
+
+
+    def test_calc_genus_conditional_prob_dev(self):
         """Calculate genus-specific conditional probabilities"""
         kmer_size = 3
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]

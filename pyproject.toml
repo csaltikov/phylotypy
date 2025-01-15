@@ -13,11 +13,4 @@ dependencies = [
     "ipython>=8.31.0",
     "numpy>=2.2.1",
     "pandas>=2.2.3",
-    "scikit-learn>=1.6.1",
 ]
-[project.optional-dependencies]
-test = [
-    "pytest>=7.0",
-]
-[tool.setuptools.packages.find]
-include = ["data*", "training_data*"]

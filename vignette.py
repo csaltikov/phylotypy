@@ -17,9 +17,13 @@ if __name__ == "__main__":
     Load data, can use training_data.py to download and produce trainset19_072023_db.csv
     or do it yourself another way.
     """
+    silva_data = Path("data/silva_138.2_ssuref_sub_prok.csv")
+    print(silva_data.exists())
 
-    db_file_path = Path("data/trainset19_072023_db.csv")
-    db = pd.read_csv(db_file_path)
+    rdp_data = Path("data/trainset19_072023_db.csv")
+    print(silva_data.exists())
+
+    db = pd.read_csv(silva_data)
     print(f"Size of the database: {db.shape}")
 
     ##
@@ -28,7 +32,7 @@ if __name__ == "__main__":
     classify = phylotypy.Classify()
     classify.multi_processing = True
     start = time.time()
-    classify.fit(db["sequences"], db["taxonomy"], kmer_size=kmer_size)
+    classify.fit(db["sequence"], db["taxonomy"], kmer_size=kmer_size)
     end = time.time()
     print(f"Run time {(end - start):.1f} seconds")
 

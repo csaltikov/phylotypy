@@ -61,6 +61,7 @@ def fasta_to_dataframe(fasta_file, **kwargs):
     for record in SeqIO.parse(fasta_file, "fasta"):
         # Append sequence name and sequence to lists
         seq_id_dict["id"].append(record.id)
+        seq_id_dict["description"].append(record.description)
         seq_id_dict["sequence"].append(str(record.seq))
         if "translate" in kwargs:
             if kwargs["translate"]:
