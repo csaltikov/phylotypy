@@ -2,7 +2,7 @@ import numpy as np
 from pathlib import Path
 import unittest
 from phylotypy import kmers
-import classify
+
 
 
 class MyTestCase(unittest.TestCase):
