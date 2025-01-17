@@ -188,6 +188,7 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
 
     # Create an array with zeros, rows are kmer indices, columns number of unique genera
     genus_count_dat = Path("genus_count.dat")
+
     genus_count = np.memmap(genus_count_dat,
                             dtype=np.float32,
                             mode='w+',
@@ -198,25 +199,16 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
         print(f"db size {genus_count.shape}")
 
     # Start filling out genus_count array
-    def chunks():
-        for start in range(0, n_sequences, chunk_size):
-            end = min(start + chunk_size, n_sequences)
+    # Process data in chunks
+    for start in range(0, n_sequences, chunk_size):
+        end = min(start + chunk_size, n_sequences)
 
-            # Process a chunk of the data
-            for i in range(start, end):
-                genus_count[detect_list[i], genera_idx[i]] += 1
-
-            # Optionally, flush changes to disk periodically
-            genus_count.flush()
-        return genus_count
-
-    if n_sequences > 5000:
-        chunks()
-    else:
-        # get the list of kmer indices and fill in 1 or 0
-        for i in range(n_sequences):
+        # Process a chunk of the data
+        for i in range(start, end):
             genus_count[detect_list[i], genera_idx[i]] += 1
-            # genus_count[detect_list[i], genera_idx[i]] = genus_count[detect_list[i], genera_idx[i]] + 1
+
+        # Flush changes to disk periodically
+        genus_count.flush()
 
     if verbose:
         print("Genus conditional probability: done looping")
