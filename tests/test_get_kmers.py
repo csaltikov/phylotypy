@@ -3,6 +3,7 @@ import unittest
 import numpy as np
 from phylotypy import kmers
 
+
 class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
         self.kmers = kmers
@@ -11,7 +12,7 @@ class TestGetKmers(unittest.TestCase):
             25: (np.array([1, 2]) + 0.875) / (np.array([1, 2]) + 1),  # [0.9375, 0.95833333]
             28: (np.array([1, 0]) + 0.375) / (np.array([1, 2]) + 1),  # [0.6875, 0.125 ]
             29: (np.array([0, 2]) + 0.625) / (np.array([1, 2]) + 1),  # [0.3125, 0.875 ]
-            62: (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)   # [0.0625, 0.04166667]
+            62: (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)  # [0.0625, 0.04166667]
         }
 
     def test_get_all_kmers(self):
@@ -148,15 +149,16 @@ class TestGetKmers(unittest.TestCase):
         # (m(wi) + Pi) / (M + 1)
 
         conditional_prob = kmers.calc_genus_conditional_prob_old(detect_list,
-                                                             genera,
-                                                             priors)
+                                                                 genera,
+                                                                 priors)
 
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
             self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
 
+        self.assertEqual(conditional_prob.dtype, np.float16)
 
-    def test_calc_genus_conditional_prob_dev(self):
+    def test_calc_genus_conditional_prob(self):
         """Calculate genus-specific conditional probabilities"""
         kmer_size = 3
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
@@ -166,15 +168,12 @@ class TestGetKmers(unittest.TestCase):
         priors = kmers.calc_word_specific_priors(detect_list, kmer_size)
 
         # (m(wi) + Pi) / (M + 1)
-
         conditional_prob = kmers.calc_genus_conditional_prob(detect_list,
                                                              genera,
                                                              priors)
-
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
             self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
-
 
     def test_build_kmer_database(self):
         kmer_size = 3
@@ -200,7 +199,7 @@ class TestGetKmers(unittest.TestCase):
         genera = ["A", "B", "B"]
         db = kmers.build_kmer_database(sequences, genera, kmer_size)
 
-        observed = db.conditional_prob[25, ]  # np.array
+        observed = db.conditional_prob[25,]  # np.array
         expected = (np.array([1, 2], dtype=float) + 0.875) / (np.array([1, 2]) + 1)
         self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
 
@@ -310,7 +309,7 @@ class TestGetKmers(unittest.TestCase):
         oscillospiraceae = dict(
             taxonomy=np.array(["Bacteria", "Bacillota", "Clostridia", "Eubacteriales", "Oscillospiraceae"]),
             confidence=np.array([100, 100, 99, 99, 98])
-            )
+        )
 
         expected = "Bacteria(100);Bacillota(100);Clostridia(99);Eubacteriales(99);Oscillospiraceae(98);Oscillospiraceae_unclassified(98)"
 
@@ -324,9 +323,9 @@ class TestGetKmers(unittest.TestCase):
     def test_consensus_bs_to_print_taxonomy(self):
         genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
         db = kmers.KmerDB(genera_names=genera,
-                                  conditional_prob=np.empty(genera.shape),
-                                  genera_idx=kmers.genera_str_to_index(list(genera))
-        )
+                          conditional_prob=np.empty(genera.shape),
+                          genera_idx=kmers.genera_str_to_index(list(genera))
+                          )
 
         bs_class = np.array([0, 0, 0, 2, 3], dtype=int)
 

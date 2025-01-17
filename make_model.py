@@ -35,6 +35,7 @@ def make_model(train_data_json: json, kmer_size: int = 8):
 
     # save the model and genera to dir specified in the config
     model = classifier.model
+    print(model.shape)
     model_path = output_dir / "model_raw.rbf"  # must be raw binary format
     model.tofile(model_path)
 
@@ -65,7 +66,7 @@ def make_model(train_data_json: json, kmer_size: int = 8):
 
 def create_db(fasta, taxa):
     taxa_data = pd.read_csv(taxa, sep='\t', names=["id", "taxonomy"])
-    # taxa_data["taxonomy"] = taxa_data["taxonomy"].str.rstrip(";")
+    taxa_data["taxonomy"] = taxa_data["taxonomy"].apply(lambda col: col.rstrip(";") if col.endswith(";") else col)
 
     fasta_data = read_fasta.read_fasta_file(fasta)
     fasta_data["id"] = fasta_data["id"].apply(lambda x: x.split("\t")[0])

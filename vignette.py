@@ -21,9 +21,9 @@ if __name__ == "__main__":
     print(silva_data.exists())
 
     rdp_data = Path("data/trainset19_072023_db.csv")
-    print(silva_data.exists())
+    print(rdp_data.exists())
 
-    db = pd.read_csv(silva_data)
+    db = pd.read_csv(rdp_data)
     print(f"Size of the database: {db.shape}")
 
     ##
@@ -32,7 +32,7 @@ if __name__ == "__main__":
     classify = phylotypy.Classify()
     classify.multi_processing = True
     start = time.time()
-    classify.fit(db["sequence"], db["taxonomy"], kmer_size=kmer_size)
+    classify.fit(db["sequences"], db["taxonomy"], kmer_size=kmer_size)
     end = time.time()
     print(f"Run time {(end - start):.1f} seconds")
 
@@ -48,7 +48,7 @@ if __name__ == "__main__":
     ##
 
     # Classify
-    predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)
+    predict_mov_pic = classify.predict(X_mov_pic[0:10], y_mov_pic[0:10])
 
     # Put results in a dataframe
     predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)

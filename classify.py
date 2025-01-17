@@ -1,5 +1,6 @@
 __version__ = '0.1.0'
 import argparse
+from contextlib import contextmanager
 import json
 from functools import partial
 import logging
@@ -48,24 +49,19 @@ logging.basicConfig(format='%(asctime)s - %(levelname)s - %(funcName)s - %(messa
 
 
 def db_files(mod_file, genera_file, mod_shape):
+    # print(mod_shape)
     db_ = kmers.KmerDB(conditional_prob=np.memmap(mod_file,
-                                                  dtype=np.float32,
+                                                  dtype=np.float16,
                                                   mode="c",
                                                   shape=mod_shape),
                        genera_idx=kmers.genera_str_to_index(np.load(genera_file, allow_pickle=True)),
                        genera_names=np.load(genera_file, allow_pickle=True)
                        )
-    # db_ = {"genera": np.load(genera_file, allow_pickle=True),
-    #        "conditional_prob": np.memmap(mod_file,
-    #                                      dtype=np.float32,
-    #                                      mode="c",
-    #                                      shape=mod_shape)
-    #        }
     return db_
 
 
-def load_db(config_file):
-    with open(config_file, 'r') as f:
+def load_db(conf_file):
+    with open(conf_file, 'r') as f:
         config = json.load(f)
 
     # Extract the necessary information from the config
@@ -122,57 +118,60 @@ def pool_bootstrap(kmer_list: list):
     return bs_results
 
 
-def pool_classify_async(bs_kmer_list, min_confid: int = 80, n_levels: int = 6):
-    logging.info("Starting classify/consensus pipeline")
-    max_proc: int = 4  # seems to be the optimal
-    pool = mp.Pool(processes=max_proc)
-    results = []
-    collected_bs_results = []
-    indices_with_tasks = []
+@contextmanager
+def poolcontext(*args, **kwargs):
+    pool = mp.Pool(*args, **kwargs)
+    yield pool
+    pool.close()
+    pool.join()
+
+
+def safe_pipeline(index, indices, min_confid, n_levels):
     try:
-        # Submit tasks to the pool and keep track of the indices
-        for i, indices in enumerate(bs_kmer_list):
-            r = pool.apply_async(pipeline, [indices, min_confid, n_levels])
-            results.append(r)
-            indices_with_tasks.append((i, indices))
-        try:
-            for j, (r, (index, indices)) in enumerate(zip(results, indices_with_tasks)):
-                collected_bs_results.append(r.get())
-        except IndexError:
-            logging.error(f"IndexError occurred for item at index {index} with indices {indices}, setting to 'unclassified_taxa'")
-        except Exception as exp:
-            logging.error(f"An error occurred for item at index {index} with indices {indices}: {exp}")
-            collected_bs_results.append("unclassified(0)")
+        result = pipeline(indices, min_confid=min_confid, n_levels=n_levels)
+        return index, result
     except Exception as e:
-        print(e)
-    finally:
-        pool.close()
-        pool.join()
-        logging.info("Finished classifying sequences")
+        logging.error(f"An error occurred for item at index {index}: {str(e)}")
+        return "unclassified(0)" * n_levels
+
+
+def pool_classify_async(bs_kmer_list, min_confid: int = 80, n_levels: int = 6, num_proc=4):
+    logging.info("Starting classify/consensus pipeline")
+    max_proc: int = num_proc  # 4 seems to be the optimal on my machine
+    results = []
+    num_bs_kmers = len(bs_kmer_list)
+    print(f"bs_kmers to process: {num_bs_kmers}")
+    collected_bs_results = [None] * num_bs_kmers
+
+    with poolcontext(processes=max_proc) as pool:
+        for i, bs_kmer in enumerate(bs_kmer_list):
+            results.append(pool.apply_async(safe_pipeline, (i, bs_kmer, min_confid, n_levels)))
+
+        logging.info(f"Num of results in the pool: {len(results)}")
+        for i, result in enumerate(results):
+            idx, classification = result.get() # sequence index and classification
+            collected_bs_results[idx] = classification
+
     return collected_bs_results
 
 
-def pool_classify(bs_kmer_list, min_confid: int = 80, n_levels: int = 6):
+def pool_classify(bs_kmer_list, min_confid: int = 80, n_levels: int = 6, num_proc=4):
     logging.info("Starting classify/consensus pipeline")
-    max_proc: int = 6  # seems to be the optimal
-    pool = mp.Pool(processes=max_proc)
+    max_proc: int = num_proc  # seems to be the optimal
 
-    try:
+    with poolcontext(processes=max_proc) as pool:
         args_list = [(kmer_indices, min_confid, n_levels) for kmer_indices in bs_kmer_list]
         collected_bs_results = pool.starmap(pipeline, args_list)
         bs_results = [np.array(results) for results in collected_bs_results]
-    finally:
-        pool.close()
-        pool.join()
-        logging.info("Finished pool_classify bootstraps")
-    print(len(bs_results))
+    logging.info("Finished pool_classify bootstraps")
     return bs_results
 
 
 def predict(sequences):
-    kmer_detect_list = kmers.detect_kmers_across_sequences(sequences, verbose=True)
+    kmer_detect_list = kmers.detect_kmers_across_sequences_mp(sequences, verbose=True)
     bootstrap_kmers = pool_bootstrap(kmer_detect_list)
-    results = pool_classify_async(bootstrap_kmers)
+    # results = pool_classify_async(bootstrap_kmers)
+    results = pool_classify(bootstrap_kmers)
     return results
 
 
@@ -183,7 +182,9 @@ if not Path(config_file).exists():
     sys.exit(1)
 
 db = load_db(config_file)
+
 taxa_levels = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus']
+
 
 ##
 if __name__ == "__main__":
@@ -199,8 +200,9 @@ if __name__ == "__main__":
 
     ##
     start = perf_counter()
-
+    print(f"classifying {len(X_test)} sequences")
     res = predict(X_test)
+    print(f"{len(res)} sequences classified")
 
     end = perf_counter()
     print(f"Time taken: {(end - start):.2f}")
@@ -208,10 +210,14 @@ if __name__ == "__main__":
     print(res_df.head())
     print(res_df.tail())
     print(res_df.shape)
+    res_df.to_csv(out_path, index=False)
 
+    res_df = pd.read_csv(out_path)
+
+    taxa_levels = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus']
     res_df[taxa_levels] = res_df["classification"].str.split(";", expand=True)
     res_df[taxa_levels] = res_df[taxa_levels].replace(r"\(\d+\)", "", regex=True)
 
     res_df.to_csv(out_path, index=False)
+    print(f"Results are in {out_path}")
     logging.info("Done")
-

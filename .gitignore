@@ -10,3 +10,4 @@ data/svm_sequences.csv
 /data/model.npz
 data/rep-seqs-dada2.qza
 /local_data/
+/local_scripts/

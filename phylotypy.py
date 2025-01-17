@@ -160,7 +160,7 @@ class Classify:
 
 def summarize_predictions(classified: dict, n_levels: int = 6):
     classified_df = pd.DataFrame(classified)
-    taxa_levels_full = ["Domain", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
+    taxa_levels_full = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
     taxa_levels = taxa_levels_full[:n_levels]
     tax_level_codes = [f"{t[0].lower()}__" for t in taxa_levels]
     classified_df[taxa_levels] = classified_df["classification"].str.split(";", expand=True)

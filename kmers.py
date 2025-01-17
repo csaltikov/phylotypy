@@ -7,7 +7,6 @@ from typing import Dict, Any
 
 import numpy as np
 
-
 '''
 Naive Bayes Classifier for DNA sequences. The project is inspired by the 
 following paper. The approach is to convert a DNA sequence to kmers and 
@@ -141,9 +140,9 @@ def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = Fals
 
 
 def calc_genus_conditional_prob_old(detect_list: list[list[int]],
-                                genera_idx: list,
-                                word_specific_priors: np.ndarray,
-                                verbose: bool = False) -> np.ndarray:
+                                    genera_idx: list,
+                                    word_specific_priors: np.ndarray,
+                                    verbose: bool = False) -> np.ndarray:
     if verbose:
         print("Calculating genus conditional probability")
     # genus_arr = np.array(genera_idx)  # indices not the taxa names
@@ -172,29 +171,31 @@ def calc_genus_conditional_prob_old(detect_list: list[list[int]],
 
 
 def calc_genus_conditional_prob(detect_list: list[list[int]],
-                                    genera_idx: list,
-                                    word_specific_priors: np.ndarray,
-                                    verbose: bool = False,
-                                    **kwargs) -> np.array:
-    if verbose:
-        print("Calculating genus conditional probability")
+                                genera_idx: list,
+                                word_specific_priors: np.ndarray,
+                                verbose: bool = False,
+                                **kwargs) -> np.array:
     genus_arr = np.array(genera_idx)  # indices not the taxa names
     genus_counts = np.unique(genus_arr, return_counts=True)[1]  # get counts of each unique genera
     n_genera = len(genus_counts)
     n_sequences = len(genera_idx)
     n_kmers = len(word_specific_priors)
 
+    if verbose:
+        print(f"Calculating genus conditional probability for {n_genera} unique genera")
+
     chunk_size: int = kwargs.get('chunk_size', 5000)
 
     # Create an array with zeros, rows are kmer indices, columns number of unique genera
     genus_count_dat = Path("genus_count.dat")
     genus_count = np.memmap(genus_count_dat,
-                            dtype='float32',
+                            dtype=np.float32,
                             mode='w+',
                             shape=(n_kmers, n_genera))
 
     if verbose:
         print("Genus conditional probability: start looping")
+        print(f"db size {genus_count.shape}")
 
     # Start filling out genus_count array
     def chunks():
@@ -277,9 +278,11 @@ def classify_bs(kmer_index: list, db):
 
 def classify_bootstraps(bs_indices: np.array, conditional_prob):
     """"Classify an array of kmer bootstraps from a sample"""
+
     def get_max(indices):
         max_ids = np.argmax(np.sum(conditional_prob[indices, :], axis=0))
         return max_ids
+
     return np.apply_along_axis(get_max, axis=1, arr=bs_indices)
 
 
