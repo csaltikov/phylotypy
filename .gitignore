@@ -11,3 +11,4 @@ data/svm_sequences.csv
 data/rep-seqs-dada2.qza
 /local_data/
 /local_scripts/
+/phylotypy.egg-info/
