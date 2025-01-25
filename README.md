@@ -31,26 +31,24 @@ import pandas as pd
 
 db_file_path = "data/trainset19_072023_db.csv"
 db = pd.read_csv(db_file_path)
-
-# the RDP train set has a trailing ';' let's remove it
-db["taxonomy"] = db["taxonomy"].str.rstrip(";")
 ```
 3. Create the training data for the classifer
 ```
-X_ref, y_ref = db["sequences"].tolist(), db["taxonomy"].tolist()
+X_ref, y_ref = db["sequence"].tolist(), db["id"].tolist()
 ```
 4. Train the classifer
 ```
 import phylotypy
 
-classify = phylotypy.Phylotypy()
-classify.fit(X_ref, y_ref, verbose=True)
+classify = phylotypy.Classify()
+classify.multi_processing = True
+classify.fit(X_ref, y_ref, multi=True, n_cpu=12)
 ```
 5. Classify some 16S rRNA gene sequences.  Here we will use the example from QIIME2, Moving Pictures data, https://docs.qiime2.org/2024.2/tutorials/moving-pictures/.  The data came from Classifying QIIME2 Moving Pictures rep-seqs-dada2.qza
 ```
 from utilities import fasta_to_dataframe
 
-moving_pic = fasta_to_dataframe("data/dna_moving_pictures.fasta")
+moving_pic = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
 
 X_mov_pic = moving_pic["Sequence"].to_list()  # DNA sequences as a list
@@ -76,8 +74,8 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 my_data = "path/to/my/sequences" # change path to your fasta sequence file
 my_data_df = fasta_to_dataframe(my_data)
 
-X = my_data_df["Sequence"].to_list()
-y = my_data_df["SequenceName"].to_list()
+X = my_data_df["sequence"].to_list()
+y = my_data_df["id"].to_list()
 
 predict = classify.predict(X, y)
 
@@ -91,7 +89,7 @@ import pandas as pd
 
 import phylotypy
 from training_data import rdp_train_set_19
-from utilities import fasta_to_dataframe
+from utilities import read_fasta
 
 # dowload/format training data
 rdp_train_set_19()
@@ -99,22 +97,19 @@ rdp_train_set_19()
 db_file_path = "data/trainset19_072023_db.csv"
 db = pd.read_csv(db_file_path)
 
-# remove the trailing ; of the taxonomy string
-db["taxonomy"] = db["taxonomy"].str.rstrip(";")
+X_ref, y_ref = db["sequence"].tolist(), db["id"].tolist()
 
-X_ref, y_ref = db["sequences"].tolist(), db["taxonomy"].tolist()
+classify = phylotypy.Classify()
+classify.multi_processing = True
+classify.fit(X_ref, y_ref, multi=True, n_cpu=12)  # train the model
 
-classify = phylotypy.Phylotypy()
-classify.fit(X_ref, y_ref, verbose=True)  # train the model
+moving_pic = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
-moving_pic = fasta_to_dataframe("data/dna_moving_pictures.fasta")
-
-X_mov_pic = moving_pic["Sequence"].to_list()  # DNA sequences as a list
-y_mov_pic = moving_pic["SequenceName"].to_list()  # Sequence names as a list
+X_mov_pic = moving_pic["sequence"].to_list()  # DNA sequences as a list
+y_mov_pic = moving_pic["id"].to_list()  # Sequence names as a list
 
 predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)  # train the classifier
 
 predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
 print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is in the 'classification' column
 ```
- 
