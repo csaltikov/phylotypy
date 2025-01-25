@@ -18,19 +18,14 @@ def make_model(train_data_json: json, kmer_size: int = 8):
 
     # mandatory
     fasta = config["fasta"]
-    taxa = config["taxa"]
     output_dir = Path(config["output"])
-
-    # optional to set the name
-    db_name = None
-    if "db_name" in config:
-        db_name = config['db_name']
+    db_name = config['db_name']
 
     # read in the fasta and taxa to make the classifier model
-    X, y = create_db(fasta, taxa)
+    X, y = create_db(fasta)
     classifier = phylotypy.Classify()
     classifier.multi_processing = True
-    classifier.fit(X, y, kmer_size=kmer_size, verbose=True)
+    classifier.fit(X, y, kmer_size=kmer_size, multi=True, n_cpu=12)
     classifier.verbose = True
 
     # save the model and genera to dir specified in the config
@@ -64,18 +59,19 @@ def make_model(train_data_json: json, kmer_size: int = 8):
     return classifier
 
 
-def create_db(fasta, taxa):
-    taxa_data = pd.read_csv(taxa, sep='\t', names=["id", "taxonomy"])
-    taxa_data["taxonomy"] = taxa_data["taxonomy"].apply(lambda col: col.rstrip(";") if col.endswith(";") else col)
-
-    fasta_data = read_fasta.read_fasta_file(fasta)
-    fasta_data["id"] = fasta_data["id"].apply(lambda x: x.split("\t")[0])
-    db = taxa_data.merge(fasta_data, on="id")
-
-    print(f"Size of the database: {db.shape[0]} sequences")
+def create_db(fasta):
+    db = read_fasta.read_taxa_fasta(fasta)
 
     X_train = db["sequence"].tolist()
-    y_train = db["taxonomy"].tolist()
+    y_train = db["id"].tolist()
+
+    if ";" not in y_train[0]:
+        print("Must taxonomy must contain ; to separate taxa levels")
+        sys.exit()
+
+    print(db.head())
+    print(f"Size of the database: {db.shape[0]} sequences")
+
     return X_train, y_train
 
 
@@ -94,7 +90,7 @@ def check_train_config_file(config_path):
             sys.exit(1)
 
     # Check if required keys are present
-    required_keys = ["taxa", "fasta", "output"]
+    required_keys = ["fasta", "output"]
     for key in required_keys:
         if key not in config:
             print(f"Error: Key '{key}' not found in the configuration file.")
@@ -119,7 +115,6 @@ if __name__ == "__main__":
     {
     "db_name": "rdp",
     "fasta": "training_data/trainset19_072023.rdp/trainset19_072023.rdp.fasta",
-    "taxa": "training_data/trainset19_072023.rdp/trainset19_072023.rdp.tax",
     "output": "models/rdp"
     }
     """

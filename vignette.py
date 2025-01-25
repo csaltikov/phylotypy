@@ -18,10 +18,10 @@ if __name__ == "__main__":
     or do it yourself another way.
     """
     silva_data = Path("data/silva_138.2_ssuref_sub_prok.csv")
-    print(silva_data.exists())
+    print(f"ref db {silva_data.name} fount: {silva_data.exists()}")
 
     rdp_data = Path("data/trainset19_072023_db.csv")
-    print(rdp_data.exists())
+    print(f"ref db {rdp_data.name} fount: {rdp_data.exists()}")
 
     db = pd.read_csv(rdp_data)
     print(f"Size of the database: {db.shape}")
@@ -31,8 +31,12 @@ if __name__ == "__main__":
     kmer_size = 8
     classify = phylotypy.Classify()
     classify.multi_processing = True
+
     start = time.time()
-    classify.fit(db["sequences"], db["taxonomy"], kmer_size=kmer_size)
+    classify.fit(db["sequences"], db["taxonomy"],
+                 kmer_size=kmer_size,
+                 multi=True,
+                 n_cpu=12)
     end = time.time()
     print(f"Run time {(end - start):.1f} seconds")
 
@@ -67,4 +71,4 @@ if __name__ == "__main__":
 
     # Report the results in a dataframe
     predict_orio_df = phylotypy.summarize_predictions(predict_orio)
-    print(predict_orio_df[["id", "Genus"]])
+    print(predict_orio_df[["id", "classification"]])

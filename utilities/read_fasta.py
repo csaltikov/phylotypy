@@ -1,36 +1,58 @@
-import sys
+import re
 from collections import defaultdict
+import sys
 
 import pandas as pd
 
 
-def read_fasta_file(fasta_file):
-    """Read a fasta file and return a dictionary of sequences."""
+def read_taxa_fasta(fasta_file: str) -> pd.DataFrame:
+    """Read a fasta file and return a dictionary of sequences.
+
+    Parameters:
+        fasta_file (string): path to fasta file
+
+    Returns:
+        pd.DataFrame: dictionary of sequences
+    """
     fasta_data = defaultdict(list)
+
+    def get_taxa_string(fasta_line: str):
+        fasta_list = (fasta_line.rstrip()
+                      .replace(">", "")
+                      .rstrip(";"))
+        fasta_list = re.split(r"(\t|\s{2,})", fasta_list)
+        for item in fasta_list:
+            if ";" in item:
+                return item
+
+    def clean_id(fasta_line: str):
+        clean_line = fasta_line.rstrip().replace(">", "")
+        return re.split(r"(\t|\s{2,})", clean_line)[0]
 
     with open(fasta_file, "r") as f:
         big_line = ""
+
+        # First sequence
         first_line = f.readline()
+
         if not first_line.startswith(">"):
-            raise ValueError("Fasta file does not start with '>'.")
-        first_line = (first_line
-                      .rstrip()
-                      .replace(">", "")
-                      .split("\t")
-                      )
-        fasta_data["id"].append(first_line[0])
-        if len(first_line) > 1:
-            fasta_data["comment"].append(first_line[1])
+            raise ValueError("The file does not start with '>'.")
+
+        taxa_string = get_taxa_string(first_line)
+        if taxa_string:
+            fasta_data["id"].append(taxa_string)
+        else:
+            fasta_data["id"].append(clean_id(first_line))
+
+        # the remaining sequences
         for line in f.readlines():
             if line.startswith(">"):
-                line = (line.rstrip()
-                        .replace(">", "")
-                        .replace(" ", "\t", 1)
-                        .split("\t")
-                        )
-                fasta_data["id"].append(line[0])
-                if len(first_line) > 1:
-                    fasta_data["comment"].append(line[1])
+                taxa_string = get_taxa_string(line)
+                if taxa_string:
+                    fasta_data["id"].append(taxa_string)
+                else:
+                    fasta_data["id"].append(clean_id(line))
+
                 fasta_data["sequence"].append(big_line)
                 big_line = ""
             else:
@@ -47,9 +69,13 @@ def read_taxonomy(taxonomy_file, sep="\t"):
 
 
 if __name__ == "__main__":
-    fasta_data_file = "../data/test_fasta.fa" # sys.argv[1]
+    fasta_data_file = ["../data/test_fasta.fa",
+                       "../data/test_2_fasta.fa",
+                       "../data/test_3_fasta.fa",
+                       "../data/test_4_fasta.fa"] # sys.argv[1]
     try:
-        fasta_data_loaded = read_fasta_file(fasta_data_file)
-        print(fasta_data_loaded)
+        for fasta in fasta_data_file:
+            fasta_data_loaded = read_taxa_fasta(fasta)
+            print(fasta_data_loaded["id"].head())
     except Exception as e:
         print(e)

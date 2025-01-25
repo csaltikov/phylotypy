@@ -32,7 +32,8 @@ class KmerDB:
 def build_kmer_database(sequences: list[str], genera: list[str],
                         kmer_size: int = 8, verbose: bool = False,
                         m_proc: bool = False,
-                        num_processes: int = mp.cpu_count()) -> KmerDB:
+                        num_processes: int = mp.cpu_count(),
+                        **kwargs) -> KmerDB:
     """Creates a conditional probablity matrix from DNA sequences and associated genera or sequence ids.
 
     @param sequences: DNA seqeunce as strings in a list ["ATCGGA", "ATCGGA"]
@@ -57,10 +58,17 @@ def build_kmer_database(sequences: list[str], genera: list[str],
 
     genera_idx = genera_str_to_index(genera)
 
-    cond_prob = calc_genus_conditional_prob(detected_kmers, genera_idx, priors, verbose=verbose)
+    cond_prob = calc_genus_conditional_prob(detected_kmers,
+                                            genera_idx,
+                                            priors,
+                                            verbose=verbose,
+                                            **kwargs)
+
     genera_names = index_genus_mapper(genera)
 
-    return KmerDB(conditional_prob=cond_prob, genera_idx=genera_idx, genera_names=genera_names)
+    return KmerDB(conditional_prob=cond_prob,
+                  genera_idx=genera_idx,
+                  genera_names=genera_names)
 
 
 def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
@@ -170,6 +178,14 @@ def calc_genus_conditional_prob_old(detect_list: list[list[int]],
     return genus_cond_prob
 
 
+def process_chunk(args):
+    start, end, detect_list, genera_idx, genus_count_dat, shape = args
+    genus_count = np.memmap(genus_count_dat, mode='r+', dtype=np.float32, shape=shape)
+    for i in range(start, end):
+        genus_count[detect_list[i], genera_idx[i]] += 1
+    genus_count.flush()
+
+
 def calc_genus_conditional_prob(detect_list: list[list[int]],
                                 genera_idx: list,
                                 word_specific_priors: np.ndarray,
@@ -184,8 +200,6 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
     if verbose:
         print(f"Calculating genus conditional probability for {n_genera} unique genera")
 
-    chunk_size: int = kwargs.get('chunk_size', 5000)
-
     # Create an array with zeros, rows are kmer indices, columns number of unique genera
     genus_count_dat = Path("genus_count.dat")
 
@@ -198,17 +212,30 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
         print("Genus conditional probability: start looping")
         print(f"db size {genus_count.shape}")
 
-    # Start filling out genus_count array
-    # Process data in chunks
-    for start in range(0, n_sequences, chunk_size):
-        end = min(start + chunk_size, n_sequences)
+    # Prepare chunks for parallel processing or memory savings
+    chunk_size: int = kwargs.get('chunk_size', 5000)
+    multi: bool = kwargs.get('multi', False)
+    n_cpu: int = kwargs.get('n_cpu', 8)
 
-        # Process a chunk of the data
-        for i in range(start, end):
-            genus_count[detect_list[i], genera_idx[i]] += 1
+    if multi:
+        print(f"multiple processing: {multi} with {n_cpu} cpus")
+        chunks = [(start, min(start + chunk_size, n_sequences), detect_list, genera_idx, genus_count_dat, genus_count.shape)
+                  for start in range(0, n_sequences, chunk_size)]
 
-        # Flush changes to disk periodically
-        genus_count.flush()
+        with mp.Pool(processes=n_cpu) as pool:
+            pool.map(process_chunk, chunks)
+    else:
+        # Start filling out genus_count array
+        # Process data in chunks
+        for start in range(0, n_sequences, chunk_size):
+            end = min(start + chunk_size, n_sequences)
+
+            # Process a chunk of the data
+            for i in range(start, end):
+                genus_count[detect_list[i], genera_idx[i]] += 1
+
+            # Flush changes to disk periodically
+            genus_count.flush()
 
     if verbose:
         print("Genus conditional probability: done looping")

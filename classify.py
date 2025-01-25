@@ -25,7 +25,7 @@ except ImportError:
 parser = argparse.ArgumentParser(
     description='Classify sequences using a preformatted naïve Bayes classifier.',
     epilog='''Example:
-        python classify.py -m models/silva/model_config.json -f data/fg_sequences.fasta -o results/fg_classified.csv
+        python classify.py -m models/silva_phy/model_config.json -f data/fg_sequences.fasta -o results/fg_classified.csv
 
         Output: 
                  id                                     classification
@@ -188,7 +188,9 @@ taxa_levels = ['Kingdom', 'Phylum', 'Class', 'Order', 'Family', 'Genus']
 
 ##
 if __name__ == "__main__":
-    fasta_sequences = read_fasta.read_fasta_file(args.fasta)
+    fasta_sequences = read_fasta.read_taxa_fasta(args.fasta)
+    print(fasta_sequences["id"])
+    print(fasta_sequences.shape)
     output = args.output
     out_path = Path(output)
     if not out_path.parent.exists():

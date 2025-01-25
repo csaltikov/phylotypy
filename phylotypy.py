@@ -25,6 +25,7 @@ class Classify:
         self.verbose = True
         self.n_levels = 6  # defaults levels down to genus
         self.multi_processing = False
+        self.cond_prob_multi = False
 
     def fit(self, X, y, kmer_size: int = 8, **kwargs):
         print("Fitting model")
@@ -32,7 +33,8 @@ class Classify:
         db_model = kmers.build_kmer_database(X, y,
                                              self.kmer_size,
                                              self.verbose,
-                                             m_proc=self.multi_processing)
+                                             m_proc=self.multi_processing,
+                                             **kwargs)
 
         self.model = db_model.conditional_prob
         self.ref_genera = db_model.genera_names

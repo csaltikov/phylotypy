@@ -181,7 +181,7 @@ class TestGetKmers(unittest.TestCase):
         genera = ["A", "B", "B"]
 
         # list
-        db = kmers.build_kmer_database(sequences, genera, kmer_size)
+        db = kmers.build_kmer_database(sequences, genera, kmer_size, multi=True)
 
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod).astype(np.float16)
