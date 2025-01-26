@@ -1,11 +1,14 @@
 from pathlib import Path
 import requests
 import tarfile
+import gzip
+
+import numpy as np
 
 from phylotypy.utilities import read_fasta
 
 
-def download_and_extract(url, output_dir):
+def download_and_extract(url, output_dir: str | Path):
     """
     Downloads a tar.gz file from the given URL and extracts it to the specified output directory.
 
@@ -14,32 +17,30 @@ def download_and_extract(url, output_dir):
     output_dir (str or Path): The directory where the contents should be extracted.
     """
     # Ensure output_dir is a Path object
-    output_dir = Path(output_dir)
+    if isinstance(output_dir, str):
+        output_dir = Path(output_dir)
 
     # Ensure the output directory exists
     output_dir.mkdir(parents=True, exist_ok=True)
 
     # Path to the downloaded file
-    download_path = output_dir / Path(url).name
+    download_path = output_dir / Path(url).name.rstrip("?download")
 
-    # Download the file
-    response = requests.get(url, stream=True)
-    if response.status_code == 200:
-        with open(download_path, 'wb') as file:
-            for chunk in response.iter_content(chunk_size=1024):
-                file.write(chunk)
-    else:
-        print("Failed to download the file")
-        response.raise_for_status()
+    print(f"The file was downloaded: {download_path.exists()}")
 
-    # Extract the tar.gz file
-    with tarfile.open(download_path, 'r:gz') as tar:
-        tar.extractall(path=output_dir)
+    if not download_path.exists():
+        print("Downloading the file...")
+        response = requests.get(url, stream=True)
+        if response.status_code == 200:
+            with open(download_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=1024):
+                    file.write(chunk)
+            print(f"Downloaded: {download_path}")
+        else:
+            print("Failed to download the file")
+            response.raise_for_status()
 
-    # Optionally, delete the downloaded tar.gz file to save space
-    download_path.unlink()
-
-    print(f"File downloaded and extracted to {output_dir}")
+    print(f"File downloaded to {output_dir}")
 
 
 def rdp_train_set_19():
@@ -59,15 +60,21 @@ def rdp_train_set_19():
     print(f"trainset file is located at {db_file_path}")
 
 
-def silva_trainset():
+def silva_train_set(out_dir):
+    out_path = Path(out_dir)
     print("Starting...file is big!")
     link_address = "https://zenodo.org/records/3986799/files/silva_nr99_v138_train_set.fa.gz?download"
-    download_and_extract(link_address, "training_data")
-    fasta_file = "training_data/silva_nr99_v138_train_set.fa"
+    download_and_extract(link_address, out_path)
+    fasta_file = out_path.joinpath("silva_nr99_v138_train_set.fa.gz")
     ref_db = read_fasta.read_taxa_fasta(fasta_file)
     print("Done processing fasta file")
-    ref_db.to_csv("data/silva_nr99_v138_train_set.csv")
+    silva_out = out_path.joinpath("silva_nr99_v138_train_set.parquet")
 
+    chunk_size = 10000
+
+    for i, chunk in enumerate(np.array_split(ref_db, ref_db.shape[0] // chunk_size)):
+        mode = "w" if i == 0 else "a"
+        chunk.to_parquet(silva_out, compression='snappy', engine='pyarrow', index=False)
 
 
 if __name__ == "__main__":

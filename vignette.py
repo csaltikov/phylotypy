@@ -1,7 +1,7 @@
 ##
+import time
 from multiprocessing import freeze_support
 from pathlib import Path
-import time
 
 import pandas as pd
 

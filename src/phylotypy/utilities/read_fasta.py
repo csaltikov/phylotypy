@@ -1,10 +1,12 @@
+import gzip
+import pathlib
 import re
 from collections import defaultdict
 
 import pandas as pd
 
 
-def read_taxa_fasta(fasta_file: str) -> pd.DataFrame:
+def read_taxa_fasta(fasta_file: str | pathlib.Path) -> pd.DataFrame:
     """Read a fasta file and return a dictionary of sequences.
 
     Parameters:
@@ -28,7 +30,12 @@ def read_taxa_fasta(fasta_file: str) -> pd.DataFrame:
         clean_line = fasta_line.rstrip().replace(">", "")
         return re.split(r"(\t|\s{2,})", clean_line)[0]
 
-    with open(fasta_file, "r") as f:
+    gz_file = is_gzip_file(fasta_file)
+
+    open_func = gzip.open if gz_file else open
+    mode = 'rt' if gz_file else 'r'  # 'rt' for text mode in gzip
+
+    with open_func(fasta_file, mode) as f:
         big_line = ""
 
         # First sequence
@@ -65,6 +72,15 @@ def read_taxonomy(taxonomy_file, sep="\t"):
     taxa_df = pd.read_csv(taxonomy_file, sep=sep, names=["id", "taxonomy"], header=None)
     taxa_df["taxonomy"] = taxa_df["taxonomy"].str.rstrip(";")
     return taxa_df
+
+
+def is_gzip_file(file_path):
+    try:
+        with gzip.open(file_path, 'rb') as f:
+            f.read(1)
+        return True
+    except gzip.BadGzipFile:
+        return False
 
 
 if __name__ == "__main__":
