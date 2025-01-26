@@ -1,0 +1,7 @@
+biopython
+numpy
+pandas
+scikit-learn
+
+[test]
+pytest

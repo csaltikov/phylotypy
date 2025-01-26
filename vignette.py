@@ -5,8 +5,8 @@ import time
 
 import pandas as pd
 
-from utilities import utilities
-import phylotypy
+from phylotypy import phylotypy
+from phylotypy.utilities import utilities
 
 if __name__ == "__main__":
     freeze_support()
@@ -33,7 +33,7 @@ if __name__ == "__main__":
     classify.multi_processing = True
 
     start = time.time()
-    classify.fit(db["sequences"], db["taxonomy"],
+    classify.fit(db["sequence"], db["id"],
                  kmer_size=kmer_size,
                  multi=True,
                  n_cpu=12)

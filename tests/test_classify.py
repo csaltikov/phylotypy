@@ -4,7 +4,6 @@ import unittest
 from phylotypy import kmers
 
 
-
 class MyTestCase(unittest.TestCase):
     def setUp(self):
         self.db_name = "rdp"

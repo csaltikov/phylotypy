@@ -1,3 +1,7 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
 [project]
 name = "phylotypy"
 version = "0.1.0"
@@ -9,15 +13,13 @@ license = {text = "MIT"}
 readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
-    "biopython>=1.84",
-    "ipython>=8.31.0",
-    "numpy>=2.2.1",
-    "pandas>=2.2.3",
-    "scikit-learn>=1.6.1",
+    "biopython",
+    "numpy",
+    "pandas",
+    "scikit-learn",
+    "requests",
 ]
 [project.optional-dependencies]
 test = [
-    "pytest>=7.0",
+    "pytest",
 ]
-[tool.setuptools.packages.find]
-include = ["data*", "training_data*"]
