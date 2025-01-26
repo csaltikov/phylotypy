@@ -24,8 +24,8 @@ jobs:
         fetch-depth: 0
     - name: Include data directories
       run: |
-        mkdir -p data training_data
-        git checkout HEAD -- data training_data
+        mkdir -p data
+        git checkout HEAD -- data
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v3
       with:
