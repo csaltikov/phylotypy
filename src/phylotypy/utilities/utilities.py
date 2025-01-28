@@ -106,3 +106,7 @@ def convert_dict_keys_to_int(d):
     dict: A new dictionary with integer keys.
     """
     return {int(key): value for key, value in d.items()}
+
+
+if __name__ == "__main__":
+    print(f"Support tools for phylotypy package")

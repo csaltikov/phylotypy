@@ -114,7 +114,7 @@ def pool_bootstrap(kmer_list: list):
 
 
 @contextmanager
-def poolcontext(*args, **kwargs):
+def pool_context(*args, **kwargs):
     pool = mp.Pool(*args, **kwargs)
     yield pool
     pool.close()
@@ -138,7 +138,7 @@ def pool_classify_async(bs_kmer_list, min_confid: int = 80, n_levels: int = 6, n
     print(f"bs_kmers to process: {num_bs_kmers}")
     collected_bs_results = [None] * num_bs_kmers
 
-    with poolcontext(processes=max_proc) as pool:
+    with pool_context(processes=max_proc) as pool:
         for i, bs_kmer in enumerate(bs_kmer_list):
             results.append(pool.apply_async(safe_pipeline, (i, bs_kmer, min_confid, n_levels)))
 
@@ -154,7 +154,7 @@ def pool_classify(bs_kmer_list, min_confid: int = 80, n_levels: int = 6, num_pro
     logging.info("Starting classify/consensus pipeline")
     max_proc: int = num_proc  # seems to be the optimal
 
-    with poolcontext(processes=max_proc) as pool:
+    with pool_context(processes=max_proc) as pool:
         args_list = [(kmer_indices, min_confid, n_levels) for kmer_indices in bs_kmer_list]
         collected_bs_results = pool.starmap(pipeline, args_list)
         bs_results = [np.array(results) for results in collected_bs_results]

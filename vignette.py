@@ -34,9 +34,8 @@ if __name__ == "__main__":
 
     start = time.time()
     classify.fit(db["sequence"], db["id"],
-                 kmer_size=kmer_size,
                  multi=True,
-                 n_cpu=12)
+                 n_cpu=6)
     end = time.time()
     print(f"Run time {(end - start):.1f} seconds")
 
@@ -52,7 +51,7 @@ if __name__ == "__main__":
     ##
 
     # Classify
-    predict_mov_pic = classify.predict(X_mov_pic[0:10], y_mov_pic[0:10])
+    predict_mov_pic = classify.predict(X_mov_pic[0:20], y_mov_pic[0:20])
 
     # Put results in a dataframe
     predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)

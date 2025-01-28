@@ -1,4 +1,7 @@
+from contextlib import contextmanager
+from functools import partial
 import json
+import multiprocessing as mp
 from typing import Any
 
 import numpy as np
@@ -8,23 +11,32 @@ import pandas as pd
 from phylotypy import kmers
 
 
+@contextmanager
+def pool_context(*args, **kwargs):
+    pool = mp.Pool(*args, **kwargs)
+    yield pool
+    pool.close()
+    pool.join()
+
+
 class Classify:
-    def __init__(self):
-        self.kmer_size = None
+    def __init__(self, kmer_size: int = 8,
+                 verbose: bool = True,
+                 n_levels: int = 6):
+        self.kmer_size = kmer_size
         self.model = None
         self.ref_genera = None
         self.detect_list = None
         self.ref_genera_idx = None
         self.boot = 100
         self.save_db = False
-        self.verbose = True
-        self.n_levels = 6  # defaults levels down to genus
+        self.verbose = verbose
+        self.n_levels = n_levels  # defaults levels down to genus
         self.multi_processing = False
         self.cond_prob_multi = False
 
-    def fit(self, X, y, kmer_size: int = 8, **kwargs):
+    def fit(self, X, y, **kwargs):
         print("Fitting model")
-        self.kmer_size = kmer_size
         db_model = kmers.build_kmer_database(X, y,
                                              self.kmer_size,
                                              self.verbose,
@@ -43,18 +55,46 @@ class Classify:
             json_config = kwargs.get('config', "phylotypy_config.json")
             self.save_config(json_config)
 
-    def predict(self, nuc_sequences: list, y_test: list, kmer_size: int = 8, **kwargs):
+    def classify(self, bs_kmer, min_confid: int = 80, n_levels: int = 6):
+        classified_list = kmers.classify_bootstraps(bs_kmer, self.model)
+        classification = kmers.consensus_bs_class(classified_list, self.ref_genera)
+        classification_filtered = kmers.filter_taxonomy(classification, min_confid)
+        return kmers.print_taxonomy(classification_filtered, n_levels)
+
+    def pool_bootstrap(self, kmer_list: list):
+        bootstrap_func = partial(kmers.bootstrap, n_bootstraps=100)
+
+        with pool_context(processes=8) as pool:
+            bs_results_collected = pool.map(bootstrap_func, kmer_list)
+            bs_results = [np.array(result) for result in bs_results_collected]
+            return bs_results
+
+    def predict(self, nuc_sequences: list, y_test: list, **kwargs):
         if "boot" in kwargs:
             self.boot: int = kwargs["boot"]
         # Convert each nucleotide sequence in the database to base4
         # Get a list of kmer indices for each sequence in the database, a list of lists
         self.detect_list = kmers.detect_kmers_across_sequences_mp(nuc_sequences,
-                                                                  kmer_size,
+                                                                  self.kmer_size,
                                                                   verbose=self.verbose)
         # Get the posteriors for each genera in the database
-        posteriors = self.predict_(y_test)
+        # posteriors = self.predict_(y_test)
+
+        # multiprocessing classify, substitutes for self.predict_(y_test)
+        bootstrap_kmers = self.pool_bootstrap(self.detect_list)
+        min_confid = kwargs.get("min_confid", 80)
+
+        with pool_context(processes=6) as pool:
+            args_list = [(kmer_indices, min_confid, self.n_levels) for kmer_indices in bootstrap_kmers]
+            if self.verbose:
+                print(f"Pool contains {len(args_list)} kmer lists to process")
+            collected_bs_results = pool.starmap(self.classify, args_list)
+            bs_results = [results for results in collected_bs_results]
+
         if self.verbose:
             print("Done predicting")
+
+        posteriors = dict(id=y_test, classification=bs_results)
         return posteriors
 
     def predict_(self, genera_list: list, min_confid: int = 80) -> dict[str, Any]:

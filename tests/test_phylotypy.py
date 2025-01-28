@@ -11,19 +11,20 @@ from phylotypy import phylotypy
 
 class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
-        self.classifier = phylotypy.Classify()
+        self.kmer_size = 3
+        self.classifier = phylotypy.Classify(kmer_size=self.kmer_size)
         self.X_train = ["CCGCTGA", "CCGCTGA", "GTGGAAT", "GTGGAAT", "TATGCAC"]
         self.y_train = ["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B"]
-        self.detect_list = kmers.detect_kmers_across_sequences(self.X_train, 2, verbose=True)
-        self.priors = kmers.calc_word_specific_priors(self.detect_list, kmer_size=2)
+        self.detect_list = kmers.detect_kmers_across_sequences(self.X_train, self.kmer_size, verbose=True)
+        self.priors = kmers.calc_word_specific_priors(self.detect_list, kmer_size=self.kmer_size)
         self.genera_idx = kmers.genera_str_to_index(self.y_train)
-        self.db = kmers.build_kmer_database(self.X_train, self.y_train, 2)
+        self.db = kmers.build_kmer_database(self.X_train, self.y_train, self.kmer_size)
 
     def test_classifier_fit(self):
-        kmer_size = 3
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
         genera = ["A;B;c", "B;C;d", "B;C;d"]
-        self.classifier.fit(sequences, genera, kmer_size=kmer_size)
+        self.classifier.kmer_size = self.kmer_size
+        self.classifier.fit(sequences, genera)
 
         # check shape of the model
         observed = self.classifier.model.shape
@@ -47,17 +48,16 @@ class TestGetKmers(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_classifier_predict(self):
-        self.classifier = phylotypy.Classify()
-        self.classifier.n_levels = 3
-        kmer_size = 4
+        self.classifier_ = phylotypy.Classify(kmer_size=3, n_levels=3)
+        self.classifier_.multi_processing = True
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
         genera = ["A;B;c", "B;C;d", "B;C;d"]
-        self.classifier.fit(sequences, genera, kmer_size=kmer_size)
-
+        self.classifier_.fit(sequences, genera)
+        print(self.classifier_.ref_genera)
         X = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC", "ATGCGCTA"]
         y = ["A;B;c", "B;C;d", "B;C;d", "unk"]
 
-        predicted = self.classifier.predict(X, y)
+        predicted = self.classifier_.predict(X, y)
 
         expected = ['A(100);B(100);c(100)', 'A(100);B(100);c(100)', 'A(100);B(100);c(100)', 'A(100);B(100);c(100)']
 
