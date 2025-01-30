@@ -64,8 +64,8 @@ class Classify:
     def pool_bootstrap(self, kmer_list: list):
         bootstrap_func = partial(kmers.bootstrap, n_bootstraps=100)
 
-        with pool_context(processes=8) as pool:
-            bs_results_collected = pool.map(bootstrap_func, kmer_list)
+        with pool_context(processes=mp.cpu_count()) as pool:
+            bs_results_collected = pool.imap(bootstrap_func, kmer_list, chunksize=5)
             bs_results = [np.array(result) for result in bs_results_collected]
             return bs_results
 
@@ -84,7 +84,7 @@ class Classify:
         bootstrap_kmers = self.pool_bootstrap(self.detect_list)
         min_confid = kwargs.get("min_confid", 80)
 
-        with pool_context(processes=6) as pool:
+        with pool_context(processes=4) as pool:
             args_list = [(kmer_indices, min_confid, self.n_levels) for kmer_indices in bootstrap_kmers]
             if self.verbose:
                 print(f"Pool contains {len(args_list)} kmer lists to process")

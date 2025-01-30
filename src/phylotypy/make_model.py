@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from phylotypy.utilities import read_fasta
-from phylotypy import phylotypy
+from phylotypy import predict
 
 
 ##
@@ -23,9 +23,9 @@ def make_model(train_data_json: json, kmer_size: int = 8):
 
     # read in the fasta and taxa to make the classifier model
     X, y = create_db(fasta)
-    classifier = phylotypy.Classify()
+    classifier = predict.Classify()
     classifier.multi_processing = True
-    classifier.fit(X, y, kmer_size=kmer_size, multi=True, n_cpu=12)
+    classifier.fit(X, y, multi=True, n_cpu=8)
     classifier.verbose = True
 
     # save the model and genera to dir specified in the config

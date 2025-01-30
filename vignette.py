@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pandas as pd
 
-from phylotypy import phylotypy
+from phylotypy import predict
 from phylotypy.utilities import utilities
 
 if __name__ == "__main__":
@@ -29,7 +29,7 @@ if __name__ == "__main__":
     ##
     # Reload the module in case I edit the code
     kmer_size = 8
-    classify = phylotypy.Classify()
+    classify = predict.Classify()
     classify.multi_processing = True
 
     start = time.time()
@@ -54,7 +54,7 @@ if __name__ == "__main__":
     predict_mov_pic = classify.predict(X_mov_pic[0:20], y_mov_pic[0:20])
 
     # Put results in a dataframe
-    predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)
+    predict_mov_pic_df = predict.summarize_predictions(predict_mov_pic)
     print(predict_mov_pic_df[["id", "Genus"]].head())
 
     ##
@@ -69,5 +69,5 @@ if __name__ == "__main__":
     predict_orio = classify.predict(X_unk, y_unk)
 
     # Report the results in a dataframe
-    predict_orio_df = phylotypy.summarize_predictions(predict_orio)
+    predict_orio_df = predict.summarize_predictions(predict_orio)
     print(predict_orio_df[["id", "classification"]])
