@@ -12,7 +12,7 @@ from phylotypy import predict
 class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
         self.kmer_size = 3
-        self.classifier = phylotypy.Classify(kmer_size=self.kmer_size)
+        self.classifier = predict.Classify(kmer_size=self.kmer_size)
         self.X_train = ["CCGCTGA", "CCGCTGA", "GTGGAAT", "GTGGAAT", "TATGCAC"]
         self.y_train = ["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B"]
         self.detect_list = kmers.detect_kmers_across_sequences(self.X_train, self.kmer_size, verbose=True)
@@ -48,7 +48,7 @@ class TestGetKmers(unittest.TestCase):
         self.assertEqual(observed, expected)
 
     def test_classifier_predict(self):
-        self.classifier_ = phylotypy.Classify(kmer_size=3, n_levels=3)
+        self.classifier_ = predict.Classify(kmer_size=3, n_levels=3)
         self.classifier_.multi_processing = True
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
         genera = ["A;B;c", "B;C;d", "B;C;d"]
@@ -69,7 +69,7 @@ class TestGetKmers(unittest.TestCase):
         bs_class = [0, 0, 0, 0, 3]
         genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 
-        classifier = phylotypy.Classify()
+        classifier = predict.Classify()
         classifier.n_levels = 3
         classifier.ref_genera = genera
         observed = classifier.consensus_bs_class(bs_class)
