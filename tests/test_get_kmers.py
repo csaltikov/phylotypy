@@ -246,6 +246,18 @@ class TestGetKmers(unittest.TestCase):
         detected_in_kmers = np.isin(detected, kmers_arr)
         self.assertTrue(np.all(detected_in_kmers))
 
+    def test_bootstrap(self):
+        kmers_detected = kmers.detect_kmers(self.sequence, 3)
+        np.random.seed(42)
+        observed_bs_kmers = kmers.bootstrap(kmers_detected, 5, fraction=3)
+        expected_bs_kmers = np.array([[50, 25, 19, 57, 9],
+                                      [11, 19, 39, 50, 50],
+                                      [38, 50, 9, 9, 11],
+                                      [39, 25, 11, 11, 38],
+                                      [28, 39, 57, 11, 36]])
+
+        self.assertTrue(np.array_equal(observed_bs_kmers, expected_bs_kmers))
+
     def test_bootstrap_sampler(self):
         kmer_size = 3
         sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]

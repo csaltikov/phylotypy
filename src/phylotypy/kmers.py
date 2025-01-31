@@ -275,13 +275,16 @@ def index_genus_mapper(genera_list: list):
 
 
 def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
+    '''Performs a single bootstrap sampling on a kmers array'''
     n_kmers = kmers.shape[0] // kmer_size
     return np.random.choice(kmers, n_kmers, replace=True)
 
 
-def bootstrap(kmer_index: list, n_bootstraps: int = 100):
-    n_samples = len(kmer_index) // 8
-    kmer_sample_arr = np.empty((n_bootstraps, n_samples), dtype=int)
+def bootstrap(kmer_index: list, n_bootstraps: int = 100, **kwargs) -> np.ndarray:
+    ''''Performs multiple bootstrap samplings on a list of kmers'''
+    fraction = kwargs.get('fraction', 8)
+    n_samples = len(kmer_index) // fraction
+    kmer_sample_arr = np.zeros((n_bootstraps, n_samples), dtype=int)
     for i in range(n_bootstraps):
         kmer_sample_arr[i, :] = np.random.choice(kmer_index, size=n_samples, replace=True)
     return kmer_sample_arr
