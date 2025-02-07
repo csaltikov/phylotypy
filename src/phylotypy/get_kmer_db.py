@@ -51,7 +51,7 @@ class GetKmerDB:
 
 def load_db(conf_file):
     if isinstance(conf_file, Path):
-        if conf_file.exists()::
+        if conf_file.exists():
             with open(conf_file, 'r') as f:
                 config = json.load(f)
         else:
