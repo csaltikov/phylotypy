@@ -33,7 +33,8 @@ if __name__ == "__main__":
     classify.multi_processing = True
 
     start = time.time()
-    classify.fit(db["sequence"], db["id"],
+    classify.fit(db["sequence"],
+                 db["id"],
                  multi=True,
                  n_cpu=6)
     end = time.time()

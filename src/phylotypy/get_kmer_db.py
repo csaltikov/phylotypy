@@ -11,7 +11,7 @@ class GetKmerDB:
     _instance: Optional["GetKmerDB"] = None
     _is_initialized: bool = False
 
-    def __new__(cls, mod_file, mod_shape, genera_file) -> "GetKmerDB":
+    def __new__(cls, mod_data, mod_shape, genera_names) -> "GetKmerDB":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             return cls._instance
@@ -19,15 +19,15 @@ class GetKmerDB:
             # print("database already exists")
             return cls._instance
 
-    def __init__(self, mod_file, mod_shape, genera_file) -> None:
+    def __init__(self, mod_data, mod_shape, genera_names) -> None:
         if not self._is_initialized:
-            self.mod_file = mod_file
+            self.mod_data = mod_data
             self.mod_shape = mod_shape
-            self.genera_file = genera_file
+            self.genera_file = genera_names
             self.db_ = self.load_db()
 
     def load_db(self) -> kmers.KmerDB:
-        db_ = kmers.KmerDB(conditional_prob=np.memmap(self.mod_file,
+        db_ = kmers.KmerDB(conditional_prob=np.memmap(self.mod_data,
                                                       dtype=np.float16,
                                                       mode="c",
                                                       shape=self.mod_shape),
@@ -50,10 +50,15 @@ class GetKmerDB:
 
 
 def load_db(conf_file):
-    with open(conf_file, 'r') as f:
-        config = json.load(f)
+    if Path(conf_file).exists():
+        with open(conf_file, 'r') as f:
+            config = json.load(f)
+    elif isinstance(conf_file, dict):
+        config = conf_file
+    else:
+        print("Config file must be a JSON file or a dictionary.")
+        raise TypeError
 
-    print(*config)
     # Extract the necessary information from the config
     mod_dir = Path(config["model_dir"])
     mod_file = mod_dir / config["model"]

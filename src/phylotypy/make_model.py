@@ -7,7 +7,7 @@ import numpy as np
 import pandas as pd
 
 from phylotypy.utilities import read_fasta
-from phylotypy import predict
+from phylotypy import predict, get_kmer_db
 
 
 ##
@@ -22,7 +22,7 @@ def make_model(train_data_json: json, kmer_size: int = 8):
     db_name = config['db_name']
 
     # read in the fasta and taxa to make the classifier model
-    X, y = create_db(fasta)
+    X, y = get_db_sequences(fasta)
     classifier = predict.Classify()
     classifier.multi_processing = True
     classifier.fit(X, y, multi=True, n_cpu=8)
@@ -59,7 +59,7 @@ def make_model(train_data_json: json, kmer_size: int = 8):
     return classifier
 
 
-def create_db(fasta):
+def get_db_sequences(fasta):
     db = read_fasta.read_taxa_fasta(fasta)
 
     X_train = db["sequence"].tolist()
@@ -106,6 +106,11 @@ def check_train_config_file(config_path):
     print("Training data config passed successfully.")
 
 
+def get_db(config_file):
+    db = get_kmer_db.load_db(config_file)
+    return db
+
+
 ##
 if __name__ == "__main__":
     ##
@@ -122,9 +127,9 @@ if __name__ == "__main__":
         print("Usage: python script.py <config_file.json>")
         sys.exit(1)
 
-    config_file = sys.argv[1]
-    check_train_config_file(config_file)
+    config_file_mkdb = sys.argv[1]
+    check_train_config_file(config_file_mkdb)
 
-    nb_classifier = make_model(config_file)
+    nb_classifier = make_model(config_file_mkdb)
 
 
