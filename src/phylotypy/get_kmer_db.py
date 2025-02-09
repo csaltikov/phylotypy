@@ -1,3 +1,4 @@
+from collections import defaultdict
 import json
 from typing import Optional
 from pathlib import Path
@@ -11,7 +12,7 @@ class GetKmerDB:
     _instance: Optional["GetKmerDB"] = None
     _is_initialized: bool = False
 
-    def __new__(cls, mod_data, mod_shape, genera_names) -> "GetKmerDB":
+    def __new__(cls, mod_file, genera_file, mod_shape) -> "GetKmerDB":
         if cls._instance is None:
             cls._instance = super().__new__(cls)
             return cls._instance
@@ -19,15 +20,15 @@ class GetKmerDB:
             # print("database already exists")
             return cls._instance
 
-    def __init__(self, mod_data, mod_shape, genera_names) -> None:
+    def __init__(self, mod_file, genera_file, mod_shape) -> None:
         if not self._is_initialized:
-            self.mod_data = mod_data
+            self.mod_file = mod_file
             self.mod_shape = mod_shape
-            self.genera_file = genera_names
-            self.db_ = self.load_db()
+            self.genera_file = genera_file
+            self.db_ = self.load_db_()
 
-    def load_db(self) -> kmers.KmerDB:
-        db_ = kmers.KmerDB(conditional_prob=np.memmap(self.mod_data,
+    def load_db_(self) -> kmers.KmerDB:
+        db_ = kmers.KmerDB(conditional_prob=np.memmap(self.mod_file,
                                                       dtype=np.float16,
                                                       mode="c",
                                                       shape=self.mod_shape),
@@ -49,26 +50,40 @@ class GetKmerDB:
         return self.db_.genera_idx
 
 
-def load_db(conf_file):
-    if isinstance(conf_file, Path):
-        if conf_file.exists():
-            with open(conf_file, 'r') as f:
+def load_db(config: dict|Path, **kwargs):
+    if isinstance(config, Path):
+        if config.exists():
+            with open(config, 'r') as f:
                 config = json.load(f)
         else:
             print("File not found")
-    elif isinstance(conf_file, dict):
-        config = conf_file
+    elif isinstance(config, dict):
+        config = config
+        print("Config is dict")
     else:
         print("Config file must be a JSON file or a dictionary.")
         raise TypeError
 
     # Extract the necessary information from the config
-    mod_dir = Path(config["model_dir"])
-    mod_file = mod_dir / config["model"]
-    genera = mod_dir / config["genera"]
-    model_shape = config["model_shape"]
+    model_files = defaultdict()
+    model_file_dir = kwargs.get("mod_dir", Path(config["model_dir"]))
+    if not model_file_dir.exists():
+        raise FileNotFoundError
 
-    db = GetKmerDB(mod_file, model_shape, genera)
+    print(model_file_dir)
+    print(config["model"])
+    model_files["mod_data"] = model_file_dir / config["model"]
+    model_files["genera"] = model_file_dir / config["genera"]
+
+    for key, value in model_files.items():
+        if not isinstance(value, Path):
+            print(f"{key} is not a path")
+            raise TypeError
+        if not Path(value).exists():
+            print(f"{key} is not a file")
+            raise FileNotFoundError
+
+    db = GetKmerDB(model_files["mod_data"], model_files["genera"], config["model_shape"])
 
     return db
 
@@ -77,3 +92,14 @@ if __name__ == "__main__":
     db = load_db(Path.home() / "PycharmProjects/phylotypy_data/local_data/models/rdp/model_config.json")
     print(db.genera_names[0:10])
     print(db.conditional_prob[0:10])
+
+    db_dict = {
+        "db_name": "mini_rdp",
+        "model": "model_raw.rbf",
+        "genera": "ref_genera.npy",
+        "model_dir": Path.home() / "PycharmProjects/phylotypy_data/local_data/models/rdp",
+        "model_shape": [65536, 3883] }
+
+    db2 = load_db(db_dict)
+    print(db2.genera_names[0:10])
+    print(db2.conditional_prob[0:10])

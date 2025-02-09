@@ -1,3 +1,4 @@
+import sys
 from collections import defaultdict
 from functools import partial
 import json
@@ -5,56 +6,13 @@ import multiprocessing as mp
 import numpy as np
 import re
 from time import perf_counter
-from typing import Optional
 
 from pathlib import Path
-from phylotypy import kmers
+from phylotypy import kmers, get_kmer_db
 from phylotypy.utilities import read_fasta
 
 
 global db
-
-
-class GetKmerDB:
-    _instance: Optional["GetKmerDB"] = None
-    _is_initialized: bool = False
-
-    def __new__(cls, mod_file, mod_shape, genera_file) -> "GetKmerDB":
-        if cls._instance is None:
-            cls._instance = super().__new__(cls)
-            return cls._instance
-        else:
-            print("database already exists")
-            return cls._instance
-
-    def __init__(self, mod_file, mod_shape, genera_file) -> None:
-        if not self._is_initialized:
-            self.mod_file = mod_file
-            self.mod_shape = mod_shape
-            self.genera_file = genera_file
-            self.db_ = self.load_db()
-
-    def load_db(self) -> kmers.KmerDB:
-        db_ = kmers.KmerDB(conditional_prob=np.memmap(self.mod_file,
-                                                      dtype=np.float16,
-                                                      mode="c",
-                                                      shape=self.mod_shape),
-                           genera_idx=kmers.genera_str_to_index(np.load(self.genera_file, allow_pickle=True)),
-                           genera_names=np.load(self.genera_file, allow_pickle=True)
-                           )
-        return db_
-
-    @property
-    def genera_names(self):
-        return self.db_.genera_names
-
-    @property
-    def conditional_prob(self):
-        return self.db_.conditional_prob
-
-    @property
-    def genera_idx(self):
-        return self.db_.genera_idx
 
 
 class Predict:
@@ -65,16 +23,17 @@ class Predict:
         self.genera_file = None
         return
 
-    def load_db(self, mod_file, mod_shape, genera_file):
-        self.mod_file = mod_file
-        self.mod_shape = mod_shape
-        self.genera_file = genera_file
-        self.db = GetKmerDB(self.mod_file, self.mod_shape, self.genera_file)
+    def load_db(self, config):
+        db_config = get_db_files(config)
+        self.mod_file = db_config["model_file"]
+        self.mod_shape = db_config["model_shape"]
+        self.genera_file = db_config["genera"]
+        self.db = get_kmer_db.GetKmerDB(self.mod_file, self.genera_file, self.mod_shape)
 
     @staticmethod
-    def init_worker(mod_file, mod_shape, genera_file):
+    def init_worker(mod_file, genera_file, mod_shape):
         global db
-        db = GetKmerDB(mod_file, mod_shape, genera_file)
+        db = get_kmer_db.GetKmerDB(mod_file, genera_file, mod_shape)
 
     @staticmethod
     def classify(bs_kmer: list | np.ndarray,
@@ -89,39 +48,68 @@ class Predict:
         kmer_list = kmers.detect_kmers_across_sequences_mp(sequences, verbose=True)
         bootstrap_func = partial(kmers.bootstrap, n_bootstraps=100)
 
-        print("Bootstrapping sequences...")
+        print(f"Bootstrapping {len(kmer_list)} sequences")
         with mp.Pool(processes=8,
                      initializer=self.init_worker,
-                     initargs=(self.mod_file, self.mod_shape, self.genera_file)) as pool:
+                     initargs=(self.mod_file, self.genera_file, self.mod_shape)) as pool:
             bs_results_collected = pool.imap(bootstrap_func, kmer_list, chunksize=10)
             bs_kmers = [np.array(result) for result in bs_results_collected]
 
-            print("Classifying sequences...")
+            print("Classifying sequences")
             classify_partial = partial(self.classify)
             classified_results = pool.map(classify_partial, bs_kmers, chunksize=10)
+            print("Done classifying sequences")
 
         return classified_results
 
 
-def load_db(conf_file: str | Path) -> dict:
-    with open(conf_file, 'r') as f:
-        config = json.load(f)
+def get_db_files(conf_file: str | Path) -> dict:
+    if isinstance(conf_file, Path):
+        if conf_file.exists():
+            with open(conf_file, 'r') as f:
+                config = json.load(f)
+        else:
+            print("File not found")
+    elif isinstance(conf_file, dict):
+        config = conf_file
+        print("Config is dict")
+    else:
+        print("Config file must be a JSON file or a dictionary.")
+        raise TypeError
 
     mod_files = defaultdict(object)
     # Extract the necessary information from the config
     mod_files["model_dir"] = Path(config['model_dir'])
     mod_files["model_file"] = Path(config['model_dir']).joinpath(config['model'])
     mod_files["genera"] = Path(config['model_dir']).joinpath(config['genera'])
+
+    for key, value in mod_files.items():
+        if not isinstance(value, Path):
+            print(f"{value} is not a valid path")
+            sys.exit(1)
+        if not Path(value).exists():
+            print(f"{value.name} was not found")
+            sys.exit(1)
+
     mod_files["model_shape"] = tuple(config['model_shape'])
 
     return mod_files
 
 
 if __name__ == "__main__":
-    db_files = load_db(Path.home() / "PycharmProjects/phylotypy_data/local_data/models/rdp/model_config.json")
+    config_file = Path.home() / "PycharmProjects/phylotypy_data/local_data/models/silva_phy/model_config.json"
+    config_dir = Path.home() / "PycharmProjects/phylotypy_data/local_data/models/silva_phy"
+
+    # config_dict = {
+    #     "db_name": "mini_rdp",
+    #     "model": "model_raw.rbf",
+    #     "genera": "ref_genera.npy",
+    #     "model_shape": [ 65536,3883],
+    #     "model_dir": config_dir
+    # }
 
     classifier = Predict()
-    classifier.load_db(db_files["model_file"], db_files["model_shape"], db_files["genera"])
+    classifier.load_db(config_file)
 
     test_seqs = Path.home() / "PycharmProjects/phylotypy_data/data/dna_moving_pictures.fasta"
     seqs = read_fasta.read_taxa_fasta(test_seqs)
