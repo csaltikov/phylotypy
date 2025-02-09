@@ -25,7 +25,7 @@ def make_model(train_data_json: json, kmer_size: int = 8):
     X, y = get_db_sequences(fasta)
     classifier = predict.Classify()
     classifier.multi_processing = True
-    classifier.fit(X, y, multi=True, n_cpu=8)
+    classifier.fit(X, y, multi=True, n_cpu=12, chunk_size=20000)
     classifier.verbose = True
 
     # save the model and genera to dir specified in the config
