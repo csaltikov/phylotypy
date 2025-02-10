@@ -63,9 +63,15 @@ class Predict:
         return classified_results
 
 
-def get_db_files(conf_file: str | Path) -> dict:
+def get_db_files(conf_file: str | Path | dict) -> dict:
     if isinstance(conf_file, Path):
         if conf_file.exists():
+            with open(conf_file, 'r') as f:
+                config = json.load(f)
+        else:
+            print("File not found")
+    elif isinstance(conf_file, str):
+        if Path(conf_file).exists():
             with open(conf_file, 'r') as f:
                 config = json.load(f)
         else:
@@ -97,21 +103,23 @@ def get_db_files(conf_file: str | Path) -> dict:
 
 
 if __name__ == "__main__":
-    config_file = Path.home() / "PycharmProjects/phylotypy_data/local_data/models/silva_phy/model_config.json"
-    config_dir = Path.home() / "PycharmProjects/phylotypy_data/local_data/models/silva_phy"
+    config_file = "../../training_data/models/rdp/model_config.json"
+    print(Path(config_file).exists())
 
-    # config_dict = {
-    #     "db_name": "mini_rdp",
-    #     "model": "model_raw.rbf",
-    #     "genera": "ref_genera.npy",
-    #     "model_shape": [ 65536,3883],
-    #     "model_dir": config_dir
-    # }
+    config_dir = "../../training_data/models/rdp"
+
+    config_dict = {
+        "db_name": "mini_rdp",
+        "model": "model_raw.rbf",
+        "genera": "ref_genera.npy",
+        "model_shape": [ 65536, 3883],
+        "model_dir": config_dir
+    }
 
     classifier = Predict()
     classifier.load_db(config_file)
 
-    test_seqs = Path.home() / "PycharmProjects/phylotypy_data/data/dna_moving_pictures.fasta"
+    test_seqs = "../../data/dna_moving_pictures.fasta"
     seqs = read_fasta.read_taxa_fasta(test_seqs)
 
     ##

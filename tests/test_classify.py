@@ -21,9 +21,9 @@ class MyTestCase(unittest.TestCase):
 
         # (m(wi) + Pi) / (M + 1)
 
-        conditional_prob = kmers.calc_genus_conditional_prob(detect_list,
-                                                             genera_idx,
-                                                             priors)
+        conditional_prob = kmers.calc_genus_conditional_prob_mp(detect_list,
+                                                                genera_idx,
+                                                                priors)
         conditional_prob.tofile(self.mod_file)
 
         # np.save(self.mod_file, kmers.genera_str_to_index(ref_genera))

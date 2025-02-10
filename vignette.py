@@ -31,6 +31,7 @@ if __name__ == "__main__":
     kmer_size = 8
     classify = predict.Classify()
     classify.multi_processing = True
+    classify.save_db = Path.home()
 
     start = time.time()
     classify.fit(db["sequence"],

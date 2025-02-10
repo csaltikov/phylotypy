@@ -2,6 +2,7 @@ from contextlib import contextmanager
 from functools import partial
 import json
 import multiprocessing as mp
+from pathlib import Path
 from typing import Any
 
 import numpy as np
@@ -29,7 +30,7 @@ class Classify:
         self.detect_list = None
         self.ref_genera_idx = None
         self.boot = 100
-        self.save_db = False
+        self.save_db = None
         self.verbose = verbose
         self.n_levels = n_levels  # defaults levels down to genus
         self.multi_processing = False
@@ -50,9 +51,10 @@ class Classify:
 
         # Save config file
         if self.save_db:
-            db_model.conditional_prob.tofile("model_raw.rbf")
-            np.save("ref_genera.npy", self.ref_genera)
-            json_config = kwargs.get('config', "phylotypy_config.json")
+            save_path = Path(self.save_db)
+            db_model.conditional_prob.tofile(save_path / "model_raw.rbf")
+            np.save(save_path/ "ref_genera.npy", self.ref_genera)
+            json_config = kwargs.get('config', save_path / "phylotypy_config.json")
             self.save_config(json_config)
 
     def classify(self, bs_kmer, min_confid: int = 80, n_levels: int = 6):

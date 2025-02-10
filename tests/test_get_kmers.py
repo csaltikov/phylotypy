@@ -148,9 +148,9 @@ class TestGetKmers(unittest.TestCase):
 
         # (m(wi) + Pi) / (M + 1)
 
-        conditional_prob = kmers.calc_genus_conditional_prob_old(detect_list,
-                                                                 genera,
-                                                                 priors)
+        conditional_prob = kmers.calc_genus_conditional_prob(detect_list,
+                                                             genera,
+                                                             priors)
 
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
@@ -168,9 +168,9 @@ class TestGetKmers(unittest.TestCase):
         priors = kmers.calc_word_specific_priors(detect_list, kmer_size)
 
         # (m(wi) + Pi) / (M + 1)
-        conditional_prob = kmers.calc_genus_conditional_prob(detect_list,
-                                                             genera,
-                                                             priors)
+        conditional_prob = kmers.calc_genus_conditional_prob_mp(detect_list,
+                                                                genera,
+                                                                priors)
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
             self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))

@@ -31,10 +31,10 @@ class KmerDB:
 
 def build_kmer_database(sequences: list[str], genera: list[str],
                         kmer_size: int = 8, verbose: bool = False,
-                        m_proc: bool = False,
                         num_processes: int = mp.cpu_count(),
                         **kwargs) -> KmerDB:
     """Creates a conditional probablity matrix from DNA sequences and associated genera or sequence ids.
+    The m_proc kwarg sets the kmer detection to multiprocessing.
 
     @param sequences: DNA seqeunce as strings in a list ["ATCGGA", "ATCGGA"]
     @param genera: list of genera for building a model or list of ids for predicting genera
@@ -44,6 +44,7 @@ def build_kmer_database(sequences: list[str], genera: list[str],
     @param verbose: set to True if you want to see the outputs
     @return: kmers database dictionary
     """
+    m_proc = kwargs.get('m_proc', False)
     if m_proc:
         detected_kmers = detect_kmers_across_sequences_mp(sequences,
                                                           kmer_size=kmer_size,
@@ -59,10 +60,9 @@ def build_kmer_database(sequences: list[str], genera: list[str],
     genera_idx = genera_str_to_index(genera)
 
     cond_prob = calc_genus_conditional_prob(detected_kmers,
-                                            genera_idx,
-                                            priors,
-                                            verbose=verbose,
-                                            **kwargs)
+                                               genera_idx,
+                                               priors,
+                                               verbose=verbose)
 
     genera_names = index_genus_mapper(genera)
 
@@ -147,10 +147,10 @@ def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = Fals
     return (priors + 0.5) / (n_seqs + 1)
 
 
-def calc_genus_conditional_prob_old(detect_list: list[list[int]],
-                                    genera_idx: list,
-                                    word_specific_priors: np.ndarray,
-                                    verbose: bool = False) -> np.ndarray:
+def calc_genus_conditional_prob(detect_list: list[list[int]],
+                                genera_idx: list,
+                                word_specific_priors: np.ndarray,
+                                verbose: bool = False) -> np.ndarray:
     if verbose:
         print("Calculating genus conditional probability")
     # genus_arr = np.array(genera_idx)  # indices not the taxa names
@@ -186,11 +186,11 @@ def process_chunk(args):
     genus_count.flush()
 
 
-def calc_genus_conditional_prob(detect_list: list[list[int]],
-                                genera_idx: list,
-                                word_specific_priors: np.ndarray,
-                                verbose: bool = False,
-                                **kwargs) -> np.array:
+def calc_genus_conditional_prob_mp(detect_list: list[list[int]],
+                                   genera_idx: list,
+                                   word_specific_priors: np.ndarray,
+                                   verbose: bool = False,
+                                   **kwargs) -> np.array:
     genus_arr = np.array(genera_idx)  # indices not the taxa names
     genus_counts = np.unique(genus_arr, return_counts=True)[1]  # get counts of each unique genera
     n_genera = len(genus_counts)
@@ -213,9 +213,9 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
         print(f"db size {genus_count.shape}")
 
     # Prepare chunks for parallel processing or memory savings
-    chunk_size: int = kwargs.get('chunk_size', 5000)
+    chunk_size: int = kwargs.get('chunk_size', 20000)
     multi: bool = kwargs.get('multi', False)
-    n_cpu: int = kwargs.get('n_cpu', 8)
+    n_cpu: int = kwargs.get('n_cpu', 4)
 
     if multi:
         print(f"multiple processing: {multi} with {n_cpu} cpus")
