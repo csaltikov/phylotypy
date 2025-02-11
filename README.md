@@ -27,25 +27,22 @@ uv pip install git+https://github.com/csaltikov/phylotypy.git
 ```
 
 ## How to get started:
-1. First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/ or use the code below. This will create a directory called 'data' where the training data will be downloaded and processed into a csv file for importing into Pandas.
-```
-from training_data import rdp_train_set_19
+First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/ or use the code below. This will create a directory called 'data' where the training data will be downloaded and processed into a csv file for importing into Pandas.
 
-rdp_train_set_19()
-```
+I processed the latest rdp reference data into a csv file. 
 
-2. Load the training data
+1. Load the training data
 ```
 import pandas as pd
 
 db_file_path = "data/trainset19_072023_db.csv"
 db = pd.read_csv(db_file_path)
 ```
-3. Create the training data for the classifer
+2. Create the training data for the classifer
 ```
 X_ref, y_ref = db["sequence"].tolist(), db["id"].tolist()
 ```
-4. Train the classifer
+3. Train the classifer
 ```
 import phylotypy
 
@@ -53,7 +50,7 @@ classify = predict.Classify()
 classify.multi_processing = True
 classify.fit(X_ref, y_ref, multi=True, n_cpu=12)
 ```
-5. Classify some 16S rRNA gene sequences.  Here we will use the example from QIIME2, Moving Pictures data, https://docs.qiime2.org/2024.2/tutorials/moving-pictures/.  The data came from Classifying QIIME2 Moving Pictures rep-seqs-dada2.qza
+4. Classify some 16S rRNA gene sequences.  Here we will use the example from QIIME2, Moving Pictures data, https://docs.qiime2.org/2024.2/tutorials/moving-pictures/.  The data came from Classifying QIIME2 Moving Pictures rep-seqs-dada2.qza
 ```
 from utilities import fasta_to_dataframe
 
@@ -78,7 +75,7 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 
 ```
 
-6. Now you can keep using classify.predict(X, y) with your own data.  Make sure the sequences and names are lists
+5. Now you can keep using classify.predict(X, y) with your own data.  Make sure the sequences and names are lists
 ```
 my_data = "path/to/my/sequences" # change path to your fasta sequence file
 my_data_df = fasta_to_dataframe(my_data)
