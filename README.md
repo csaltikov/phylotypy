@@ -49,7 +49,7 @@ X_ref, y_ref = db["sequence"].tolist(), db["id"].tolist()
 ```
 import phylotypy
 
-classify = phylotypy.Classify()
+classify = predict.Classify()
 classify.multi_processing = True
 classify.fit(X_ref, y_ref, multi=True, n_cpu=12)
 ```
@@ -66,7 +66,7 @@ y_mov_pic = moving_pic["SequenceName"].to_list()  # Sequence names as a list
 
 predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)  # train the classifier
 
-predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
+predict_mov_pic_df = predict.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
 print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is in the 'classification' column
 ```
 ## Example classification output:
@@ -96,19 +96,15 @@ print(predict_df[["id", "classification"]])
 ```
 import pandas as pd
 
-import phylotypy
-from training_data import rdp_train_set_19
-from utilities import read_fasta
-
-# dowload/format training data
-rdp_train_set_19()
+from phylotypy import predict
+from phylotypy.utilities import utilities
 
 db_file_path = "data/trainset19_072023_db.csv"
 db = pd.read_csv(db_file_path)
 
 X_ref, y_ref = db["sequence"].tolist(), db["id"].tolist()
 
-classify = phylotypy.Classify()
+classify = predict.Classify()
 classify.multi_processing = True
 classify.fit(X_ref, y_ref, multi=True, n_cpu=12)  # train the model
 
@@ -119,6 +115,6 @@ y_mov_pic = moving_pic["id"].to_list()  # Sequence names as a list
 
 predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)  # train the classifier
 
-predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
+predict_mov_pic_df = predict.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
 print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is in the 'classification' column
 ```
