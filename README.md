@@ -17,7 +17,16 @@ I'll make a separate vignette on how to do this and classify 16S sequence data f
 
 Thanks Riffomonas for the inspiration.  Check out the videos on his Youtube channel https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j
 
-## Here's an example on how to start:
+## How to install
+```
+pip install git+https://github.com/csaltikov/phylotypy.git
+
+or if using uv (recommended)
+
+uv pip install git+https://github.com/csaltikov/phylotypy.git
+```
+
+## How to get started:
 1. First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/ or use the code below. This will create a directory called 'data' where the training data will be downloaded and processed into a csv file for importing into Pandas.
 ```
 from training_data import rdp_train_set_19
