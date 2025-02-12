@@ -84,7 +84,7 @@ def is_gzip_file(file_path):
 
 
 if __name__ == "__main__":
-    fasta_data_file = ["../data/test_fasta.fa",
+    fasta_data_file = ["../data/test_fasta_suborder.fa",
                        "../data/test_2_fasta.fa",
                        "../data/test_3_fasta.fa",
                        "../data/test_4_fasta.fa"] # sys.argv[1]
