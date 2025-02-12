@@ -91,7 +91,7 @@ def taxa_to_dataframe(taxa_file):
 
 
 def fix_qiime_taxa(taxa_string):
-    taxonomy = re.sub(r"\w__", "", taxa_string)
+    taxonomy = re.sub(r"\s*\w+__", "", taxa_string)
     return taxonomy
 
 

@@ -4,7 +4,6 @@ from pathlib import Path
 import sys
 
 import numpy as np
-import pandas as pd
 
 from phylotypy.utilities import read_fasta
 from phylotypy import predict, get_kmer_db

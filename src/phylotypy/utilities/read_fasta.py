@@ -21,14 +21,14 @@ def read_taxa_fasta(fasta_file: str | pathlib.Path) -> pd.DataFrame:
         fasta_list = (fasta_line.rstrip()
                       .replace(">", "")
                       .rstrip(";"))
-        fasta_list = re.split(r"(\t|\s{2,})", fasta_list)
+        fasta_list = re.split(r"\t|\s{2,}", fasta_list)
         for item in fasta_list:
-            if ";" in item:
-                return item
+            if re.findall("Bacteria|Archaea|Eukar", item):
+                return re.sub(r" suborder\w+;", "", item) # fasta id might have suborder
 
     def clean_id(fasta_line: str):
         clean_line = fasta_line.rstrip().replace(">", "")
-        return re.split(r"(\t|\s{2,})", clean_line)[0]
+        return re.split(r"\t|\s{2,}", clean_line)[0]
 
     gz_file = is_gzip_file(fasta_file)
 

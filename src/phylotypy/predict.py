@@ -24,13 +24,21 @@ class Classify:
     def __init__(self, kmer_size: int = 8,
                  verbose: bool = True,
                  n_levels: int = 6):
+        """
+        Classifies sequences using a reference database
+
+        Args:
+            kmer_size: length of kmers
+            verbose: set to True if you want verbose output
+            n_levels: how many taxonomic levels are in the training set
+        """
         self.kmer_size = kmer_size
         self.model = None
         self.ref_genera = None
         self.detect_list = None
         self.ref_genera_idx = None
         self.boot = 100
-        self.save_db = None
+        self.save_db = None  # eg /path/to/directory
         self.verbose = verbose
         self.n_levels = n_levels  # defaults levels down to genus
         self.multi_processing = False
@@ -88,8 +96,6 @@ class Classify:
 
         with pool_context(processes=4) as pool:
             args_list = [(kmer_indices, min_confid, self.n_levels) for kmer_indices in bootstrap_kmers]
-            if self.verbose:
-                print(f"Pool contains {len(args_list)} kmer lists to process")
             collected_bs_results = pool.starmap(self.classify, args_list)
             bs_results = [results for results in collected_bs_results]
 

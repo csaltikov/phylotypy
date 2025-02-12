@@ -1,4 +1,6 @@
 from pathlib import Path
+
+import pandas as pd
 import requests
 import tarfile
 import gzip
@@ -43,7 +45,7 @@ def download_and_extract(url, output_dir: str | Path):
     print(f"File downloaded to {output_dir}")
 
 
-def rdp_train_set_19():
+def rdp_train_set_19(out_dir: str | Path):
     """
     Download the RDP's latest 16S rRNA full length gene training data set.
     The trainset is trainset19_072023.  The function converts the files into
@@ -51,13 +53,23 @@ def rdp_train_set_19():
     """
     print("Starting...")
     link_address = "https://mothur.s3.us-east-2.amazonaws.com/wiki/trainset19_072023.rdp.tgz"
-    download_and_extract(link_address, "training_data")
-    fasta_file = "training_data/rdp_16S_v19.dada2.fasta"
+    download_and_extract(link_address, out_dir)
+    fasta_file = Path(out_dir) / "trainset19_072023.rdp.tgz"
+    with tarfile.open(fasta_file, 'r:gz') as tar:
+        tar.extractall(filter="data")
+        for item in tar.getmembers():
+            print(f"Extracted: {item.name}")
+
+
+def open_training_set(out_dir: str | Path, fasta_file: str | Path, db_name: str):
+    if "rdp" in fasta_file:
+        db_name = "trainset19_072023_db.csv"
     refdb = read_fasta.read_taxa_fasta(fasta_file)
-    db_file_path = Path("data/trainset19_072023_db.csv")
+    db_file_path = Path(out_dir) / db_name  # "trainset19_072023_db.csv"
     refdb.to_csv(db_file_path, index=False)
     print("Done processing fasta file")
     print(f"trainset file is located at {db_file_path}")
+    return refdb
 
 
 def silva_train_set(out_dir):
@@ -66,14 +78,13 @@ def silva_train_set(out_dir):
     link_address = "https://zenodo.org/records/3986799/files/silva_nr99_v138_train_set.fa.gz?download"
     download_and_extract(link_address, out_path)
     fasta_file = out_path.joinpath("silva_nr99_v138_train_set.fa.gz")
-    ref_db = read_fasta.read_taxa_fasta(fasta_file)
+    ref_db: pd.DataFrame = read_fasta.read_taxa_fasta(fasta_file)
     print("Done processing fasta file")
     silva_out = out_path.joinpath("silva_nr99_v138_train_set.parquet")
 
     chunk_size = 10000
 
     for i, chunk in enumerate(np.array_split(ref_db, ref_db.shape[0] // chunk_size)):
-        mode = "w" if i == 0 else "a"
         chunk.to_parquet(silva_out, compression='snappy', engine='pyarrow', index=False)
 
 
