@@ -77,9 +77,9 @@ def read_taxonomy(taxonomy_file, sep="\t"):
 def is_gzip_file(file_path):
     try:
         with gzip.open(file_path, 'rb') as f:
-            f.read(1)
+            f.readlines(1)
         return True
-    except gzip.BadGzipFile:
+    except:
         return False
 
 

@@ -11,6 +11,11 @@ class TestTrainingData(unittest.TestCase):
         self.fasta_file_suborder = "test_fasta/test_fasta_suborder.fa"  # has suborder
         self.fasta_file_short = "test_fasta/test_fasta_short_taxa.fa" # missing some taxa levels
 
+    def test_is_gzip(self):
+        gz_file = "test_fasta/test_fasta_short_taxa.fa.gz"
+        observed = read_fasta.is_gzip_file(gz_file)
+        self.assertTrue(observed)
+
     def test_fasta_id(self):
         # fasta string has suborder__
         ref = read_fasta.read_taxa_fasta(self.fasta_file_suborder)
@@ -21,7 +26,6 @@ class TestTrainingData(unittest.TestCase):
         ref = read_fasta.read_taxa_fasta(self.fasta_file_short)
         fasta_string = ref["id"].iloc[0].split(";")
         self.assertLess(len(fasta_string), 6)
-
 
 if __name__ == "__main__":
     unittest.main()
