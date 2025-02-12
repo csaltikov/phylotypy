@@ -17,34 +17,40 @@ I'll make a separate vignette on how to do this and classify 16S sequence data f
 
 Thanks Riffomonas for the inspiration.  Check out the videos on his Youtube channel https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j
 
-## Here's an example on how to start:
-1. First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/ or use the code below. This will create a directory called 'data' where the training data will be downloaded and processed into a csv file for importing into Pandas.
+## How to install
 ```
-from training_data import rdp_train_set_19
+pip install git+https://github.com/csaltikov/phylotypy.git
 
-rdp_train_set_19()
+or if using uv (recommended)
+
+uv pip install git+https://github.com/csaltikov/phylotypy.git
 ```
 
-2. Load the training data
+## How to get started:
+First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/ or use the code below. This will create a directory called 'data' where the training data will be downloaded and processed into a csv file for importing into Pandas.
+
+I processed the latest rdp reference data into a csv file. 
+
+1. Load the training data
 ```
 import pandas as pd
 
 db_file_path = "data/trainset19_072023_db.csv"
 db = pd.read_csv(db_file_path)
 ```
-3. Create the training data for the classifer
+2. Create the training data for the classifer
 ```
 X_ref, y_ref = db["sequence"].tolist(), db["id"].tolist()
 ```
-4. Train the classifer
+3. Train the classifer
 ```
 import phylotypy
 
-classify = phylotypy.Classify()
+classify = predict.Classify()
 classify.multi_processing = True
 classify.fit(X_ref, y_ref, multi=True, n_cpu=12)
 ```
-5. Classify some 16S rRNA gene sequences.  Here we will use the example from QIIME2, Moving Pictures data, https://docs.qiime2.org/2024.2/tutorials/moving-pictures/.  The data came from Classifying QIIME2 Moving Pictures rep-seqs-dada2.qza
+4. Classify some 16S rRNA gene sequences.  Here we will use the example from QIIME2, Moving Pictures data, https://docs.qiime2.org/2024.2/tutorials/moving-pictures/.  The data came from Classifying QIIME2 Moving Pictures rep-seqs-dada2.qza
 ```
 from utilities import fasta_to_dataframe
 
@@ -57,7 +63,7 @@ y_mov_pic = moving_pic["SequenceName"].to_list()  # Sequence names as a list
 
 predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)  # train the classifier
 
-predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
+predict_mov_pic_df = predict.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
 print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is in the 'classification' column
 ```
 ## Example classification output:
@@ -69,7 +75,7 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 
 ```
 
-6. Now you can keep using classify.predict(X, y) with your own data.  Make sure the sequences and names are lists
+5. Now you can keep using classify.predict(X, y) with your own data.  Make sure the sequences and names are lists
 ```
 my_data = "path/to/my/sequences" # change path to your fasta sequence file
 my_data_df = fasta_to_dataframe(my_data)
@@ -87,19 +93,15 @@ print(predict_df[["id", "classification"]])
 ```
 import pandas as pd
 
-import phylotypy
-from training_data import rdp_train_set_19
-from utilities import read_fasta
-
-# dowload/format training data
-rdp_train_set_19()
+from phylotypy import predict
+from phylotypy.utilities import utilities
 
 db_file_path = "data/trainset19_072023_db.csv"
 db = pd.read_csv(db_file_path)
 
 X_ref, y_ref = db["sequence"].tolist(), db["id"].tolist()
 
-classify = phylotypy.Classify()
+classify = predict.Classify()
 classify.multi_processing = True
 classify.fit(X_ref, y_ref, multi=True, n_cpu=12)  # train the model
 
@@ -110,6 +112,6 @@ y_mov_pic = moving_pic["id"].to_list()  # Sequence names as a list
 
 predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)  # train the classifier
 
-predict_mov_pic_df = phylotypy.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
+predict_mov_pic_df = predict.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
 print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is in the 'classification' column
 ```
