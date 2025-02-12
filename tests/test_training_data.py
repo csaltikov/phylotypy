@@ -1,3 +1,4 @@
+from pathlib import Path
 import unittest
 
 import numpy as np
@@ -8,11 +9,12 @@ from phylotypy.utilities import read_fasta
 
 class TestTrainingData(unittest.TestCase):
     def setUp(self) -> None:
-        self.fasta_file_suborder = "test_fasta/test_fasta_suborder.fa"  # has suborder
-        self.fasta_file_short = "test_fasta/test_fasta_short_taxa.fa" # missing some taxa levels
+        self.current_dir = Path(__file__).parent
+        self.fasta_file_suborder = self.current_dir / "test_fasta" / "test_fasta_suborder.fa"  # has suborder
+        self.fasta_file_short = self.current_dir / "test_fasta" / "test_fasta_short_taxa.fa" # missing some taxa levels
 
     def test_is_gzip(self):
-        gz_file = "test_fasta/test_fasta_short_taxa.fa.gz"
+        gz_file = self.current_dir / "test_fasta" / "test_fasta_short_taxa.fa.gz"
         observed = read_fasta.is_gzip_file(gz_file)
         self.assertTrue(observed)
 
