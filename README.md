@@ -88,7 +88,7 @@ y = my_data_df["id"]
 
 predict = classify.predict(X, y)
 
-predict_df = phylotypy.summarize_predictions(predict)
+predict_df = predict.summarize_predictions(predict)
 print(predict_df[["id", "classification"]])
 ```
 
