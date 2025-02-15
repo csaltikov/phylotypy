@@ -64,8 +64,6 @@ class TestGetKmers(unittest.TestCase):
         self.assertEqual(expected, predicted["classification"])
 
     def test_classifier_bootstrap(self):
-        # TODO
-        kmer_size = 3
         bs_class = [0, 0, 0, 0, 3]
         genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 

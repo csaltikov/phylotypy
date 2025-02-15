@@ -67,8 +67,9 @@ if __name__ == "__main__":
     X_unk = orio["sequence"]
     y_unk = orio["id"]
 
-    # Classify the sequence
-    predict_orio = classify.predict(X_unk, y_unk)
+    ##
+    # Classify the sequence, set multi_p to false, it's faster
+    predict_orio = classify.predict(X_unk, y_unk, multi_p=False)
 
     # Report the results in a dataframe
     predict_orio_df = predict.summarize_predictions(predict_orio)

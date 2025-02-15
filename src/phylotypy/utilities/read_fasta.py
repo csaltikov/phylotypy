@@ -1,34 +1,30 @@
 import gzip
-import pathlib
+from pathlib import Path
 import re
 from collections import defaultdict
 
 import pandas as pd
 
 
-def read_taxa_fasta(fasta_file: str | pathlib.Path) -> pd.DataFrame:
-    """Read a fasta file and return a dictionary of sequences.
+def read_taxa_fasta(fasta_file: str | Path) -> pd.DataFrame:
+    """Read a fasta file and return a pandas dataframe:
 
     Parameters:
         fasta_file (string): path to fasta file
 
     Returns:
-        pd.DataFrame: dictionary of sequences
+        pd.DataFrame: two column dataframe: id and sequence
+
+    Examples:
+        >>> read_taxa_fasta("my_fasta.fa")
+            id                 sequence
+        0  seq1  TACGGAGGATCCGAGCGTTA...
+        1  seq2  TACGTAGGGTGCGAGCGTTA...
+        2  seq3  TACGTAGGTCCCGAGCGTTG...
+        3  seq4  TACGGAGGATCCGAGCGTTA...
+        4  seq5  TACGGAGGATCCGAGCGTTA...
     """
     fasta_data = defaultdict(list)
-
-    def get_taxa_string(fasta_line: str):
-        fasta_list = (fasta_line.rstrip()
-                      .replace(">", "")
-                      .rstrip(";"))
-        fasta_list = re.split(r"\t|\s{2,}", fasta_list)
-        for item in fasta_list:
-            if re.findall("Bacteria|Archaea|Eukar", item):
-                return re.sub(r" suborder\w+;", "", item) # fasta id might have suborder
-
-    def clean_id(fasta_line: str):
-        clean_line = fasta_line.rstrip().replace(">", "")
-        return re.split(r"\t|\s{2,}", clean_line)[0]
 
     gz_file = is_gzip_file(fasta_file)
 
@@ -68,12 +64,6 @@ def read_taxa_fasta(fasta_file: str | pathlib.Path) -> pd.DataFrame:
     return pd.DataFrame(fasta_data)
 
 
-def read_taxonomy(taxonomy_file, sep="\t"):
-    taxa_df = pd.read_csv(taxonomy_file, sep=sep, names=["id", "taxonomy"], header=None)
-    taxa_df["taxonomy"] = taxa_df["taxonomy"].str.rstrip(";")
-    return taxa_df
-
-
 def is_gzip_file(file_path):
     try:
         with gzip.open(file_path, 'rb') as f:
@@ -83,11 +73,29 @@ def is_gzip_file(file_path):
         return False
 
 
+def get_taxa_string(fasta_line: str):
+    fasta_list = (fasta_line.rstrip()
+                  .replace(">", "")
+                  .rstrip(";"))
+    fasta_list = re.split(r"\t|\s{2,}", fasta_list)
+    # clean up the fasta description if it has a taxon string
+    for item in fasta_list:
+        if re.findall("Bacteria|Archaea|Eukar", item):
+            return re.sub(r" suborder\w+;", "", item) # fasta id might have suborder
+
+
+def clean_id(fasta_line: str):
+    clean_line = fasta_line.rstrip().replace(">", "")
+    return re.split(r"\t|\s{2,}", clean_line)[0]
+
+
 if __name__ == "__main__":
-    fasta_data_file = ["../data/test_fasta_suborder.fa",
-                       "../data/test_2_fasta.fa",
-                       "../data/test_3_fasta.fa",
-                       "../data/test_4_fasta.fa"] # sys.argv[1]
+    fasta_data_file = ["data/test_2_fasta.fa",
+                       "data/test_3_fasta.fa",
+                       "data/test_4_fasta.fa"] # sys.argv[1]
+    for f in fasta_data_file:
+        print(Path(f).is_file())
+
     try:
         for fasta in fasta_data_file:
             fasta_data_loaded = read_taxa_fasta(fasta)

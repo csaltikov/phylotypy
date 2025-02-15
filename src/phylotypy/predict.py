@@ -80,19 +80,28 @@ class Classify:
             return bs_results
 
     def predict(self, nuc_sequences: list, y_test: list, **kwargs):
-        if "boot" in kwargs:
-            self.boot: int = kwargs["boot"]
+        self.boot: int = kwargs.get("boot", 100)
         # Convert each nucleotide sequence in the database to base4
         # Get a list of kmer indices for each sequence in the database, a list of lists
-        self.detect_list = kmers.detect_kmers_across_sequences_mp(nuc_sequences,
-                                                                  self.kmer_size,
-                                                                  verbose=self.verbose)
+        multi_p = kwargs.get("multi_p", True)
+
+        if multi_p:
+            self.detect_list = kmers.detect_kmers_across_sequences_mp(nuc_sequences,
+                                                                      self.kmer_size,
+                                                                      verbose=self.verbose)
+        else:
+            self.detect_list = kmers.detect_kmers_across_sequences(nuc_sequences,
+                                                                   self.kmer_size,
+                                                                   verbose=self.verbose)
         # Get the posteriors for each genera in the database
         # posteriors = self.predict_(y_test)
 
         # multiprocessing classify, substitutes for self.predict_(y_test)
         bootstrap_kmers = self.pool_bootstrap(self.detect_list)
         min_confid = kwargs.get("min_confid", 80)
+
+        if self.verbose:
+            print("Predicting taxonomy")
 
         with pool_context(processes=4) as pool:
             args_list = [(kmer_indices, min_confid, self.n_levels) for kmer_indices in bootstrap_kmers]
@@ -154,7 +163,7 @@ class Classify:
         return dict(id=test_org_arr, classification=list(predict_consensus))
 
     def bootstrap(self, kmer_index: list, n_bootstraps: int = 100) -> np.ndarray:
-        """Random sample a tests sequence and find the best match to the db of class"""
+        """Bootstrap sample a list of kmer indices and find the best match to a references kmers indices"""
         bootstrap_max_ids = np.empty(n_bootstraps, dtype=int)
         n_samples = len(kmer_index) // 8
 
@@ -167,7 +176,7 @@ class Classify:
     def classify_bs(self, kmer_index: list):
         """Screens a tests sequence against all classes in the model"""
         class_prod = np.sum(self.model[kmer_index, :], axis=0)
-        max_idx = np.argmax(class_prod)
+        max_idx = class_prod.argmax()
         return max_idx
 
     def consensus_bs_class(self, incoming_bootstrap: np.array) -> dict[str, ndarray[Any, dtype[Any]] | Any]:

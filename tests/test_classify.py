@@ -4,7 +4,7 @@ import unittest
 from phylotypy import kmers
 
 
-class MyTestCase(unittest.TestCase):
+class TestClassifier(unittest.TestCase):
     def setUp(self):
         self.db_name = "rdp"
         self.mod_file = Path("model_raw.rbf")
@@ -37,6 +37,8 @@ class MyTestCase(unittest.TestCase):
                            genera_names=ref_genera
                            )
         self.assertEqual(db_.conditional_prob.shape, (4**kmer_size, 2))
+
+    # TODO create tests for classifier.py
 
 
 if __name__ == '__main__':

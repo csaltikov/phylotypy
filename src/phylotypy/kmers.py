@@ -44,7 +44,7 @@ def build_kmer_database(sequences: list[str], genera: list[str],
     @param verbose: set to True if you want to see the outputs
     @return: kmers database dictionary
     """
-    m_proc = kwargs.get('m_proc', False)
+    m_proc = kwargs.get('m_proc', True)
     if m_proc:
         detected_kmers = detect_kmers_across_sequences_mp(sequences,
                                                           kmer_size=kmer_size,
@@ -96,18 +96,19 @@ def seq_to_base4(sequence: str | list):
         raise ValueError(f"Input should be a list or string")
 
 
-def base4_to_index(base4_str: list) -> list:
-    """Converts base4 string to a numpy array of indices"""
+def base4_to_index(base4_str: list|set) -> list:
+    """Converts base4 string to a numpy array of indices but ignores kmers with an N"""
     converted_list: list = [int(item, 4) for item in base4_str if "N" not in item]
-    return converted_list
+    return sorted(converted_list)
 
 
-def detect_kmers(sequence: str, kmer_size: int = 8) -> np.array:
+def detect_kmers(sequence: str, kmer_size: int = 8) -> list:
     """Detects kmers in a DNA sequence"""
     # Converts ACGT sequence data to base4
-    kmers: list = get_all_kmers(seq_to_base4(sequence), kmer_size)
+    kmers_: list = get_all_kmers(seq_to_base4(sequence), kmer_size)
     # Detected kmer indices, base 10, which are positions in a matrix
-    return base4_to_index(kmers)
+    kmers_ = base4_to_index(kmers_)
+    return sorted(kmers_)
 
 
 def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: bool = False) -> list:
@@ -134,16 +135,18 @@ def detect_kmers_across_sequences_mp(sequences: list,
     return results
 
 
-def calc_word_specific_priors(detect_list: list, kmer_size, verbose: bool = False) -> np.ndarray:
+def calc_word_specific_priors(detect_list: list, kmer_size: int = 8, verbose: bool = False) -> np.ndarray:
     if verbose:
         print("Calculating word specific priors")
     # kmer_list = [item for sublist in detect_list for item in sublist]
-    kmer_list = list(itertools.chain(*detect_list))
-    n_seqs = len(detect_list)
+    # detect_list = [np.unique(kmer_indices) for kmer_indices in detect_list]
+    kmer_list = list(itertools.chain(*detect_list))  # all possible kmers
+    n_seqs = len(detect_list)  # the corpus of N sequences
     kmer_idx, counts = np.unique(kmer_list, return_counts=True)
     priors = np.zeros(4 ** kmer_size)
     priors[kmer_idx] = counts
 
+    # expected-likelihood estimate using Jeffreys-Perks law of succession
     return (priors + 0.5) / (n_seqs + 1)
 
 
@@ -283,6 +286,9 @@ def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
 def bootstrap(kmer_index: list, n_bootstraps: int = 100, **kwargs) -> np.ndarray:
     ''''Performs multiple bootstrap samplings on a list of kmers'''
     fraction = kwargs.get('fraction', 8)
+    if kwargs.get('seed'):
+        print(kwargs.get('seed'))
+        np.random.seed(kwargs.get('seed'))
     n_samples = len(kmer_index) // fraction
     kmer_sample_arr = np.zeros((n_bootstraps, n_samples), dtype=int)
     for i in range(n_bootstraps):
