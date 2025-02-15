@@ -20,13 +20,6 @@ if __name__ == "__main__":
     X = db["sequence"]
     y = db['id']  # Target variable
 
-    # Split the data into training and testing sets
-    # By default, test_size=0.2 (20% for testing, 80% for training)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.01, random_state=42)
-
-    # Print the shapes of the resulting sets to verify the split
-    print(f"Testing {X_test.shape} sequences")
-
     # Reload the module in case I edit the code
     classify = predict.Classify()
     classify.multi_processing = True
@@ -40,7 +33,16 @@ if __name__ == "__main__":
     end = time.time()
     print(f"Run time {(end - start):.1f} seconds")
 
-    res = classify.predict(X_test, y_test, multi_p=False)
+    ## Split the data into training and testing sets
+    # By default, test_size=0.2 (20% for testing, 80% for training)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.01, random_state=42)
+
+    # Print the shapes of the resulting sets to verify the split
+    print(f"Testing {X_test.shape} sequences")
+    start = time.time()
+    res = classify.predict(X_test, y_test, multi_p=True)
+    end = time.time()
+    print(f"Run time {(end - start):.1f} seconds")
 
     results_df = predict.summarize_predictions(res)
 

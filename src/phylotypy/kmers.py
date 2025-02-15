@@ -96,10 +96,10 @@ def seq_to_base4(sequence: str | list):
         raise ValueError(f"Input should be a list or string")
 
 
-def base4_to_index(base4_str: list|set) -> list:
+def base4_to_index(base4_str: list) -> list:
     """Converts base4 string to a numpy array of indices but ignores kmers with an N"""
     converted_list: list = [int(item, 4) for item in base4_str if "N" not in item]
-    return sorted(converted_list)
+    return converted_list
 
 
 def detect_kmers(sequence: str, kmer_size: int = 8) -> list:
@@ -108,7 +108,7 @@ def detect_kmers(sequence: str, kmer_size: int = 8) -> list:
     kmers_: list = get_all_kmers(seq_to_base4(sequence), kmer_size)
     # Detected kmer indices, base 10, which are positions in a matrix
     kmers_ = base4_to_index(kmers_)
-    return sorted(kmers_)
+    return kmers_
 
 
 def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: bool = False) -> list:
@@ -130,8 +130,7 @@ def detect_kmers_across_sequences_mp(sequences: list,
         print("Detecting kmers across sequences mp")
     with mp.Pool(num_processes) as pool:
         args_list = [(seq, kmer_size) for seq in sequences]
-        collected_results = pool.starmap_async(detect_kmers, args_list)
-        results = collected_results.get()
+        results = pool.starmap(detect_kmers, args_list)
     return results
 
 

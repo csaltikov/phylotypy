@@ -106,13 +106,15 @@ class TestGetKmers(unittest.TestCase):
         base4_sequences = kmers.seq_to_base4(sequences)
         num_kmers = len(sequences[0]) - kmer_size + 1
 
+        kmer_list: list = [None] * len(sequences)
+
         expected = np.zeros((len(sequences), num_kmers), dtype=int)
 
         expected[0] = kmers.base4_to_index(kmers.get_all_kmers(base4_sequences[0], kmer_size))
         expected[1] = kmers.base4_to_index(kmers.get_all_kmers(base4_sequences[1], kmer_size))
 
-        detect_list = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size)
-        self.assertTrue( np.array_equal(np.array((detect_list)), expected) )
+        detect_list = kmers.detect_kmers_across_sequences(sequences, kmer_size)
+        self.assertTrue(np.array_equal(detect_list, expected))
 
         detect_list_mp = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size, 6)
         self.assertTrue(np.array_equal(detect_list_mp, expected))

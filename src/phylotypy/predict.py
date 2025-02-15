@@ -79,7 +79,7 @@ class Classify:
             bs_results = [np.array(result) for result in bs_results_collected]
             return bs_results
 
-    def predict(self, nuc_sequences: list, y_test: list, **kwargs):
+    def predict(self, nuc_sequences: list, seq_ids: list, **kwargs):
         self.boot: int = kwargs.get("boot", 100)
         # Convert each nucleotide sequence in the database to base4
         # Get a list of kmer indices for each sequence in the database, a list of lists
@@ -93,8 +93,6 @@ class Classify:
             self.detect_list = kmers.detect_kmers_across_sequences(nuc_sequences,
                                                                    self.kmer_size,
                                                                    verbose=self.verbose)
-        # Get the posteriors for each genera in the database
-        # posteriors = self.predict_(y_test)
 
         # multiprocessing classify, substitutes for self.predict_(y_test)
         bootstrap_kmers = self.pool_bootstrap(self.detect_list)
@@ -103,7 +101,7 @@ class Classify:
         if self.verbose:
             print("Predicting taxonomy")
 
-        with pool_context(processes=4) as pool:
+        with pool_context(processes=8) as pool:
             args_list = [(kmer_indices, min_confid, self.n_levels) for kmer_indices in bootstrap_kmers]
             collected_bs_results = pool.starmap(self.classify, args_list)
             bs_results = [results for results in collected_bs_results]
@@ -111,7 +109,7 @@ class Classify:
         if self.verbose:
             print("Done predicting")
 
-        posteriors = dict(id=y_test, classification=bs_results)
+        posteriors = dict(id=seq_ids, classification=bs_results)
         return posteriors
 
     def predict_(self, genera_list: list, min_confid: int = 80) -> dict[str, Any]:

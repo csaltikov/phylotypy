@@ -1,9 +1,6 @@
 from pathlib import Path
 import unittest
 
-import numpy as np
-
-from phylotypy import training_data
 from phylotypy.utilities import read_fasta
 
 
