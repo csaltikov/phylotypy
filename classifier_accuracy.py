@@ -1,3 +1,5 @@
+#!/etc/bin/env python3
+
 import time
 from multiprocessing import freeze_support
 from pathlib import Path
@@ -7,10 +9,10 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 from phylotypy import predict
-from phylotypy.utilities import utilities
 
 
 if __name__ == "__main__":
+    freeze_support()
     rdp_data = Path("data/trainset19_072023_db.csv")
     print(f"ref db {rdp_data.name} fount: {rdp_data.exists()}")
 
@@ -34,8 +36,8 @@ if __name__ == "__main__":
     print(f"Run time {(end - start):.1f} seconds")
 
     ## Split the data into training and testing sets
-    # By default, test_size=0.2 (20% for testing, 80% for training)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.01, random_state=42)
+    # test_size=0.01 (1%)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.01)
 
     # Print the shapes of the resulting sets to verify the split
     print(f"Testing {X_test.shape} sequences")

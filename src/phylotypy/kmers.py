@@ -134,18 +134,21 @@ def detect_kmers_across_sequences_mp(sequences: list,
     return results
 
 
-def calc_word_specific_priors(detect_list: list, kmer_size: int = 8, verbose: bool = False) -> np.ndarray:
+def calc_word_specific_priors(detect_list: list,
+                              kmer_size: int = 8,
+                              verbose: bool = False) -> np.ndarray:
     if verbose:
         print("Calculating word specific priors")
     # kmer_list = [item for sublist in detect_list for item in sublist]
     # detect_list = [np.unique(kmer_indices) for kmer_indices in detect_list]
     kmer_list = list(itertools.chain(*detect_list))  # all possible kmers
     n_seqs = len(detect_list)  # the corpus of N sequences
-    kmer_idx, counts = np.unique(kmer_list, return_counts=True)
+    kmer_idx, counts = np.unique(kmer_list, return_counts=True) # all possible words of len kmer_size
     priors = np.zeros(4 ** kmer_size)
     priors[kmer_idx] = counts
 
     # expected-likelihood estimate using Jeffreys-Perks law of succession
+    # 0 < Pi < 1
     return (priors + 0.5) / (n_seqs + 1)
 
 
