@@ -114,10 +114,12 @@ class TestGetKmers(unittest.TestCase):
         expected[1] = kmers.base4_to_index(kmers.get_all_kmers(base4_sequences[1], kmer_size))
 
         detect_list = kmers.detect_kmers_across_sequences(sequences, kmer_size)
-        self.assertTrue(np.array_equal(detect_list, expected))
-
         detect_list_mp = kmers.detect_kmers_across_sequences_mp(sequences, kmer_size, 6)
-        self.assertTrue(np.array_equal(detect_list_mp, expected))
+
+        for i in range(len(sequences)):
+            # order of the lists are different so need to use set
+            self.assertEqual(sorted(expected[i]), sorted(detect_list[i]))
+            self.assertEqual(sorted(expected[i]), sorted(detect_list_mp[i]))
 
     def test_calc_word_specific_priors(self):
         """Test Calcuate word specific priors"""
