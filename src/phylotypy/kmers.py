@@ -134,18 +134,30 @@ def detect_kmers_across_sequences_mp(sequences: list,
     return results
 
 
-def calc_word_specific_priors(detect_list: list,
+def calc_word_specific_priors(detected_kmers_list: list,
                               kmer_size: int = 8,
                               verbose: bool = False) -> np.ndarray:
+    """
+    Calculates the prior likelihoods for each kmer in the coprus of reference sequences
+
+    Args:
+        detected_kmers_list: a list of list where each sublist is a list of all kmers within a sequence
+        kmer_size: size of the kmer, e.g. 8 nucleotides if kmer_size = 8
+        verbose: do you want to see the progress
+
+    Returns:
+        a 1D array of prior probabilities of size 4^kmer_size
+    """
     if verbose:
         print("Calculating word specific priors")
-    # kmer_list = [item for sublist in detect_list for item in sublist]
-    # detect_list = [np.unique(kmer_indices) for kmer_indices in detect_list]
-    kmer_list = list(itertools.chain(*detect_list))  # all possible kmers
-    n_seqs = len(detect_list)  # the corpus of N sequences
-    kmer_idx, counts = np.unique(kmer_list, return_counts=True) # all possible words of len kmer_size
+    # For the list of list to subset each list to just the unique kmers within each list
+    detected_kmers_list = [np.unique(kmer_indices) for kmer_indices in detected_kmers_list]
+
+    n_seqs = len(detected_kmers_list)  # the corpus of N sequences
     priors = np.zeros(4 ** kmer_size)
-    priors[kmer_idx] = counts
+
+    for idx_list in detected_kmers_list:
+        priors[idx_list] +=1
 
     # expected-likelihood estimate using Jeffreys-Perks law of succession
     # 0 < Pi < 1

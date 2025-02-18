@@ -6,7 +6,7 @@ from pathlib import Path
 import pandas as pd
 
 from phylotypy import predict
-from phylotypy.utilities import utilities
+from phylotypy.utilities import utilities, read_fasta
 
 if __name__ == "__main__":
     freeze_support()
@@ -17,13 +17,17 @@ if __name__ == "__main__":
     Load data, can use training_data.py to download and produce trainset19_072023_db.csv
     or do it yourself another way.
     """
+    home = Path.home()
+
     silva_data = Path("data/silva_138.2_ssuref_sub_prok.csv")
     print(f"ref db {silva_data.name} fount: {silva_data.exists()}")
 
     rdp_data = Path("data/trainset19_072023_db.csv")
     print(f"ref db {rdp_data.name} fount: {rdp_data.exists()}")
 
-    db = pd.read_csv(rdp_data)
+    pds_data = home / "Documents/Projects/phylotypyr/phylotypr_proj/data/trainset9_pds.csv"
+
+    db = pd.read_csv(pds_data)
     print(f"Size of the database: {db.shape}")
 
     ##
@@ -35,7 +39,7 @@ if __name__ == "__main__":
 
     start = time.time()
     classify.fit(db["sequence"],
-                 db["id"],
+                 db["taxonomy"],
                  multi=True,
                  n_cpu=6)
     end = time.time()
@@ -51,7 +55,6 @@ if __name__ == "__main__":
     y_mov_pic = moving_pic["id"]
 
     ##
-
     # Classify
     predict_mov_pic = classify.predict(X_mov_pic[0:20], y_mov_pic[0:20])
 
@@ -74,3 +77,9 @@ if __name__ == "__main__":
     # Report the results in a dataframe
     predict_orio_df = predict.summarize_predictions(predict_orio)
     print(predict_orio_df[["id", "classification"]])
+
+    ##
+    test_seq = read_fasta.read_taxa_fasta("data/unknown_barnesiella.fa")
+    test_res = classify.predict(test_seq["sequence"], test_seq["id"], multi_p=False, min_confid=50)
+    test_res_df = predict.summarize_predictions(test_res)
+    print(test_res_df[["id", "classification"]])
