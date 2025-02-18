@@ -108,7 +108,7 @@ def detect_kmers(sequence: str, kmer_size: int = 8) -> list:
     kmers_: list = get_all_kmers(seq_to_base4(sequence), kmer_size)
     # Detected kmer indices, base 10, which are positions in a matrix
     kmers_ = base4_to_index(kmers_)
-    return kmers_
+    return np.unique(kmers_).tolist()
 
 
 def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: bool = False) -> list:
@@ -151,7 +151,7 @@ def calc_word_specific_priors(detected_kmers_list: list,
     if verbose:
         print("Calculating word specific priors")
     # For the list of list to subset each list to just the unique kmers within each list
-    detected_kmers_list = [np.unique(kmer_indices) for kmer_indices in detected_kmers_list]
+    # detected_kmers_list = [np.unique(kmer_indices) for kmer_indices in detected_kmers_list]
 
     n_seqs = len(detected_kmers_list)  # the corpus of N sequences
     priors = np.zeros(4 ** kmer_size)

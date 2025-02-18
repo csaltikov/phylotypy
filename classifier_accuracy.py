@@ -42,7 +42,7 @@ if __name__ == "__main__":
     # Print the shapes of the resulting sets to verify the split
     print(f"Testing {X_test.shape} sequences")
     start = time.time()
-    res = classify.predict(X_test, y_test, multi_p=True)
+    res = classify.predict(X_test, y_test, multi_p=False)
     end = time.time()
     print(f"Run time {(end - start):.1f} seconds")
 
