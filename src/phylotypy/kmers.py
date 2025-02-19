@@ -71,6 +71,16 @@ def build_kmer_database(sequences: list[str], genera: list[str],
                   genera_names=genera_names)
 
 
+def classify_sequence(unknown_sequence, database, kmer_size = 8, num_bootstraps = 100):
+    kmer_list = detect_kmers(unknown_sequence, kmer_size)
+
+    bs_kmers = bootstrap(kmer_list, num_bootstraps)
+
+    bs_classified = classify_bootstraps(bs_kmers, database["conditional_prob"])
+    classified = consensus_bs_class(bs_classified, database["genera"])
+    return classified
+
+
 def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
     return [sequence[i: i + kmer_size] for i in range(len(sequence) - kmer_size + 1)]
 

@@ -1,9 +1,10 @@
 #!/etc/bin/env python3
-
+##
 import time
 from multiprocessing import freeze_support
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
@@ -12,6 +13,7 @@ from phylotypy import predict
 
 
 if __name__ == "__main__":
+    ##
     freeze_support()
     rdp_data = Path("data/trainset19_072023_db.csv")
     print(f"ref db {rdp_data.name} fount: {rdp_data.exists()}")
