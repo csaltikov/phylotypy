@@ -1,5 +1,4 @@
 from pathlib import Path
-
 from phylotypy import classifier, results
 from phylotypy.utilities import read_fasta
 

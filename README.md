@@ -39,8 +39,7 @@ Bacteria;Phylum;Class;Order;Family;Genus
 1. Load the training data and sequences to be classified
 ```
 from pathlib import Path
-
-from phylotypy import classifier, kmers
+from phylotypy import classifier, results
 from phylotypy.utilities import read_fasta
 
 rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
@@ -84,7 +83,6 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 ## Complete code block:
 ```
 from pathlib import Path
-
 from phylotypy import classifier, results
 from phylotypy.utilities import read_fasta
 
