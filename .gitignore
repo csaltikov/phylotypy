@@ -1,6 +1,7 @@
 *
 !.gitignore
 !src/
+!src/phylotypy/
 !pyproject.toml
 !data/
 !tests/
