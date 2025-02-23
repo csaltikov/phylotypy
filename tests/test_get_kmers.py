@@ -3,6 +3,9 @@ import unittest
 import numpy as np
 from phylotypy import kmers
 
+from functools import partial
+from jax import jit
+
 
 class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
@@ -331,6 +334,7 @@ class TestGetKmers(unittest.TestCase):
         # bacteroidales = dict(taxonomy=np.array(["Bacteria", "Bacteroidota", "Bacteroidia", "Bacteroidales"]),
         #                      confidence=np.array([100, 100, 97, 97]))
 
+    @partial(jit, static_argnums=(0,))
     def test_consensus_bs_to_print_taxonomy(self):
         genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
         db = kmers.KmerDB(genera_names=genera,

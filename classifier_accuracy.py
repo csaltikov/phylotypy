@@ -4,14 +4,13 @@ import time
 from multiprocessing import freeze_support
 from pathlib import Path
 
-import numpy as np
 import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
 from phylotypy import predict
 
-
+##
 if __name__ == "__main__":
     ##
     freeze_support()
@@ -24,6 +23,7 @@ if __name__ == "__main__":
     X = db["sequence"]
     y = db['id']  # Target variable
 
+    ##
     # Reload the module in case I edit the code
     classify = predict.Classify()
     classify.multi_processing = True
@@ -39,7 +39,7 @@ if __name__ == "__main__":
 
     ## Split the data into training and testing sets
     # test_size=0.01 (1%)
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.01)
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=50)
 
     # Print the shapes of the resulting sets to verify the split
     print(f"Testing {X_test.shape} sequences")

@@ -1,11 +1,17 @@
 from dataclasses import dataclass
-import itertools
+
+import jax.numpy as jnp
+import pandas as pd
+
 import multiprocessing as mp
 from pathlib import Path
 import re
 from typing import Dict, Any
 
 import numpy as np
+
+from pandarallel import pandarallel
+pandarallel.initialize(progress_bar=True)
 
 '''
 Naive Bayes Classifier for DNA sequences. The project is inspired by the 
@@ -71,14 +77,25 @@ def build_kmer_database(sequences: list[str], genera: list[str],
                   genera_names=genera_names)
 
 
-def classify_sequence(unknown_sequence, database, kmer_size = 8, num_bootstraps = 100):
-    kmer_list = detect_kmers(unknown_sequence, kmer_size)
+def classify_sequences(uknown_df: pd.DataFrame,
+                       database):
+    conditional_prob = database.conditional_prob
+    genera_names = database.genera_names
 
-    bs_kmers = bootstrap(kmer_list, num_bootstraps)
+    uknown_df["classified"] = (uknown_df["sequence"]
+                               .parallel_apply(detect_kmers)
+                               .parallel_apply(bootstrap)
+                               .parallel_apply( lambda x: classify_bootstraps(x, conditional_prob))
+                               .parallel_apply(bootstrap)
+                               .parallel_apply(lambda x: consensus_bs_class(x, genera_names))
+                               .parallel_apply(lambda x: print_taxonomy(filter_taxonomy(x)))
+                               )
+    return uknown_df
 
-    bs_classified = classify_bootstraps(bs_kmers, database["conditional_prob"])
-    classified = consensus_bs_class(bs_classified, database["genera"])
-    return classified
+
+def classify(bs_kmer, database: KmerDB):
+    classified_list = classify_bootstraps(bs_kmer, database.conditional_prob)
+    return classified_list
 
 
 def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
@@ -307,56 +324,29 @@ def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
     return np.random.choice(kmers, n_kmers, replace=True)
 
 
-def bootstrap(kmer_index: list, n_bootstraps: int = 100, **kwargs) -> np.ndarray:
+def bootstrap(kmer_index: list, n_bootstraps: int = 100, fraction: int = 8, **kwargs) -> np.ndarray:
     ''''Performs multiple bootstrap samplings on a list of kmers'''
-    fraction = kwargs.get('fraction', 8)
-    if kwargs.get('seed'):
-        print(kwargs.get('seed'))
-        np.random.seed(kwargs.get('seed'))
+    # if kwargs.get('seed'):
+    #     print(kwargs.get('seed'))
+    #     np.random.seed(kwargs.get('seed'))
     n_samples = len(kmer_index) // fraction
     kmer_sample_arr = np.zeros((n_bootstraps, n_samples), dtype=int)
     for i in range(n_bootstraps):
-        kmer_sample_arr[i, :] = np.random.choice(kmer_index, size=n_samples, replace=True)
+        kmer_sample_arr[i, :] = np.random.choice(kmer_index, n_samples, replace=True)
     return kmer_sample_arr
 
 
 def classify_bs(kmer_index: list, db):
     """Classify a single bootstrap sample of kmers from a sample"""
     model_mask = db.conditional_prob[kmer_index, :]
-    class_sum = np.sum(model_mask, axis=0)
-    max_idx = np.argmax(class_sum)
+    class_sum = jnp.sum(model_mask, axis=0)
+    max_idx = jnp.argmax(class_sum)
     return max_idx
 
 
 def classify_bootstraps(bs_indices: np.array, conditional_prob):
     """"Classify an array of kmer bootstraps from a sample"""
-
-    def get_max(indices):
-        max_ids = np.argmax(np.sum(conditional_prob[indices, :], axis=0))
-        return max_ids
-
-    return np.apply_along_axis(get_max, axis=1, arr=bs_indices)
-
-
-def consensus_bs_class_old(bs_class: np.array, ref_genera: list) -> dict[str, list | Any]:
-    """Convert the indices in the bootstrap array to taxonomy"""
-    taxonomy: np.array = ref_genera[bs_class]
-    # sometimes taxonomy is empty or has "none" value
-    mask = taxonomy != None
-    taxonomy_filtered = taxonomy[mask]
-
-    taxonomy_split = np.array([line.split(";") for line in taxonomy_filtered])
-
-    def cumulative_join(col):
-        join_taxa = [";".join(col[:i + 1]) for i in range(len(col))]
-        return np.array(join_taxa, dtype='<U300')
-
-    taxa_cum_join_arr = np.apply_along_axis(cumulative_join, 1, taxonomy_split)
-
-    taxa_string, confidence = np.apply_along_axis(get_consensus, axis=0, arr=taxa_cum_join_arr)
-
-    return dict(taxonomy=np.array(taxa_string[-1].split(";")),
-                confidence=confidence)
+    return np.argmax(np.sum(conditional_prob[bs_indices], axis=1), axis=1)
 
 
 def consensus_bs_class(bs_class: np.array, genera_names) -> dict[str, list | Any]:
@@ -492,3 +482,15 @@ def base4_to_nucleotide(base4_seq: str | list):
 
 if __name__ == "__main__":
     mp.freeze_support()
+
+    from phylotypy import classifier
+    from phylotypy.utilities import read_fasta
+
+    database = classifier.load_classifier("../../local_items/database.pkl")
+
+    conditional_prob = database.conditional_prob
+    genera_names = database.genera_names
+
+
+    seqs = read_fasta.read_taxa_fasta("../../data/dna_moving_pictures.fasta")
+    res = classify_sequences(seqs, database)
