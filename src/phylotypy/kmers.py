@@ -1,16 +1,11 @@
 from dataclasses import dataclass
 
-import pandas as pd
-
 import multiprocessing as mp
 from pathlib import Path
 import re
 from typing import Dict, Any
 
 import numpy as np
-
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True)
 
 '''
 Naive Bayes Classifier for DNA sequences. The project is inspired by the 
@@ -74,22 +69,6 @@ def build_kmer_database(sequences: list[str], genera: list[str],
     return KmerDB(conditional_prob=cond_prob,
                   genera_idx=genera_idx,
                   genera_names=genera_names)
-
-
-def classify_sequences(uknown_df: pd.DataFrame,
-                       database):
-    conditional_prob = database.conditional_prob
-    genera_names = database.genera_names
-
-    uknown_df["classification"] = (uknown_df["sequence"]
-                               .parallel_apply(detect_kmers)
-                               .parallel_apply(bootstrap)
-                               .parallel_apply( lambda x: classify_bootstraps(x, conditional_prob))
-                               .parallel_apply(bootstrap)
-                               .parallel_apply(lambda x: consensus_bs_class(x, genera_names))
-                               .parallel_apply(lambda x: print_taxonomy(filter_taxonomy(x)))
-                               )
-    return uknown_df
 
 
 def classify(bs_kmer, database: KmerDB):
@@ -477,19 +456,3 @@ def base4_to_nucleotide(base4_seq: str | list):
         return converted
     else:
         raise ValueError(f"Input should be a list or string")
-
-
-if __name__ == "__main__":
-    mp.freeze_support()
-
-    from phylotypy import classifier
-    from phylotypy.utilities import read_fasta
-
-    database = classifier.load_classifier("../../local_items/database.pkl")
-
-    conditional_prob = database.conditional_prob
-    genera_names = database.genera_names
-
-
-    seqs = read_fasta.read_taxa_fasta("../../data/dna_moving_pictures.fasta")
-    res = classify_sequences(seqs, database)

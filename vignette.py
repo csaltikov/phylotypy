@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from phylotypy import classifier, kmers, results
+from phylotypy import classifier, results
 from phylotypy.utilities import read_fasta
 
 
@@ -14,7 +14,7 @@ if __name__ == "__main__":
     else:
         database = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
 
-    classified = kmers.classify_sequences(moving_pics, database)
+    classified = classifier.classify_sequences(moving_pics, database)
 
     classified = results.summarize_predictions(classified)
 
