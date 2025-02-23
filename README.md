@@ -54,7 +54,7 @@ database = classifier.make_classifier(rdp_fasta, out_dir)
 ```
 3. Classify the sequences
 ```
-classified = kmers.classify_sequences(moving_pics, database)
+classified = classifier.classify_sequences(moving_pics, database)
 ```
 4. Format the output
 ```
@@ -85,7 +85,7 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 ```
 from pathlib import Path
 
-from phylotypy import classifier, kmers, results
+from phylotypy import classifier, results
 from phylotypy.utilities import read_fasta
 
 rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
@@ -94,7 +94,7 @@ moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
 database = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
 
-classified = kmers.classify_sequences(moving_pics, database)
+classified = classifier.classify_sequences(moving_pics, database)
 classified = results.summarize_predictions(classified)
 print(classified.head())
 ```
