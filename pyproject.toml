@@ -18,6 +18,7 @@ dependencies = [
     "pandas",
     "scikit-learn",
     "requests",
+    "pandarallel"
 ]
 [project.optional-dependencies]
 test = [
