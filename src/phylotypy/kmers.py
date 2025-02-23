@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 
-import jax.numpy as jnp
 import pandas as pd
 
 import multiprocessing as mp
@@ -339,8 +338,8 @@ def bootstrap(kmer_index: list, n_bootstraps: int = 100, fraction: int = 8, **kw
 def classify_bs(kmer_index: list, db):
     """Classify a single bootstrap sample of kmers from a sample"""
     model_mask = db.conditional_prob[kmer_index, :]
-    class_sum = jnp.sum(model_mask, axis=0)
-    max_idx = jnp.argmax(class_sum)
+    class_sum = np.sum(model_mask, axis=0)
+    max_idx = np.argmax(class_sum)
     return max_idx
 
 
