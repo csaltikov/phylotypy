@@ -1,11 +1,9 @@
 .idea
-build
-.github
 .DS_Store
+build
+/src/phylotypy.egg-info
+__pycache__
 
 /data/database.pkl
 /local_items
-/src/phylotypy.egg-info
 /training_data/
-__pycache__
-

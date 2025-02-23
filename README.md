@@ -36,38 +36,42 @@ The taxonomy string looks like:
 Bacteria;Phylum;Class;Order;Family;Genus
 ```
 
-1. Load the training data
+1. Load the training data and sequences to be classified
 ```
-import pandas as pd
+from pathlib import Path
 
-db_file_path = "data/trainset19_072023_db.csv"
-db = pd.read_csv(db_file_path)
-```
-2. Create the training data for the classifer
-```
-X_ref, y_ref = db["sequence"], db["id"]
-```
-3. Train the classifer
-```
-from phylotypy import predict
+from phylotypy import classifier, kmers
+from phylotypy.utilities import read_fasta
 
-classify = predict.Classify()
-classify.multi_processing = True
-classify.fit(X_ref, y_ref, multi=True, n_cpu=12)
+rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
+
+moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 ```
-4. Classify some 16S rRNA gene sequences.  Here we will use the example from QIIME2, Moving Pictures data, https://docs.qiime2.org/2024.2/tutorials/moving-pictures/.  The data came from Classifying QIIME2 Moving Pictures rep-seqs-dada2.qza
+2. Create the classifier as a .pkl file, specify an output directory 
 ```
-from utilities import fasta_to_dataframe
+out_dir = rdp_fasta.parent
+database = classifier.make_classifier(rdp_fasta, out_dir)
+```
+3. Classify the sequences
+```
+classified = kmers.classify_sequences(moving_pics, database)
+```
+4. Format the output
+```
+classified = results.summarize_predictions(classified)
 
-moving_pic = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
-
-X_mov_pic = moving_pic["Sequence"]  # DNA sequences as a list
-y_mov_pic = moving_pic["SequenceName"]  # Sequence names as a list
-
-predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)  # train the classifier
-
-predict_mov_pic_df = predict.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
-print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is in the 'classification' column
+print(classified.columns)
+>>> Index(['id', 'sequence', 'classification', 'Kingdom', 'Phylum', 'Class',
+       'Order', 'Family', 'Genus', 'observed', 'lineage'],
+      dtype='object')
+      
+print(classified["classification"].head())
+>>>0    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
+1    Bacteria(100);Pseudomonadota(100);Betaproteoba...
+2    Bacteria(100);Bacillota(100);Bacilli(100);Lact...
+3    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
+4    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
+Name: classification, dtype: object
 ```
 ## Example classification output:
 The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are separated by ";".  The numbers in the () represent the confidence in the classificaiton.  The default confidence is 80%.
@@ -77,44 +81,20 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 >>> Bacteria(99);Bacteroidota(97);Bacteroidia(93);Bacteroidales(93);Bacteroidales_unclassified(93);Bacteroidales_unclassified(93)
 
 ```
-
-5. Now you can keep using classify.predict(X, y) with your own data.  Make sure the sequences and names are lists
-```
-my_data = "path/to/my/sequences" # change path to your fasta sequence file
-my_data_df = fasta_to_dataframe(my_data)
-
-X = my_data_df["sequence"]
-y = my_data_df["id"]
-
-predict = classify.predict(X, y)
-
-predict_df = predict.summarize_predictions(predict)
-print(predict_df[["id", "classification"]])
-```
-
 ## Complete code block:
 ```
-import pandas as pd
+from pathlib import Path
 
-from phylotypy import predict
-from phylotypy.utilities import utilities
+from phylotypy import classifier, kmers, results
+from phylotypy.utilities import read_fasta
 
-db_file_path = "data/trainset19_072023_db.csv"
-db = pd.read_csv(db_file_path)
+rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
 
-X_ref, y_ref = db["sequence"], db["id"]
+moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
-classify = predict.Classify()
-classify.multi_processing = True
-classify.fit(X_ref, y_ref, multi=True, n_cpu=12)  # train the model
+database = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
 
-moving_pic = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
-
-X_mov_pic = moving_pic["sequence"]  # DNA sequences as a list
-y_mov_pic = moving_pic["id"]  # Sequence names as a list
-
-predict_mov_pic = classify.predict(X_mov_pic, y_mov_pic)  # train the classifier
-
-predict_mov_pic_df = predict.summarize_predictions(predict_mov_pic)  # results are a Pandas dataframe
-print(predict_mov_pic_df[["id", "classification"]])  # the full classifcation is in the 'classification' column
+classified = kmers.classify_sequences(moving_pics, database)
+classified = results.summarize_predictions(classified)
+print(classified.head())
 ```
