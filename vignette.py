@@ -13,8 +13,12 @@ if __name__ == "__main__":
     else:
         database = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
 
+    from time import  perf_counter
+
+    start = perf_counter()
     classified = classifier.classify_sequences(moving_pics, database)
+    end = perf_counter()
+    print(f"Finished in {end-start:.2f} seconds")
 
     classified = results.summarize_predictions(classified)
-
     print(classified.head())

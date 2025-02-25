@@ -8,7 +8,7 @@ from phylotypy import kmers
 from phylotypy.utilities import read_fasta
 
 from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True)
+pandarallel.initialize(progress_bar=True, verbose=1)
 
 
 def classify_sequences(unknown_df: pd.DataFrame,
@@ -26,6 +26,21 @@ def classify_sequences(unknown_df: pd.DataFrame,
                                     )
     return unknown_df
 
+
+def classify_sequences_pd(unknown_df: pd.DataFrame,
+                       database):
+    conditional_prob = database.conditional_prob
+    genera_names = database.genera_names
+
+    unknown_df["classification"] = (unknown_df["sequence"]
+                                    .apply(kmers.detect_kmers)
+                                    .apply(kmers.bootstrap)
+                                    .apply(lambda x: kmers.classify_bootstraps(x, conditional_prob))
+                                    .apply(kmers.bootstrap)
+                                    .apply(lambda x: kmers.consensus_bs_class(x, genera_names))
+                                    .apply(lambda x: kmers.print_taxonomy(kmers.filter_taxonomy(x)))
+                                    )
+    return unknown_df
 
 def make_classifier(ref_fasta: Path | str, out_dir: Path | str):
     """
