@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import multiprocessing as mp
 from pathlib import Path
@@ -27,6 +27,15 @@ class KmerDB:
     conditional_prob: np.ndarray
     genera_idx: list
     genera_names: np.ndarray
+
+    data: dict = field(default_factory=dict, init=False)
+
+    def __post_init__(self):
+        self.data = {
+            "conditional_prob": self.conditional_prob,
+            "genera_idx": self.genera_idx,
+            "genera_names": self.genera_names
+        }
 
 
 def build_kmer_database(sequences: list[str], genera: list[str],
