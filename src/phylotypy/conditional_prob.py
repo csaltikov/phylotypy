@@ -71,6 +71,7 @@ def make_kmers_database(sequences_db, **kwargs):
     seq_col = kwargs.get('seq_col', 'sequence')
     kmer_col = kwargs.get('kmer_col', 'kmers')
     id_col = kwargs.get('id_col', 'id')
+    kmer_size = kwargs.get('kmer_size', 8)
 
     if isinstance(sequences_db, str):
         if ".csv" in Path(sequences_db).suffix:
@@ -79,7 +80,7 @@ def make_kmers_database(sequences_db, **kwargs):
         db = sequences_db
 
     # db[kmer_col] = kmers.detect_kmers_across_sequences_mp(db[seq_col])
-    db[kmer_col] = db[seq_col].parallel_apply(kmers.detect_kmers)
+    db[kmer_col] = db[seq_col].parallel_apply(kmers.detect_kmers, kmer_size=kmer_size)
     # Calculate max length
     max_seq_len = db[kmer_col].str.len().max().astype(int)
 
@@ -132,9 +133,10 @@ if __name__ == "__main__":
     test_fasta = read_fasta.read_taxa_fasta("../../data/test_fasta.fa")
     print(test_fasta)
 
-    kmers_db = make_kmers_database(test_fasta)
-    priors = calc_priors(kmers_db)
+    kmers_size = 5
+    kmers_db = make_kmers_database(test_fasta, kmer_size=kmers_size)
+    priors = calc_priors(kmers_db, kmers_size)
 
-    cond_prob_arr = GenusCondProb(kmers_db, priors).calculate()
+    cond_prob_arr = GenusCondProb(kmers_db, priors, kmers_size).calculate()
     print(cond_prob_arr.shape)
 
