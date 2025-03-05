@@ -12,7 +12,9 @@ pandarallel.initialize(progress_bar=True, verbose=1)
 
 
 def classify_sequences(unknown_df: pd.DataFrame,
-                       database):
+                       database,
+                       **kwargs):
+    n_levels = kwargs.get('n_levels', 6)
     conditional_prob = database.conditional_prob
     genera_names = database.genera_names
 
@@ -22,13 +24,15 @@ def classify_sequences(unknown_df: pd.DataFrame,
                                     .parallel_apply(lambda x: kmers.classify_bootstraps(x, conditional_prob))
                                     .parallel_apply(kmers.bootstrap)
                                     .parallel_apply(lambda x: kmers.consensus_bs_class(x, genera_names))
-                                    .parallel_apply(lambda x: kmers.print_taxonomy(kmers.filter_taxonomy(x)))
+                                    .parallel_apply(lambda x: kmers.print_taxonomy(kmers.filter_taxonomy(x, n_levels)))
                                     )
     return unknown_df
 
 
 def classify_sequences_pd(unknown_df: pd.DataFrame,
-                       database):
+                          database,
+                          **kwargs):
+    n_levels = kwargs.get('n_levels', 6)
     conditional_prob = database.conditional_prob
     genera_names = database.genera_names
 
@@ -38,7 +42,7 @@ def classify_sequences_pd(unknown_df: pd.DataFrame,
                                     .apply(lambda x: kmers.classify_bootstraps(x, conditional_prob))
                                     .apply(kmers.bootstrap)
                                     .apply(lambda x: kmers.consensus_bs_class(x, genera_names))
-                                    .apply(lambda x: kmers.print_taxonomy(kmers.filter_taxonomy(x)))
+                                    .apply(lambda x: kmers.print_taxonomy(kmers.filter_taxonomy(x, n_levels)))
                                     )
     return unknown_df
 

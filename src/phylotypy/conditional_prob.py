@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 from pathlib import Path
-from time import perf_counter
 import itertools
 
 import numpy as np
@@ -35,14 +34,6 @@ def parallel_conditional_prob(kmers_df: pd.DataFrame, priors) -> np.ndarray:
                )
 
     ##
-    # Pandas way:
-    # genus_count = pd.DataFrame(0, index=range(n_kmers),
-    #                            columns=range(n_genera),
-    #                            dtype=np.float32)
-    #
-    # for i, (idx, counts) in enumerate(results):
-    #     genus_count.iloc[idx, i] = counts
-    #
     # numpy way:
     print("Filling in the genus_count array")
     genus_count = np.zeros((n_kmers, n_genera), dtype=np.float32)
@@ -59,33 +50,91 @@ def parallel_conditional_prob(kmers_df: pd.DataFrame, priors) -> np.ndarray:
     return genus_cond_prob
 
 
+def fix_kmers_length(kmer_arr, seq_len: int = 1400):
+    n_missing = seq_len - kmer_arr.shape[0]
+    return np.concatenate([kmer_arr, np.full(n_missing, -1, dtype=int)])
+
+
+## New code
+def calc_priors(detected_kmers: np.ndarray, kmer_size: int = 8):
+    num_seqs = detected_kmers.shape[0]
+    priors_arr = np.zeros(4 ** kmer_size)
+    for idx_list in detected_kmers:
+        priors_arr[idx_list] += 1
+
+    # expected-likelihood estimate using Jeffreys-Perks law of succession
+    # 0 < Pi < 1
+    return (priors_arr + 0.5) / (num_seqs + 1)
+
+##
+def make_kmers_database(sequences_db, **kwargs):
+    seq_col = kwargs.get('seq_col', 'sequence')
+    kmer_col = kwargs.get('kmer_col', 'kmers')
+    id_col = kwargs.get('id_col', 'id')
+
+    if isinstance(sequences_db, str):
+        if ".csv" in Path(sequences_db).suffix:
+            db = pd.read_csv(sequences_db)
+    else:
+        db = sequences_db
+
+    # db[kmer_col] = kmers.detect_kmers_across_sequences_mp(db[seq_col])
+    db[kmer_col] = db[seq_col].parallel_apply(kmers.detect_kmers)
+    # Calculate max length
+    max_seq_len = db[kmer_col].str.len().max().astype(int)
+
+    # apply function that makes the list objects the same length
+    db[kmer_col] = db[kmer_col].apply(lambda x: fix_kmers_length(np.array(x), max_seq_len))
+    db["idx"] = kmers.genera_str_to_index(db[id_col])
+
+    # Create final array
+    all_kmers_arr = np.hstack((
+        db["idx"].to_numpy().reshape(-1, 1),
+        np.stack(db[kmer_col].to_numpy())
+    ))
+    return all_kmers_arr
+
+
+##
+class GenusCondProb:
+    '''Calculates the geneus conditional probability matrix
+    for a corpus of kmer indices of all the unique genera'''
+    def __init__(self, kmers_arr: np.ndarray, priors: np.ndarray, kmer_size: int = 8):
+        self.kmers_arr = kmers_arr
+        self.priors = priors
+        self.kmer_size = kmer_size
+        self.m_1 = None
+        self.wi_pi = None
+
+    def calculate_genus_counts(self):
+        uniq_idx, uniq_idx_counts = np.unique(self.kmers_arr[:, 0], return_counts=True)  # first column are the seq ids
+        genus_kmer_counts = np.zeros((4 ** self.kmer_size, uniq_idx.shape[0]), dtype=int)  # id, kmer_indices, counts
+
+        for uniq in uniq_idx:
+            kmers_arr_ = self.kmers_arr[self.kmers_arr[:, 0] == uniq, 1:]  # col 0 are the sequence ids
+            idx, counts = np.unique(kmers_arr_, return_counts=True)
+            genus_kmer_counts[idx[1:], uniq] = counts[1:]
+
+        print(f"Done making the genus kmers counts array {genus_kmer_counts.shape}")
+        self.wi_pi = (genus_kmer_counts + self.priors.reshape(-1, 1))
+        self.m_1 = (uniq_idx_counts + 1)
+
+    def calculate(self):
+        print("Computing the log probability matrix")
+        self.calculate_genus_counts()
+        divided = np.divide(self.wi_pi, self.m_1)
+        log_trans = np.log(divided)
+        return log_trans
+
+
 ##
 if __name__ == "__main__":
-    ##
-    import pickle
+    test_fasta = read_fasta.read_taxa_fasta("../../data/test_fasta.fa")
+    print(test_fasta)
 
-    home = Path.home()
-    rdp_fasta = Path("../data/rdp_16S_v19.dada2.fasta")
-    silva_fasta = home / "silva_nr99_v138.2_toGenus_trainset.fa"
+    kmers_db = make_kmers_database(test_fasta)
+    priors = calc_priors(kmers_db)
 
-    ##
-    ref_fasta = read_fasta.read_taxa_fasta(silva_fasta)
-    kmers_df = ref_fasta[~ref_fasta["id"].str.contains("Eukar|Incertae|Unknown")].copy()
-    kmers_df["kmers_list"] = kmers_df["sequence"].parallel_apply(kmers.detect_kmers)
+    cond_prob_arr = GenusCondProb(kmers_db, priors).calculate()
+    print(cond_prob_arr.shape)
 
-    priors = kmers.calc_word_specific_priors(kmers_df["kmers_list"].to_list())
-
-    start = perf_counter()
-    conditional_prob = parallel_conditional_prob(kmers_df, priors)
-    end = perf_counter()
-    print(f"Function took {end-start:.2f} seconds")
-
-    with open("database_silva.pkl", "wb") as f:
-        pickle.dump(conditional_prob, f)
-    ##
-    # X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=50)
-    #
-    # import cProfile
-    #
-    # seqs = X_test.tolist()
-    # cprofile = cProfile.run('kmers.classify_sequence(seqs[0], database)')

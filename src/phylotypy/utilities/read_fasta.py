@@ -59,6 +59,8 @@ def read_taxa_fasta(fasta_file: str | Path) -> pd.DataFrame:
                 big_line = ""
             else:
                 big_line += line.rstrip()
+        if "U" in big_line:
+            big_line = big_line.replace("U", "T")
         fasta_data["sequence"].append(big_line)
 
     return pd.DataFrame(fasta_data)
