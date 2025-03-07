@@ -3,8 +3,9 @@
 from pathlib import Path
 import pickle
 
+import numpy as np
 import pandas as pd
-from phylotypy import kmers
+from phylotypy import kmers, conditional_prob
 from phylotypy.utilities import read_fasta
 
 from pandarallel import pandarallel
@@ -42,7 +43,7 @@ def classify_sequences(sequences_df: pd.DataFrame, database, **kwargs):
     return sequences_df
 
 
-def make_classifier(ref_fasta: Path | str, out_dir: Path | str):
+def make_classifier(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
     """
     Constructs the classifier database: conditional_probabilities array and unique reference genera
 
@@ -53,12 +54,24 @@ def make_classifier(ref_fasta: Path | str, out_dir: Path | str):
     Returns:
         kmers.KmerDb database, saved as a pkl file in the out_dir
     """
+    kmers_size = kwargs.get('kmers_size', 8)
     if check_path(ref_fasta) and check_path(out_dir):
         ref_db = read_fasta.read_taxa_fasta(ref_fasta)
-        database = kmers.build_kmer_database(sequences=["sequence"],
-                                             genera=ref_db["id"],
-                                             verbose=True,
-                                             m_proc=True)
+        # database = kmers.build_kmer_database(sequences=["sequence"],
+        #                                      genera=ref_db["id"],
+        #                                      verbose=True,
+        #                                      m_proc=True)
+        kmers_db = conditional_prob.make_kmers_database(ref_db, kmer_size=kmers_size)
+        priors = conditional_prob.calc_priors(kmers_db, kmers_size)
+
+        cond_prob_arr = conditional_prob.GenusCondProb(kmers_db, priors, kmers_size).calculate()
+        genera = ref_db["id"].to_numpy()
+        genera_idx = kmers.genera_str_to_index(genera)
+
+        database = kmers.KmerDB(conditional_prob=cond_prob_arr,
+                                genera_names=genera,
+                                genera_idx=genera_idx)
+
         with open(out_dir / "database.pkl", "wb") as f:
             pickle.dump(database, f)
         return database
