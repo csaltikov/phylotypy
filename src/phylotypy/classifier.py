@@ -8,43 +8,39 @@ from phylotypy import kmers
 from phylotypy.utilities import read_fasta
 
 from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True, verbose=1)
 
 
-def classify_sequences(unknown_df: pd.DataFrame,
-                       database,
-                       **kwargs):
+def initialize_pandarallel(nb_workers=None, **kwargs):
+    '''Initialize pandarallel with a configurable number of
+    workers If nb_workers is not provided, pandarallel
+    will use the default (typically CPU core count)'''
+    progress_bar = kwargs.get('progress_bar', True)
+    verbose = kwargs.get('verbose', 1)
+    pandarallel.initialize(progress_bar=progress_bar, verbose=verbose, nb_workers=nb_workers)
+
+
+def process_sequence(sequence, conditional_prob, genera_names, min_confidence, n_levels):
+    kmers_detected = kmers.detect_kmers(sequence)
+    bootstrapped = kmers.bootstrap(kmers_detected)
+    classified = kmers.classify_bootstraps(bootstrapped, conditional_prob)
+    consensus = kmers.consensus_bs_class(classified, genera_names)
+    filtered = kmers.filter_taxonomy(consensus, min_confidence)
+    return kmers.print_taxonomy(filtered, n_levels)
+
+
+def classify_sequences(sequences_df: pd.DataFrame, database, **kwargs):
     n_levels = kwargs.get('n_levels', 6)
+    min_confidence = kwargs.get('min_confidence', 80)
+    nb_workers = kwargs.get('nb_workers', 4)
+    initialize_pandarallel(nb_workers=nb_workers, **kwargs)
     conditional_prob = database.conditional_prob
     genera_names = database.genera_names
 
-    unknown_df["classification"] = (unknown_df["sequence"]
-                                    .parallel_apply(kmers.detect_kmers)
-                                    .parallel_apply(kmers.bootstrap)
-                                    .parallel_apply(lambda x: kmers.classify_bootstraps(x, conditional_prob))
-                                    .parallel_apply(kmers.bootstrap)
-                                    .parallel_apply(lambda x: kmers.consensus_bs_class(x, genera_names))
-                                    .parallel_apply(lambda x: kmers.print_taxonomy(kmers.filter_taxonomy(x, n_levels)))
-                                    )
-    return unknown_df
+    sequences_df["classification"] = sequences_df["sequence"].parallel_apply(
+        process_sequence, args=(conditional_prob, genera_names, min_confidence, n_levels)
+    )
+    return sequences_df
 
-
-def classify_sequences_pd(unknown_df: pd.DataFrame,
-                          database,
-                          **kwargs):
-    n_levels = kwargs.get('n_levels', 6)
-    conditional_prob = database.conditional_prob
-    genera_names = database.genera_names
-
-    unknown_df["classification"] = (unknown_df["sequence"]
-                                    .apply(kmers.detect_kmers)
-                                    .apply(kmers.bootstrap)
-                                    .apply(lambda x: kmers.classify_bootstraps(x, conditional_prob))
-                                    .apply(kmers.bootstrap)
-                                    .apply(lambda x: kmers.consensus_bs_class(x, genera_names))
-                                    .apply(lambda x: kmers.print_taxonomy(kmers.filter_taxonomy(x, n_levels)))
-                                    )
-    return unknown_df
 
 def make_classifier(ref_fasta: Path | str, out_dir: Path | str):
     """
@@ -59,7 +55,8 @@ def make_classifier(ref_fasta: Path | str, out_dir: Path | str):
     """
     if check_path(ref_fasta) and check_path(out_dir):
         ref_db = read_fasta.read_taxa_fasta(ref_fasta)
-        database = kmers.build_kmer_database(ref_db["sequence"], ref_db["id"],
+        database = kmers.build_kmer_database(sequences=["sequence"],
+                                             genera=ref_db["id"],
                                              verbose=True,
                                              m_proc=True)
         with open(out_dir / "database.pkl", "wb") as f:
