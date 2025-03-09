@@ -29,10 +29,9 @@ def process_sequence(sequence, conditional_prob, genera_names, min_confidence, n
     return kmers.print_taxonomy(filtered, n_levels)
 
 
-def classify_sequences(sequences_df: pd.DataFrame, database, **kwargs):
+def classify_sequences(sequences_df: pd.DataFrame, database, nb_workers: None, **kwargs):
     n_levels = kwargs.get('n_levels', 6)
     min_confidence = kwargs.get('min_confidence', 80)
-    nb_workers = kwargs.get('nb_workers', 4)
     initialize_pandarallel(nb_workers=nb_workers, **kwargs)
     conditional_prob = database.conditional_prob
     genera_names = database.genera_names

@@ -1,9 +1,11 @@
+import multiprocessing
+multiprocessing.set_start_method('spawn', force=True)
+
 import unittest
 
 import numpy as np
-from phylotypy import kmers
-
-from functools import partial
+import pandas as pd
+from phylotypy import kmers, conditional_prob
 
 
 class TestGetKmers(unittest.TestCase):
@@ -179,6 +181,7 @@ class TestGetKmers(unittest.TestCase):
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
             self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
+
 
     def test_build_kmer_database(self):
         kmer_size = 3

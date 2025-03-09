@@ -1,6 +1,8 @@
 from dataclasses import dataclass, field
 
 import multiprocessing as mp
+mp.set_start_method('spawn', force=True)
+
 from pathlib import Path
 import re
 from typing import Dict, Any
