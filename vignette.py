@@ -9,8 +9,10 @@ if __name__ == "__main__":
     moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
     if rdp_fasta.parent / "database.pkl":
+        print("Loading classifier")
         database = classifier.load_classifier(rdp_fasta.parent / "database.pkl")
     else:
+        print("Building classifier")
         database = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
 
     from time import  perf_counter

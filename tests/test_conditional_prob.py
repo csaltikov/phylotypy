@@ -27,25 +27,26 @@ class TestGetKmers(unittest.TestCase):
         self.sequences_df = pd.DataFrame(dict(id=self.genera, sequence=self.sequences))
 
     def test_make_kmer_database(self):
-        observed_db = conditional_prob.make_kmers_database(self.sequences_df, kmer_size=self.kmer_size)
-        expected_id = np.array([0,1,1])
-        self.assertTrue(np.array_equal(observed_db[:,0], expected_id))
+        observed_idx, observed_kmers = conditional_prob.seq_to_kmers_database(self.sequences_df, kmer_size=self.kmer_size)
+        expected_idx = [0,1,1]
+        self.assertEqual(observed_kmers[:,0].tolist(), expected_idx)
 
     def test_calc_priors(self):
-        detect_arr = conditional_prob.make_kmers_database(sequences_db=self.sequences_df, kmer_size=self.kmer_size)
-        observed_db = conditional_prob.calc_priors(np.array(detect_arr), kmer_size=self.kmer_size)
-
+        _, observed_kmers = conditional_prob.seq_to_kmers_database(sequences_db=self.sequences_df, kmer_size=self.kmer_size)
+        observed_db = conditional_prob.calc_priors(np.array(observed_kmers), kmer_size=self.kmer_size)
         self.assertEqual(observed_db[25], 0.875)
 
     def test_conditional_prob(self):
-        observed = conditional_prob.make_kmers_database(self.sequences_df, kmer_size=self.kmer_size)
+        observed_idx, observed_kmers = conditional_prob.seq_to_kmers_database(self.sequences_df, kmer_size=self.kmer_size)
         expected_idx = np.array([0,1,1])
-        self.assertTrue(np.array_equal(observed[:,0], expected_idx))
+        self.assertTrue(np.array_equal(observed_kmers[:,0], expected_idx))
 
     def test_build_database(self):
         observed_arr = conditional_prob.build_database(self.sequences_df, kmer_size=self.kmer_size)
         observed = np.exp(observed_arr.conditional_prob[25]).astype(np.float16)
         expected = self.expected_cond_prods[25].astype(np.float16)
+        print(observed)
+        print(expected)
         self.assertTrue(np.array_equal(observed, expected))
 
 

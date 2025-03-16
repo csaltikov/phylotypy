@@ -1,3 +1,6 @@
+*.so
+*.html
+/build/
 .idea
 .DS_Store
 build

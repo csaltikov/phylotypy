@@ -1,4 +1,6 @@
 from dataclasses import dataclass, field
+from functools import partial
+from itertools import repeat
 
 import multiprocessing as mp
 mp.set_start_method('spawn', force=True)
@@ -8,6 +10,7 @@ import re
 from typing import Dict, Any
 
 import numpy as np
+from numpy.dtypes import StringDType
 
 '''
 Naive Bayes Classifier for DNA sequences. The project is inspired by the 
@@ -206,7 +209,8 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
     wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
     m_1 = (genus_counts + 1)
 
-    genus_cond_prob = np.log(np.divide(wi_pi, m_1)).astype(np.float16)
+    divided = np.divide(wi_pi, m_1)
+    genus_cond_prob = np.log(divided).astype(np.float16)
 
     return genus_cond_prob
 
@@ -309,20 +313,17 @@ def index_genus_mapper(genera_list: list):
 
 def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
     '''Performs a single bootstrap sampling on a kmers array'''
-    n_kmers = kmers.shape[0] // kmer_size
+    n_kmers = len(kmers) // kmer_size
     return np.random.choice(kmers, n_kmers, replace=True)
 
 
-def bootstrap(kmer_index: list, n_bootstraps: int = 100, fraction: int = 8, **kwargs) -> np.ndarray:
+def bootstrap(kmer_index: list | np.ndarray, n_bootstraps: int = 100, fraction: int = 8, **kwargs) -> np.ndarray:
     ''''Performs multiple bootstrap samplings on a list of kmers'''
-    # if kwargs.get('seed'):
-    #     print(kwargs.get('seed'))
-    #     np.random.seed(kwargs.get('seed'))
-    n_samples = len(kmer_index) // fraction
-    kmer_sample_arr = np.zeros((n_bootstraps, n_samples), dtype=int)
-    for i in range(n_bootstraps):
-        kmer_sample_arr[i, :] = np.random.choice(kmer_index, n_samples, replace=True)
-    return kmer_sample_arr
+    if kwargs.get('seed'):
+        print(kwargs.get('seed'))
+        np.random.seed(kwargs.get('seed'))
+    bootstrap_fn = partial(bootstrap_kmers, kmer_index, fraction)
+    return np.array(list(map(lambda _: bootstrap_fn(), repeat(1, n_bootstraps))))
 
 
 def classify_bs(kmer_index: list, db):
@@ -349,7 +350,7 @@ def consensus_bs_class(bs_class: np.array, genera_names) -> dict[str, list | Any
 
     def cumulative_join(col):
         join_taxa = [";".join(col[:i + 1]) for i in range(len(col))]
-        return np.array(join_taxa, dtype='<U300')
+        return np.array(join_taxa, dtype=StringDType) #'<U300'
 
     taxa_cum_join_arr = np.apply_along_axis(cumulative_join, 1, taxonomy_split)
 
@@ -367,9 +368,9 @@ def get_consensus(taxa_cumm_join_arr: np.ndarray):
 
     id_fraction_arr = np.full(2, fill_value=["unclassified", 0], dtype=list)
 
-    fraction = counts[max_id].item() / counts.sum()
+    fraction = counts[max_id] / counts.sum()
 
-    id_fraction_arr[0] = taxonomy[max_id].item()
+    id_fraction_arr[0] = taxonomy[max_id]
     id_fraction_arr[1] = int(100 * fraction)
 
     return id_fraction_arr
@@ -378,13 +379,14 @@ def get_consensus(taxa_cumm_join_arr: np.ndarray):
 def filter_taxonomy(classification: dict, min_confidence: float = 80) -> Dict:
     """Helper for create_con determines finds the best id"""
 
-    n_levels = classification["confidence"].shape[0]
-
     high_confidence = np.where(classification["confidence"] >= min_confidence)[0]
 
+    # in case all confidence scores are below min_confidence
     if high_confidence.size == 0:
-        taxonomy = np.array(["unclassified"] * n_levels)
-        confidence = np.zeros(n_levels, dtype=int)
+        first_taxon = classification["taxonomy"][0]
+        first_confidence = classification["confidence"][0]
+        taxonomy = np.array([first_taxon], dtype=StringDType)
+        confidence =  np.array([first_confidence])
     else:
         taxonomy = classification["taxonomy"][high_confidence]
         confidence = classification["confidence"][high_confidence]
@@ -395,11 +397,11 @@ def filter_taxonomy(classification: dict, min_confidence: float = 80) -> Dict:
 
 
 def print_taxonomy(consensus: dict, n_levels=6) -> str:
-    original_levels = consensus["taxonomy"].shape[0]
+    original_levels = len(consensus["taxonomy"])
     given_levels = original_levels
     extra_levels = n_levels - given_levels
 
-    taxa_idx = np.arange(consensus["taxonomy"].shape[0])
+    taxa_idx = np.arange(original_levels)
 
     last_taxa = consensus["taxonomy"][taxa_idx[-1]]
     last_confidence = consensus["confidence"][taxa_idx[-1]]

@@ -46,7 +46,7 @@ rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
 
 moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 ```
-2. Create the classifier as a .pkl file, specify an output directory 
+2. Create the classifier as a .pkl file, specify an output directory for the database.pkl fle
 ```
 out_dir = rdp_fasta.parent
 database = classifier.make_classifier(rdp_fasta, out_dir)
@@ -58,13 +58,19 @@ classified = classifier.classify_sequences(moving_pics, database)
 4. Format the output
 ```
 classified = results.summarize_predictions(classified)
-
 print(classified.columns)
+```
+Output:
+```
 >>> Index(['id', 'sequence', 'classification', 'Kingdom', 'Phylum', 'Class',
        'Order', 'Family', 'Genus', 'observed', 'lineage'],
       dtype='object')
-      
+```
+```
 print(classified["classification"].head())
+```
+Output:
+```
 >>>0    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
 1    Bacteria(100);Pseudomonadota(100);Betaproteoba...
 2    Bacteria(100);Bacillota(100);Bacilli(100);Lact...
@@ -72,6 +78,7 @@ print(classified["classification"].head())
 4    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
 Name: classification, dtype: object
 ```
+
 ## Example classification output:
 The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are separated by ";".  The numbers in the () represent the confidence in the classificaiton.  The default confidence is 80%.
 ```

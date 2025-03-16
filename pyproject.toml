@@ -1,13 +1,22 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=45", "wheel", "Cython>=0.29.21", "numpy"]
 build-backend = "setuptools.build_meta"
+
+[tool.cython]
+language_level = "3"
+
+[tool.setuptools]
+include-package-data = true
+
+[tool.setuptools.package-data]
+"*" = ["*.pyx", "*.pxd"]
 
 [project]
 name = "phylotypy"
 version = "0.2.0"
-description = "Naive Bayes Classifier"
+description = "Naive Bayes Classifier with Rust-accelerated taxonomy functions"
 authors = [
-    {name = "Chad Saltikov",email = "saltikov@ucsc.edu"}
+    {name = "Chad Saltikov", email = "saltikov@ucsc.edu"}
 ]
 license = {text = "MIT"}
 readme = "README.md"
@@ -19,9 +28,12 @@ dependencies = [
     "scikit-learn",
     "requests",
     "pandarallel",
-    "jax"
+    "jax",
+    "cython"
 ]
+
 [project.optional-dependencies]
 test = [
     "pytest",
 ]
+
