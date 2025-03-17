@@ -10,8 +10,6 @@ import numpy as np
 from numpy.typing import NDArray
 import pandas as pd
 
-import numba as nb
-
 from phylotypy import kmers, conditional_prob, classifier
 from phylotypy.utilities import read_fasta
 
@@ -46,18 +44,6 @@ def bootstrap_consensus_helper(arr):
 def sort_by_indices_helper(values_to_sort, indices_array):
     sorted_indices = np.argsort(indices_array)
     return values_to_sort[sorted_indices]
-
-
-##
-@nb.jit(nopython=True, parallel=True)
-def classify_bootstraps_numba(bs_indices, conditional_prob):
-    classifications = np.empty(bs_indices.shape[0], dtype=np.int64)
-
-    for i in nb.prange(bs_indices.shape[0]):
-        sums = np.sum(conditional_prob[bs_indices[i]], axis=0)
-        classifications[i] = np.argmax(sums)
-
-    return classifications
 
 
 ##
@@ -135,3 +121,7 @@ if __name__ == "__main__":
     #     # classified["classification"].append(classify_sequence(seq_kmer, database))
 
     # # res = pd.DataFrame(classified)
+
+    database2 = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
+    ##
+    classified2 = classifier.classify_sequences(moving_pics, database2)

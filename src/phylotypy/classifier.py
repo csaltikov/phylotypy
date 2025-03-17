@@ -40,35 +40,6 @@ def classify_sequence(seq_kmer, database):
     return kmers.print_taxonomy(filtered)
 
 
-def classify_sequences_timed(seq_kmer, database):
-    start_time = time.perf_counter()
-    bootstrapped = bootstrap.bootstrap(seq_kmer)
-    bootstrap_time = time.perf_counter() - start_time
-    print(f"Bootstrap took {bootstrap_time:.4f} seconds.")
-
-    start_time = time.perf_counter()
-    # classified_kmers = kmers.classify_bootstraps(bootstrapped, database.conditional_prob)
-    classified_kmers = bootstrap.classify_bootstraps_numba(bootstrapped, database.conditional_prob)
-    classification_time = time.perf_counter() - start_time
-    print(f"Classification took {classification_time:.4f} seconds.")
-
-    start_time = time.perf_counter()
-    consensus = bootstrap.bootstrap_consensus(classified_kmers, database.genera_names)
-    consensus_time = time.perf_counter() - start_time
-    print(f"Consensus took {consensus_time:.4f} seconds.")
-
-    start_time = time.perf_counter()
-    filtered = kmers.filter_taxonomy(consensus)
-    filtering_time = time.perf_counter() - start_time
-    print(f"Filtering took {filtering_time:.4f} seconds.")
-
-    start_time = time.perf_counter()
-    result = kmers.print_taxonomy(filtered)
-    printing_time = time.perf_counter() - start_time
-    print(f"Printing took {printing_time:.4f} seconds.")
-
-    return result
-
 def make_classifier(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
     """
     Constructs the classifier database: conditional_probabilities array and unique reference genera
@@ -87,7 +58,7 @@ def make_classifier(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
         ids, kmers_db = conditional_prob.seq_to_kmers_database(ref_db, kmer_size=kmers_size)
         priors = conditional_prob.calc_priors(kmers_db, kmers_size)
 
-        cond_prob_arr = conditional_prob.GenusCondProb(kmers_db, priors, kmers_size).calculate_alt()
+        cond_prob_arr = conditional_prob.GenusCondProb(kmers_db, priors, kmers_size).calculate()
 
         all_genera_names = ref_db["id"].to_list()
 
