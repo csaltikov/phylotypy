@@ -210,7 +210,7 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
     m_1 = (genus_counts + 1)
 
     divided = np.divide(wi_pi, m_1)
-    genus_cond_prob = np.log(divided).astype(np.float16)
+    genus_cond_prob = np.log(divided).astype(np.float32)
 
     return genus_cond_prob
 
@@ -284,7 +284,7 @@ def calc_genus_conditional_prob_mp(detect_list: list[list[int]],
     wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
     m_1 = (genus_counts + 1)
 
-    genus_cond_prob = np.log(np.divide(wi_pi, m_1)).astype(np.float16)
+    genus_cond_prob = np.log(np.divide(wi_pi, m_1)).astype(np.float32)
 
     # Delete the memmap object
     del genus_count

@@ -2,7 +2,6 @@
 from collections import defaultdict
 from pathlib import Path
 import pickle
-import time
 
 import pandas as pd
 from phylotypy import kmers, conditional_prob, bootstrap
@@ -21,19 +20,17 @@ def classify_sequences(sequences_df, database, verbose=False):
         if verbose:
             if i % 100 == 0:
                 print(f"Classifying sequence {i} of {len(genera_idx_test)}")
-        seq_kmer = detected_kmers_test[detected_kmers_test[:,0]==idx, 1:].flatten()
+        seq_kmer = detected_kmers_test[i, 1:].flatten()
         name = sequences_df.iloc[i]["id"]
         classified["id"].append(name)
         classified["classification"].append(classify_sequence(seq_kmer, database))
 
     res = pd.DataFrame(classified)
-    # classification = results.summarize_predictions(res)
     return res
 
 
 def classify_sequence(seq_kmer, database):
     bootstrapped = bootstrap.bootstrap(seq_kmer)
-    # classified_kmers = kmers.classify_bootstraps(bootstrapped, database.conditional_prob)
     classified_kmers = classify_bootstraps_cython(bootstrapped, database.conditional_prob)
     consensus = bootstrap.bootstrap_consensus(classified_kmers, database.genera_names)
     filtered = kmers.filter_taxonomy(consensus)
@@ -54,6 +51,8 @@ def make_classifier(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
     kmers_size = kwargs.get('kmers_size', 8)
     if check_path(ref_fasta) and check_path(out_dir):
         ref_db = read_fasta.read_taxa_fasta(ref_fasta)
+
+        print("Building database...")
 
         ids, kmers_db = conditional_prob.seq_to_kmers_database(ref_db, kmer_size=kmers_size)
         priors = conditional_prob.calc_priors(kmers_db, kmers_size)

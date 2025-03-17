@@ -9,7 +9,7 @@ from phylotypy import kmers
 from phylotypy import predict
 
 
-class TestGetKmers(unittest.TestCase):
+class TestPredict(unittest.TestCase):
     def setUp(self) -> None:
         self.kmer_size = 3
         self.classifier = predict.Classify(kmer_size=self.kmer_size)

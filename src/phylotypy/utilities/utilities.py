@@ -24,6 +24,12 @@ def fasta_to_dataframe_taxa(fasta_file, taxafile, save: bool = False):
     return refdb
 
 
+def dataframe_to_fasta(df, fasta_file):
+    with open(fasta_file, "w") as f:
+        for index, row in df.iterrows():
+            f.write(f">{row['id']}\n{row['sequence']}\n")
+
+
 def translate_sequence(dna_sequence):
     """
     Translate a DNA sequence to a protein sequence using BioPython.

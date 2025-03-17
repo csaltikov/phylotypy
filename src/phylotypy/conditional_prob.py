@@ -126,7 +126,7 @@ class GenusCondProb:
         self.wi_pi = (self.counts + self.priors.reshape(-1, 1))
         self.m_1 = (self.genera_idx_counts + 1)
         divided = np.divide(self.wi_pi, self.m_1)
-        return np.log(divided)
+        return np.log(divided).astype(np.float32)
 
     def calculate_genus_counts_(self):
         self.uniq_idx, self.uniq_idx_counts = np.unique(self.kmers_arr[:, 0], return_counts=True)  # first column are the seq ids
@@ -142,7 +142,7 @@ class GenusCondProb:
         self.wi_pi = (self.genus_kmer_counts + self.priors.reshape(-1, 1))
         self.m_1 = (self.uniq_idx_counts + 1)
         divided = np.divide(self.wi_pi, self.m_1)
-        return np.log(divided)
+        return np.log(divided).astype(np.float32)
 
 
 ##

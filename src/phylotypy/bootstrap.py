@@ -84,44 +84,33 @@ def bootstrap_consensus(classified_bs_kmers: np.ndarray, genera_names: np.ndarra
 ##
 if __name__ == "__main__":
     from time import perf_counter
+    import pickle
 
     print(Path().absolute())
     rdp_fasta = Path("../../data/rdp_16S_v19.dada2.fasta")
     rdp_small = Path("../../data/trainset19_072023_small_db.csv")
+    rdp_small_fasta = Path("../../data/trainset19_072023_small_db.fasta")
 
     moving_pics = read_fasta.read_taxa_fasta("../../data/dna_moving_pictures.fasta")
     rdp_df = read_fasta.read_taxa_fasta(rdp_fasta)
     rdp_small_df = pd.read_csv(rdp_small, index_col=0)
 
     ##
+    start = perf_counter()
     database = conditional_prob.build_database(rdp_small_df)
-    ##
-    # seqs = rdp_small_df.sample(500, random_state=1234)
+    with open("database_condprob.pkl", "wb") as f:
+        pickle.dump(database, f)
+    end = perf_counter()
+    print(f"Time taken: {(end - start):.2f}")
 
-    classified = classifier.classify_sequences(moving_pics, database)
+    start = perf_counter()
+    database2 = classifier.make_classifier(rdp_small_fasta, rdp_small_fasta.parent)
+    end = perf_counter()
+    print(f"Time taken: {(end - start):.2f}")
 
-    ##
-    # from phylotypy import conditional_prob
-    # from classify_bootstraps import classify_bootstraps_cython
-    # from phylotypy import kmers
-    # from collections import defaultdict
-    # ##
-    # classified_seqs = defaultdict(list)
-    # genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(moving_pics)
-    # for i, idx in enumerate(genera_idx_test):
-    #     print(i)
-    #     seq_kmer = detected_kmers_test[detected_kmers_test[:,0]==idx, 1:].flatten()
-    #     name = seqs.iloc[i]["id"]
-    #     classified_seqs["id"].append(name)
-    #     bootstrapped = bootstrap(seq_kmer)
-    #     classified_kmers = classify_bootstraps_cython(bootstrapped, database.conditional_prob)
-    #     consensus = bootstrap_consensus(classified_kmers, database.genera_names)
-    #     filtered = filter_taxonomy(consensus)
-    #     classified_seqs["taxonomy"].append(kmers.print_taxonomy(filtered))
-    #     # classified["classification"].append(classify_sequence(seq_kmer, database))
-
-    # # res = pd.DataFrame(classified)
-
-    database2 = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
-    ##
-    classified2 = classifier.classify_sequences(moving_pics, database2)
+    start = perf_counter()
+    database3 = kmers.build_kmer_database(rdp_small_df["sequence"], rdp_small_df["id"], verbose=True)
+    with open("database_kmers.pkl", "wb") as f:
+        pickle.dump(database3, f)
+    end = perf_counter()
+    print(f"Time taken: {(end - start):.2f}")

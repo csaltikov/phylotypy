@@ -161,9 +161,9 @@ class TestGetKmers(unittest.TestCase):
 
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod)
-            self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
+            self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float32)))
 
-        self.assertEqual(conditional_prob.dtype, np.float16)
+        self.assertEqual(conditional_prob.dtype, np.float32)
 
     def test_calc_genus_conditional_prob(self):
         """Calculate genus-specific conditional probabilities"""
@@ -179,8 +179,12 @@ class TestGetKmers(unittest.TestCase):
                                                                 genera,
                                                                 priors)
         for pos, cond_prod in self.expected_cond_prods.items():
-            log_cond_prod = np.log(cond_prod)
-            self.assertTrue(np.array_equal(conditional_prob[pos,], log_cond_prod.astype(np.float16)))
+            obs = np.log(cond_prod)
+            exp = conditional_prob[pos,]
+            print(obs)
+            print(exp)
+            self.assertTrue(np.array_equal(obs.astype(np.float16),
+                                           exp.astype(np.float16)))
 
 
     def test_build_kmer_database(self):
@@ -192,7 +196,7 @@ class TestGetKmers(unittest.TestCase):
         db = kmers.build_kmer_database(sequences, genera, kmer_size, multi=True)
 
         for pos, cond_prod in self.expected_cond_prods.items():
-            log_cond_prod = np.log(cond_prod).astype(np.float16)
+            log_cond_prod = np.log(cond_prod).astype(np.float32)
             print(log_cond_prod, db.conditional_prob[pos,])
             self.assertTrue(np.array_equal(db.conditional_prob[pos,],
                                            log_cond_prod)
@@ -209,19 +213,19 @@ class TestGetKmers(unittest.TestCase):
 
         observed = db.conditional_prob[25,]  # np.array
         expected = (np.array([1, 2], dtype=float) + 0.875) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float32)))
 
         observed = db.conditional_prob[28,]  # np.array
         expected = (np.array([1, 0]) + 0.375) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float32)))
 
         observed = db.conditional_prob[29,]  # np.array
         expected = (np.array([0, 2]) + 0.625) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float32)))
 
         observed = db.conditional_prob[63,]  # np.array
         expected = (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)
-        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float16)))
+        self.assertTrue(np.array_equal(observed, np.log(expected).astype(np.float32)))
 
         observed = db.genera_idx[0]
         expected = 0

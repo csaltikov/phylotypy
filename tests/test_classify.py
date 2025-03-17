@@ -1,7 +1,12 @@
 import numpy as np
 from pathlib import Path
 import unittest
-from phylotypy import kmers
+
+import numpy as np
+import pandas as pd
+
+from phylotypy import kmers, bootstrap, conditional_prob
+from phylotypy.classify_bootstraps import classify_bootstraps_cython
 
 
 class TestClassifier(unittest.TestCase):
@@ -37,8 +42,6 @@ class TestClassifier(unittest.TestCase):
                            genera_names=ref_genera
                            )
         self.assertEqual(db_.conditional_prob.shape, (4**kmer_size, 2))
-
-    # TODO create tests for classifier.py
 
 
 if __name__ == '__main__':

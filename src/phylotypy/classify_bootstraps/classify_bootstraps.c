@@ -3,12 +3,6 @@
 /* BEGIN: Cython Metadata
 {
     "distutils": {
-        "define_macros": [
-            [
-                "NPY_NO_DEPRECATED_API",
-                "NPY_1_7_API_VERSION"
-            ]
-        ],
         "depends": [
             "/Users/caltikov/PycharmProjects/phylotypy/.venv/lib/python3.13/site-packages/numpy/_core/include/numpy/arrayobject.h",
             "/Users/caltikov/PycharmProjects/phylotypy/.venv/lib/python3.13/site-packages/numpy/_core/include/numpy/arrayscalars.h",
@@ -1740,7 +1734,7 @@ typedef npy_longdouble __pyx_t_5numpy_longdouble_t;
  * # Define C types for better performance
  * ctypedef np.int64_t INT64_t             # <<<<<<<<<<<<<<
  * ctypedef np.float64_t FLOAT64_t  # Adjust if your conditional_prob has a different dtype
- * 
+ * ctypedef np.float32_t FLOAT32_t
  */
 typedef __pyx_t_5numpy_int64_t __pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t;
 
@@ -1748,10 +1742,19 @@ typedef __pyx_t_5numpy_int64_t __pyx_t_9phylotypy_19classify_bootstraps_19classi
  * # Define C types for better performance
  * ctypedef np.int64_t INT64_t
  * ctypedef np.float64_t FLOAT64_t  # Adjust if your conditional_prob has a different dtype             # <<<<<<<<<<<<<<
+ * ctypedef np.float32_t FLOAT32_t
+ * 
+ */
+typedef __pyx_t_5numpy_float64_t __pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t;
+
+/* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":12
+ * ctypedef np.int64_t INT64_t
+ * ctypedef np.float64_t FLOAT64_t  # Adjust if your conditional_prob has a different dtype
+ * ctypedef np.float32_t FLOAT32_t             # <<<<<<<<<<<<<<
  * 
  * @cython.boundscheck(False)  # Turn off bounds-checking
  */
-typedef __pyx_t_5numpy_float64_t __pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t;
+typedef __pyx_t_5numpy_float32_t __pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT32_t;
 /* #### Code section: complex_type_declarations ### */
 /* Declarations.proto */
 #if CYTHON_CCOMPLEX && (1) && (!0 || __cplusplus)
@@ -2606,7 +2609,7 @@ static CYTHON_INLINE char *__pyx_f_5numpy_7ndarray_4data_data(PyArrayObject *__p
 /* Module declarations from "phylotypy.classify_bootstraps.classify_bootstraps" */
 /* #### Code section: typeinfo ### */
 static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t = { "INT64_t", NULL, sizeof(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t), { 0 }, 0, __PYX_IS_UNSIGNED(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t) ? 'U' : 'I', __PYX_IS_UNSIGNED(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t), 0 };
-static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t = { "FLOAT64_t", NULL, sizeof(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t), { 0 }, 0, 'R', 0, 0 };
+static __Pyx_TypeInfo __Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT32_t = { "FLOAT32_t", NULL, sizeof(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT32_t), { 0 }, 0, 'R', 0, 0 };
 /* #### Code section: before_global_var ### */
 #define __Pyx_MODULE_NAME "phylotypy.classify_bootstraps.classify_bootstraps"
 extern int __pyx_module_is_main_phylotypy__classify_bootstraps__classify_bootstraps;
@@ -4741,8 +4744,8 @@ static CYTHON_INLINE NPY_DATETIMEUNIT __pyx_f_5numpy_get_datetime64_unit(PyObjec
   return __pyx_r;
 }
 
-/* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":13
- * ctypedef np.float64_t FLOAT64_t  # Adjust if your conditional_prob has a different dtype
+/* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":14
+ * ctypedef np.float32_t FLOAT32_t
  * 
  * @cython.boundscheck(False)  # Turn off bounds-checking             # <<<<<<<<<<<<<<
  * @cython.wraparound(False)  # Turn off negative index wrapping
@@ -4806,7 +4809,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[0]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
         else goto __pyx_L5_argtuple_error;
         CYTHON_FALLTHROUGH;
         case  1:
@@ -4814,14 +4817,14 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
           (void)__Pyx_Arg_NewRef_FASTCALL(values[1]);
           kw_args--;
         }
-        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 13, __pyx_L3_error)
+        else if (unlikely(PyErr_Occurred())) __PYX_ERR(0, 14, __pyx_L3_error)
         else {
-          __Pyx_RaiseArgtupleInvalid("classify_bootstraps_cython", 1, 2, 2, 1); __PYX_ERR(0, 13, __pyx_L3_error)
+          __Pyx_RaiseArgtupleInvalid("classify_bootstraps_cython", 1, 2, 2, 1); __PYX_ERR(0, 14, __pyx_L3_error)
         }
       }
       if (unlikely(kw_args > 0)) {
         const Py_ssize_t kwd_pos_args = __pyx_nargs;
-        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "classify_bootstraps_cython") < 0)) __PYX_ERR(0, 13, __pyx_L3_error)
+        if (unlikely(__Pyx_ParseOptionalKeywords(__pyx_kwds, __pyx_kwvalues, __pyx_pyargnames, 0, values + 0, kwd_pos_args, "classify_bootstraps_cython") < 0)) __PYX_ERR(0, 14, __pyx_L3_error)
       }
     } else if (unlikely(__pyx_nargs != 2)) {
       goto __pyx_L5_argtuple_error;
@@ -4834,7 +4837,7 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   }
   goto __pyx_L6_skip;
   __pyx_L5_argtuple_error:;
-  __Pyx_RaiseArgtupleInvalid("classify_bootstraps_cython", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 13, __pyx_L3_error)
+  __Pyx_RaiseArgtupleInvalid("classify_bootstraps_cython", 1, 2, 2, __pyx_nargs); __PYX_ERR(0, 14, __pyx_L3_error)
   __pyx_L6_skip:;
   goto __pyx_L4_argument_unpacking_done;
   __pyx_L3_error:;
@@ -4848,8 +4851,8 @@ PyObject *__pyx_args, PyObject *__pyx_kwds
   __Pyx_RefNannyFinishContext();
   return NULL;
   __pyx_L4_argument_unpacking_done:;
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_bs_indices), __pyx_ptype_5numpy_ndarray, 1, "bs_indices", 0))) __PYX_ERR(0, 16, __pyx_L1_error)
-  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_conditional_prob), __pyx_ptype_5numpy_ndarray, 1, "conditional_prob", 0))) __PYX_ERR(0, 17, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_bs_indices), __pyx_ptype_5numpy_ndarray, 1, "bs_indices", 0))) __PYX_ERR(0, 17, __pyx_L1_error)
+  if (unlikely(!__Pyx_ArgTypeTest(((PyObject *)__pyx_v_conditional_prob), __pyx_ptype_5numpy_ndarray, 1, "conditional_prob", 0))) __PYX_ERR(0, 18, __pyx_L1_error)
   __pyx_r = __pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps_classify_bootstraps_cython(__pyx_self, __pyx_v_bs_indices, __pyx_v_conditional_prob);
 
   /* function exit code */
@@ -4925,16 +4928,16 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
   __pyx_pybuffernd_conditional_prob.rcbuffer = &__pyx_pybuffer_conditional_prob;
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_bs_indices.rcbuffer->pybuffer, (PyObject*)__pyx_v_bs_indices, &__Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) __PYX_ERR(0, 13, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_bs_indices.rcbuffer->pybuffer, (PyObject*)__pyx_v_bs_indices, &__Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) __PYX_ERR(0, 14, __pyx_L1_error)
   }
   __pyx_pybuffernd_bs_indices.diminfo[0].strides = __pyx_pybuffernd_bs_indices.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_bs_indices.diminfo[0].shape = __pyx_pybuffernd_bs_indices.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_bs_indices.diminfo[1].strides = __pyx_pybuffernd_bs_indices.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_bs_indices.diminfo[1].shape = __pyx_pybuffernd_bs_indices.rcbuffer->pybuffer.shape[1];
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
-    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer, (PyObject*)__pyx_v_conditional_prob, &__Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) __PYX_ERR(0, 13, __pyx_L1_error)
+    if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer, (PyObject*)__pyx_v_conditional_prob, &__Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT32_t, PyBUF_FORMAT| PyBUF_STRIDES, 2, 0, __pyx_stack) == -1)) __PYX_ERR(0, 14, __pyx_L1_error)
   }
   __pyx_pybuffernd_conditional_prob.diminfo[0].strides = __pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_conditional_prob.diminfo[0].shape = __pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer.shape[0]; __pyx_pybuffernd_conditional_prob.diminfo[1].strides = __pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer.strides[1]; __pyx_pybuffernd_conditional_prob.diminfo[1].shape = __pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer.shape[1];
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":33
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":34
  *         Classification results for each bootstrap sample
  *     """
  *     cdef Py_ssize_t n_bootstraps = bs_indices.shape[0]             # <<<<<<<<<<<<<<
@@ -4943,7 +4946,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
   __pyx_v_n_bootstraps = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_bs_indices))[0]);
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":34
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":35
  *     """
  *     cdef Py_ssize_t n_bootstraps = bs_indices.shape[0]
  *     cdef Py_ssize_t n_samples = bs_indices.shape[1]             # <<<<<<<<<<<<<<
@@ -4952,7 +4955,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
   __pyx_v_n_samples = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_bs_indices))[1]);
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":35
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":36
  *     cdef Py_ssize_t n_bootstraps = bs_indices.shape[0]
  *     cdef Py_ssize_t n_samples = bs_indices.shape[1]
  *     cdef Py_ssize_t n_classes = conditional_prob.shape[1]             # <<<<<<<<<<<<<<
@@ -4961,46 +4964,46 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
   __pyx_v_n_classes = (__pyx_f_5numpy_7ndarray_5shape_shape(((PyArrayObject *)__pyx_v_conditional_prob))[1]);
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":38
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":39
  * 
  *     # Create output array
  *     cdef np.ndarray[INT64_t, ndim=1] classifications = np.empty(n_bootstraps, dtype=np.int64)             # <<<<<<<<<<<<<<
  * 
  *     # Declare variables for loops
  */
-  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_1, __pyx_n_s_np); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_PyObject_GetAttrStr(__pyx_t_1, __pyx_n_s_empty); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  __pyx_t_1 = PyInt_FromSsize_t(__pyx_v_n_bootstraps); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_1 = PyInt_FromSsize_t(__pyx_v_n_bootstraps); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_3 = PyTuple_New(1); if (unlikely(!__pyx_t_3)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_3);
   __Pyx_GIVEREF(__pyx_t_1);
-  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1)) __PYX_ERR(0, 38, __pyx_L1_error);
+  if (__Pyx_PyTuple_SET_ITEM(__pyx_t_3, 0, __pyx_t_1)) __PYX_ERR(0, 39, __pyx_L1_error);
   __pyx_t_1 = 0;
-  __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_1 = __Pyx_PyDict_NewPresized(1); if (unlikely(!__pyx_t_1)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_1);
-  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __Pyx_GetModuleGlobalName(__pyx_t_4, __pyx_n_s_np); if (unlikely(!__pyx_t_4)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_4);
-  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_int64); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_GetAttrStr(__pyx_t_4, __pyx_n_s_int64); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_4); __pyx_t_4 = 0;
-  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 38, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_t_1, __pyx_n_s_dtype, __pyx_t_5) < 0) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_5); __pyx_t_5 = 0;
-  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_3, __pyx_t_1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 38, __pyx_L1_error)
+  __pyx_t_5 = __Pyx_PyObject_Call(__pyx_t_2, __pyx_t_3, __pyx_t_1); if (unlikely(!__pyx_t_5)) __PYX_ERR(0, 39, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_5);
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
   __Pyx_DECREF(__pyx_t_3); __pyx_t_3 = 0;
   __Pyx_DECREF(__pyx_t_1); __pyx_t_1 = 0;
-  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 38, __pyx_L1_error)
+  if (!(likely(((__pyx_t_5) == Py_None) || likely(__Pyx_TypeTest(__pyx_t_5, __pyx_ptype_5numpy_ndarray))))) __PYX_ERR(0, 39, __pyx_L1_error)
   __pyx_t_6 = ((PyArrayObject *)__pyx_t_5);
   {
     __Pyx_BufFmt_StackElem __pyx_stack[1];
     if (unlikely(__Pyx_GetBufferAndValidate(&__pyx_pybuffernd_classifications.rcbuffer->pybuffer, (PyObject*)__pyx_t_6, &__Pyx_TypeInfo_nn___pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t, PyBUF_FORMAT| PyBUF_STRIDES| PyBUF_WRITABLE, 1, 0, __pyx_stack) == -1)) {
       __pyx_v_classifications = ((PyArrayObject *)Py_None); __Pyx_INCREF(Py_None); __pyx_pybuffernd_classifications.rcbuffer->pybuffer.buf = NULL;
-      __PYX_ERR(0, 38, __pyx_L1_error)
+      __PYX_ERR(0, 39, __pyx_L1_error)
     } else {__pyx_pybuffernd_classifications.diminfo[0].strides = __pyx_pybuffernd_classifications.rcbuffer->pybuffer.strides[0]; __pyx_pybuffernd_classifications.diminfo[0].shape = __pyx_pybuffernd_classifications.rcbuffer->pybuffer.shape[0];
     }
   }
@@ -5008,7 +5011,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
   __pyx_v_classifications = ((PyArrayObject *)__pyx_t_5);
   __pyx_t_5 = 0;
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":47
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":48
  * 
  *     # Parallel execution with proper GIL handling
  *     with nogil:             # <<<<<<<<<<<<<<
@@ -5024,7 +5027,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
       #endif
       /*try:*/ {
 
-        /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":48
+        /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":49
  *     # Parallel execution with proper GIL handling
  *     with nogil:
  *         for i in prange(n_bootstraps):             # <<<<<<<<<<<<<<
@@ -5060,7 +5063,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                             __pyx_v_max_val = ((__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t)__PYX_NAN());
                             __pyx_v_sums = ((__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t *)1);
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":50
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":51
  *         for i in prange(n_bootstraps):
  *             # Allocate memory for sums array (using C malloc instead of np.zeros)
  *             sums = <FLOAT64_t *> malloc(n_classes * sizeof(FLOAT64_t))             # <<<<<<<<<<<<<<
@@ -5069,7 +5072,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
                             __pyx_v_sums = ((__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t *)malloc((__pyx_v_n_classes * (sizeof(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t)))));
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":53
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":54
  * 
  *             # Initialize sums to zero
  *             for k in range(n_classes):             # <<<<<<<<<<<<<<
@@ -5081,7 +5084,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                             for (__pyx_t_12 = 0; __pyx_t_12 < __pyx_t_11; __pyx_t_12+=1) {
                               __pyx_v_k = __pyx_t_12;
 
-                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":54
+                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":55
  *             # Initialize sums to zero
  *             for k in range(n_classes):
  *                 sums[k] = 0.0             # <<<<<<<<<<<<<<
@@ -5091,7 +5094,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                               (__pyx_v_sums[__pyx_v_k]) = 0.0;
                             }
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":57
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":58
  * 
  *             # Sum conditional probabilities for each class
  *             for j in range(n_samples):             # <<<<<<<<<<<<<<
@@ -5103,7 +5106,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                             for (__pyx_t_12 = 0; __pyx_t_12 < __pyx_t_11; __pyx_t_12+=1) {
                               __pyx_v_j = __pyx_t_12;
 
-                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":58
+                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":59
  *             # Sum conditional probabilities for each class
  *             for j in range(n_samples):
  *                 idx = bs_indices[i, j]             # <<<<<<<<<<<<<<
@@ -5114,7 +5117,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                               __pyx_t_14 = __pyx_v_j;
                               __pyx_v_idx = (*__Pyx_BufPtrStrided2d(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t *, __pyx_pybuffernd_bs_indices.rcbuffer->pybuffer.buf, __pyx_t_13, __pyx_pybuffernd_bs_indices.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_bs_indices.diminfo[1].strides));
 
-                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":59
+                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":60
  *             for j in range(n_samples):
  *                 idx = bs_indices[i, j]
  *                 for k in range(n_classes):             # <<<<<<<<<<<<<<
@@ -5126,7 +5129,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                               for (__pyx_t_17 = 0; __pyx_t_17 < __pyx_t_16; __pyx_t_17+=1) {
                                 __pyx_v_k = __pyx_t_17;
 
-                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":60
+                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":61
  *                 idx = bs_indices[i, j]
  *                 for k in range(n_classes):
  *                     sums[k] += conditional_prob[idx, k]             # <<<<<<<<<<<<<<
@@ -5136,11 +5139,11 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                                 __pyx_t_18 = __pyx_v_k;
                                 __pyx_t_19 = __pyx_v_idx;
                                 __pyx_t_14 = __pyx_v_k;
-                                (__pyx_v_sums[__pyx_t_18]) = ((__pyx_v_sums[__pyx_t_18]) + (*__Pyx_BufPtrStrided2d(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT64_t *, __pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer.buf, __pyx_t_19, __pyx_pybuffernd_conditional_prob.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_conditional_prob.diminfo[1].strides)));
+                                (__pyx_v_sums[__pyx_t_18]) = ((__pyx_v_sums[__pyx_t_18]) + (*__Pyx_BufPtrStrided2d(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_FLOAT32_t *, __pyx_pybuffernd_conditional_prob.rcbuffer->pybuffer.buf, __pyx_t_19, __pyx_pybuffernd_conditional_prob.diminfo[0].strides, __pyx_t_14, __pyx_pybuffernd_conditional_prob.diminfo[1].strides)));
                               }
                             }
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":63
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":64
  * 
  *             # Find the class with highest sum
  *             max_val = sums[0]             # <<<<<<<<<<<<<<
@@ -5149,7 +5152,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
                             __pyx_v_max_val = (__pyx_v_sums[0]);
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":64
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":65
  *             # Find the class with highest sum
  *             max_val = sums[0]
  *             max_idx = 0             # <<<<<<<<<<<<<<
@@ -5158,7 +5161,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
                             __pyx_v_max_idx = 0;
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":65
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":66
  *             max_val = sums[0]
  *             max_idx = 0
  *             for k in range(1, n_classes):             # <<<<<<<<<<<<<<
@@ -5170,7 +5173,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                             for (__pyx_t_12 = 1; __pyx_t_12 < __pyx_t_11; __pyx_t_12+=1) {
                               __pyx_v_k = __pyx_t_12;
 
-                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":66
+                              /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":67
  *             max_idx = 0
  *             for k in range(1, n_classes):
  *                 if sums[k] > max_val:             # <<<<<<<<<<<<<<
@@ -5180,7 +5183,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                               __pyx_t_20 = ((__pyx_v_sums[__pyx_v_k]) > __pyx_v_max_val);
                               if (__pyx_t_20) {
 
-                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":67
+                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":68
  *             for k in range(1, n_classes):
  *                 if sums[k] > max_val:
  *                     max_val = sums[k]             # <<<<<<<<<<<<<<
@@ -5189,7 +5192,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
                                 __pyx_v_max_val = (__pyx_v_sums[__pyx_v_k]);
 
-                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":68
+                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":69
  *                 if sums[k] > max_val:
  *                     max_val = sums[k]
  *                     max_idx = k             # <<<<<<<<<<<<<<
@@ -5198,7 +5201,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
  */
                                 __pyx_v_max_idx = __pyx_v_k;
 
-                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":66
+                                /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":67
  *             max_idx = 0
  *             for k in range(1, n_classes):
  *                 if sums[k] > max_val:             # <<<<<<<<<<<<<<
@@ -5208,7 +5211,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                               }
                             }
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":71
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":72
  * 
  *             # Store result
  *             classifications[i] = max_idx             # <<<<<<<<<<<<<<
@@ -5218,7 +5221,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
                             __pyx_t_14 = __pyx_v_i;
                             *__Pyx_BufPtrStrided1d(__pyx_t_9phylotypy_19classify_bootstraps_19classify_bootstraps_INT64_t *, __pyx_pybuffernd_classifications.rcbuffer->pybuffer.buf, __pyx_t_14, __pyx_pybuffernd_classifications.diminfo[0].strides) = __pyx_v_max_idx;
 
-                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":74
+                            /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":75
  * 
  *             # Free allocated memory
  *             free(sums)             # <<<<<<<<<<<<<<
@@ -5239,7 +5242,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
         #endif
       }
 
-      /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":47
+      /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":48
  * 
  *     # Parallel execution with proper GIL handling
  *     with nogil:             # <<<<<<<<<<<<<<
@@ -5258,7 +5261,7 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
       }
   }
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":76
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":77
  *             free(sums)
  * 
  *     return classifications             # <<<<<<<<<<<<<<
@@ -5268,8 +5271,8 @@ static PyObject *__pyx_pf_9phylotypy_19classify_bootstraps_19classify_bootstraps
   __pyx_r = ((PyObject *)__pyx_v_classifications);
   goto __pyx_L0;
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":13
- * ctypedef np.float64_t FLOAT64_t  # Adjust if your conditional_prob has a different dtype
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":14
+ * ctypedef np.float32_t FLOAT32_t
  * 
  * @cython.boundscheck(False)  # Turn off bounds-checking             # <<<<<<<<<<<<<<
  * @cython.wraparound(False)  # Turn off negative index wrapping
@@ -5364,7 +5367,7 @@ static int __Pyx_CreateStringTabAndInitStrings(void) {
 }
 /* #### Code section: cached_builtins ### */
 static CYTHON_SMALL_CODE int __Pyx_InitCachedBuiltins(void) {
-  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 53, __pyx_L1_error)
+  __pyx_builtin_range = __Pyx_GetBuiltinName(__pyx_n_s_range); if (!__pyx_builtin_range) __PYX_ERR(0, 54, __pyx_L1_error)
   __pyx_builtin_ImportError = __Pyx_GetBuiltinName(__pyx_n_s_ImportError); if (!__pyx_builtin_ImportError) __PYX_ERR(1, 1025, __pyx_L1_error)
   return 0;
   __pyx_L1_error:;
@@ -5398,17 +5401,17 @@ static CYTHON_SMALL_CODE int __Pyx_InitCachedConstants(void) {
   __Pyx_GOTREF(__pyx_tuple__2);
   __Pyx_GIVEREF(__pyx_tuple__2);
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":13
- * ctypedef np.float64_t FLOAT64_t  # Adjust if your conditional_prob has a different dtype
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":14
+ * ctypedef np.float32_t FLOAT32_t
  * 
  * @cython.boundscheck(False)  # Turn off bounds-checking             # <<<<<<<<<<<<<<
  * @cython.wraparound(False)  # Turn off negative index wrapping
  * @cython.cdivision(True)  # Disable division by zero checks
  */
-  __pyx_tuple__4 = PyTuple_Pack(14, __pyx_n_s_bs_indices, __pyx_n_s_conditional_prob, __pyx_n_s_n_bootstraps, __pyx_n_s_n_samples, __pyx_n_s_n_classes, __pyx_n_s_classifications, __pyx_n_s_i, __pyx_n_s_j, __pyx_n_s_k, __pyx_n_s_max_idx, __pyx_n_s_max_val, __pyx_n_s_current_val, __pyx_n_s_sums, __pyx_n_s_idx); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_tuple__4 = PyTuple_Pack(14, __pyx_n_s_bs_indices, __pyx_n_s_conditional_prob, __pyx_n_s_n_bootstraps, __pyx_n_s_n_samples, __pyx_n_s_n_classes, __pyx_n_s_classifications, __pyx_n_s_i, __pyx_n_s_j, __pyx_n_s_k, __pyx_n_s_max_idx, __pyx_n_s_max_val, __pyx_n_s_current_val, __pyx_n_s_sums, __pyx_n_s_idx); if (unlikely(!__pyx_tuple__4)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_tuple__4);
   __Pyx_GIVEREF(__pyx_tuple__4);
-  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 14, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_src_phylotypy_classify_bootstrap, __pyx_n_s_classify_bootstraps_cython, 13, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_codeobj__5 = (PyObject*)__Pyx_PyCode_New(2, 0, 0, 14, 0, CO_OPTIMIZED|CO_NEWLOCALS, __pyx_empty_bytes, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_tuple__4, __pyx_empty_tuple, __pyx_empty_tuple, __pyx_kp_s_src_phylotypy_classify_bootstrap, __pyx_n_s_classify_bootstraps_cython, 14, __pyx_empty_bytes); if (unlikely(!__pyx_codeobj__5)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_RefNannyFinishContext();
   return 0;
   __pyx_L1_error:;
@@ -5850,16 +5853,16 @@ if (!__Pyx_RefNanny) {
   if (PyDict_SetItem(__pyx_d, __pyx_n_s_np, __pyx_t_2) < 0) __PYX_ERR(0, 3, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
-  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":13
- * ctypedef np.float64_t FLOAT64_t  # Adjust if your conditional_prob has a different dtype
+  /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":14
+ * ctypedef np.float32_t FLOAT32_t
  * 
  * @cython.boundscheck(False)  # Turn off bounds-checking             # <<<<<<<<<<<<<<
  * @cython.wraparound(False)  # Turn off negative index wrapping
  * @cython.cdivision(True)  # Disable division by zero checks
  */
-  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9phylotypy_19classify_bootstraps_19classify_bootstraps_1classify_bootstraps_cython, 0, __pyx_n_s_classify_bootstraps_cython, NULL, __pyx_n_s_phylotypy_classify_bootstraps_cl, __pyx_d, ((PyObject *)__pyx_codeobj__5)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 13, __pyx_L1_error)
+  __pyx_t_2 = __Pyx_CyFunction_New(&__pyx_mdef_9phylotypy_19classify_bootstraps_19classify_bootstraps_1classify_bootstraps_cython, 0, __pyx_n_s_classify_bootstraps_cython, NULL, __pyx_n_s_phylotypy_classify_bootstraps_cl, __pyx_d, ((PyObject *)__pyx_codeobj__5)); if (unlikely(!__pyx_t_2)) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_GOTREF(__pyx_t_2);
-  if (PyDict_SetItem(__pyx_d, __pyx_n_s_classify_bootstraps_cython, __pyx_t_2) < 0) __PYX_ERR(0, 13, __pyx_L1_error)
+  if (PyDict_SetItem(__pyx_d, __pyx_n_s_classify_bootstraps_cython, __pyx_t_2) < 0) __PYX_ERR(0, 14, __pyx_L1_error)
   __Pyx_DECREF(__pyx_t_2); __pyx_t_2 = 0;
 
   /* "phylotypy/classify_bootstraps/classify_bootstraps.pyx":1
