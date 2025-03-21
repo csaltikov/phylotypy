@@ -1,6 +1,10 @@
 from collections import defaultdict
+import io
+import gzip
 from pathlib import Path
+import pickle
 import re
+import subprocess
 
 from Bio import SeqIO, Seq
 import pandas as pd
@@ -112,6 +116,39 @@ def convert_dict_keys_to_int(d):
     dict: A new dictionary with integer keys.
     """
     return {int(key): value for key, value in d.items()}
+
+
+def pickle_and_compress(obj, output_file: str | Path):
+    """
+    Pickles a Python object and compresses it into a .pkl.gz file using gzip or pigz.
+
+    Parameters:
+        obj (object): The Python object to pickle and compress.
+        output_file (str): The path to the output compressed .pkl.gz file.
+    """
+    # Start the subprocess to compress the output with pigz (parallel gzip)
+    with subprocess.Popen(['pigz', '-c'], stdin=subprocess.PIPE, stdout=open(output_file, 'wb')) as proc:
+        # Create an in-memory buffer to pickle the object
+        with io.BytesIO() as buffer:
+            pickle.dump(obj, buffer)  # Pickle the object into the buffer
+            buffer.seek(0)  # Go to the start of the buffer before writing
+            proc.stdin.write(buffer.read())  # Write the pickled object to the subprocess for compression
+
+
+def unpickle_and_decompress(input_file: str | Path):
+    """
+    Unpickles and decompresses a .pkl.gz file to retrieve the original Python object.
+
+    Parameters:
+        input_file (str): The path to the compressed .pkl.gz file.
+
+    Returns:
+        object: The Python object that was pickled and compressed.
+    """
+    # Open the gzipped file and unpickle the object
+    with gzip.open(input_file, 'rb') as f:
+        obj = pickle.load(f)  # Unpickle and load the object from the file
+    return obj
 
 
 if __name__ == "__main__":

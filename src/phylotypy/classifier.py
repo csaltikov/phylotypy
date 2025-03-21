@@ -4,9 +4,11 @@ from pathlib import Path
 import pickle
 
 import pandas as pd
+import numpy as np
 from phylotypy import kmers, conditional_prob, bootstrap
-from phylotypy.classify_bootstraps import classify_bootstraps_cython
-from phylotypy.utilities import read_fasta
+from phylotypy import cond_prob_cython
+from phylotypy import classify_bootstraps_cython
+from phylotypy import read_fasta
 
 from pandarallel import pandarallel
 
@@ -37,7 +39,42 @@ def classify_sequence(seq_kmer, database):
     return kmers.print_taxonomy(filtered)
 
 
-def make_classifier(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
+def make_classifier(ref_db: pd.DataFrame, **kwargs):
+    """
+    Constructs the classifier database: conditional_probabilities array and unique reference genera
+
+    Args:
+        ref_fasta: path/to/fasta/file either as Path() or string
+        out_dir: path/to/output directory either as Path() or string
+
+    Returns:
+        kmers.KmerDb database, saved as a pkl file in the out_dir
+    """
+    ref_db_cols = ref_db.columns.to_list()
+    if not set(ref_db_cols) == {"id", "sequence"}:
+        raise ValueError("Reference database must contain 'id' and 'sequence' columns")
+
+    kmer_size = kwargs.get('kmers_size', 8)
+
+    print("Building database...")
+
+    detect_list = kmers.detect_kmers_across_sequences(ref_db["sequence"], kmer_size=kmer_size)
+
+    genera_idx = np.array(kmers.genera_str_to_index(ref_db["id"]), dtype=np.int32)
+    genera_names = kmers.index_genus_mapper(ref_db["id"].to_list())
+
+    priors = kmers.calc_word_specific_priors(detect_list, kmer_size=kmer_size)
+    priors = priors.astype(np.float32)
+
+    genus_cond_prob = cond_prob_cython.calc_genus_conditional_prob(detect_list, genera_idx, priors)
+
+    database = kmers.KmerDB(conditional_prob=genus_cond_prob, genera_idx=genera_idx.tolist(),
+                            genera_names=genera_names)
+
+    return database
+
+
+def make_classifier_depreciated(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
     """
     Constructs the classifier database: conditional_probabilities array and unique reference genera
 
@@ -54,15 +91,15 @@ def make_classifier(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
 
         print("Building database...")
 
-        ids, kmers_db = conditional_prob.seq_to_kmers_database(ref_db, kmer_size=kmers_size)
-        priors = conditional_prob.calc_priors(kmers_db, kmers_size)
-
-        cond_prob_arr = conditional_prob.GenusCondProb(kmers_db, priors, kmers_size).calculate()
+        ids, detect_list = conditional_prob.seq_to_kmers_database(ref_db, kmer_size=kmers_size)
+        # detect_list = kmers.detect_kmers_across_sequences(ref_db["sequence"], kmer_size=kmer_size)
+        priors = conditional_prob.calc_priors(detect_list, kmers_size)
 
         all_genera_names = ref_db["id"].to_list()
-
         genera_idx = kmers.genera_str_to_index(all_genera_names)
         genera_names = kmers.index_genus_mapper(all_genera_names)
+
+        cond_prob_arr = conditional_prob.GenusCondProb(detect_list, priors, kmers_size).calculate()
 
         database = kmers.KmerDB(conditional_prob=cond_prob_arr,
                                 genera_names=genera_names,

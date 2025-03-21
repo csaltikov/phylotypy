@@ -7,6 +7,6 @@ build
 /src/phylotypy.egg-info
 __pycache__
 
-/data/database.pkl
+/data/*.pkl*
 /local_items
 /training_data/

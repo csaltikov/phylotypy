@@ -1,24 +1,20 @@
 from pathlib import Path
 from phylotypy import classifier, results
-from phylotypy.utilities import read_fasta
+from phylotypy import read_fasta
 
 
 if __name__ == "__main__":
-    rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
+    from time import perf_counter
 
-    moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
+    db_fasta = Path("data/rdp_16S_v19.dada2.fasta")
+    test_seqs = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
-    if rdp_fasta.parent / "database.pkl":
-        print("Loading classifier")
-        database = classifier.load_classifier(rdp_fasta.parent / "database.pkl")
-    else:
-        print("Building classifier")
-        database = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
+    db = read_fasta.read_taxa_fasta(db_fasta)
 
-    from time import  perf_counter
+    database = classifier.make_classifier(db)
 
     start = perf_counter()
-    classified = classifier.classify_sequences(moving_pics, database)
+    classified = classifier.classify_sequences(test_seqs, database)
     end = perf_counter()
     print(f"Finished in {end-start:.2f} seconds")
 
