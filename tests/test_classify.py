@@ -8,10 +8,13 @@ from phylotypy import classifier
 
 class TestClassifier(unittest.TestCase):
     def setUp(self):
+        self.current_dir = Path(__file__).parent
+        self.fasta_dir = self.current_dir / 'test_fasta'
         self.db_name = "rdp"
         self.mod_file = Path("model_raw.rbf")
         self.genera_file = Path("ref_genera.npy")
-        self.test_ref = read_fasta.read_taxa_fasta("test_fasta/test_fasta.fa")
+        self.test_fasta = self.fasta_dir / "test_fasta.fa"
+        self.test_ref = read_fasta.read_taxa_fasta(self.test_fasta)
 
     def test_db_files(self):
         kmer_size = 3
