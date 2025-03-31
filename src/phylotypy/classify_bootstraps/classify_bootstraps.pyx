@@ -14,7 +14,7 @@ ctypedef np.float32_t FLOAT32_t
 @cython.boundscheck(False)  # Turn off bounds-checking
 @cython.wraparound(False)  # Turn off negative index wrapping
 @cython.cdivision(True)  # Disable division by zero checks
-def classify_bootstraps_cython(np.ndarray[INT64_t, ndim=2] bs_indices,
+def classify_bootstraps_cython(long [:, :] bs_indices,
                                np.ndarray[FLOAT32_t, ndim=2] conditional_prob):
     """
     Classify bootstrapped samples using conditional probabilities.

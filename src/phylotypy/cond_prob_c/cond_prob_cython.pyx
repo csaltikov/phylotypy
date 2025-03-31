@@ -11,7 +11,7 @@ def calc_genus_conditional_prob(
         cnp.ndarray[cnp.float32_t, ndim=1] word_specific_priors,
 ) -> cnp.ndarray:
     cdef:
-        int seq_idx, genus_idx, kmer_idx
+        Py_ssize_t seq_idx, genus_idx, kmer_idx
         int n_sequences = genera_idx.shape[0]
         int n_genera = np.unique(genera_idx).shape[0]
         int n_kmers = word_specific_priors.shape[0]

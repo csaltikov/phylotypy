@@ -45,8 +45,6 @@ def make_classifier(ref_db: pd.DataFrame, **kwargs):
 
     Args:
         ref_fasta: path/to/fasta/file either as Path() or string
-        out_dir: path/to/output directory either as Path() or string
-
     Returns:
         kmers.KmerDb database, saved as a pkl file in the out_dir
     """
@@ -64,9 +62,8 @@ def make_classifier(ref_db: pd.DataFrame, **kwargs):
     genera_names = kmers.index_genus_mapper(ref_db["id"].to_list())
 
     priors = kmers.calc_word_specific_priors(detect_list, kmer_size=kmer_size)
-    priors = priors.astype(np.float32)
 
-    genus_cond_prob = cond_prob_cython.calc_genus_conditional_prob(detect_list, genera_idx, priors)
+    genus_cond_prob = cond_prob_cython.calc_genus_conditional_prob(detect_list, genera_idx, priors.astype(np.float32))
 
     database = kmers.KmerDB(conditional_prob=genus_cond_prob, genera_idx=genera_idx.tolist(),
                             genera_names=genera_names)
