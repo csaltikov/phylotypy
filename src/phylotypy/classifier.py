@@ -13,8 +13,8 @@ from phylotypy import read_fasta
 from pandarallel import pandarallel
 
 
-def classify_sequences(sequences_df, database, verbose=False):
-    genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(sequences_df)
+def classify_sequences(sequences_df, database, verbose=False, **kwargs,):
+    genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(sequences_df, **kwargs)
 
     classified = defaultdict(list)
 

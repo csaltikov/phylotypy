@@ -42,14 +42,12 @@ from pathlib import Path
 from phylotypy import classifier, results
 from phylotypy.utilities import read_fasta
 
-rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
-
+rdp = read_fasta.read_taxa_fasta("data/rdp_16S_v19.dada2.fasta")
 moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 ```
-2. Create the classifier as a .pkl file, specify an output directory for the database.pkl fle
+2. Create the classifier. We'll call it database
 ```
-out_dir = rdp_fasta.parent
-database = classifier.make_classifier(rdp_fasta, out_dir)
+database = classifier.make_classifier(rdp_fasta)
 ```
 3. Classify the sequences
 ```
@@ -93,11 +91,10 @@ from pathlib import Path
 from phylotypy import classifier, results
 from phylotypy.utilities import read_fasta
 
-rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
-
+rdp = read_fasta.read_taxa_fasta("data/rdp_16S_v19.dada2.fasta")
 moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
-database = classifier.make_classifier(rdp_fasta, rdp_fasta.parent)
+database = classifier.make_classifier(rdp)
 
 classified = classifier.classify_sequences(moving_pics, database)
 classified = results.summarize_predictions(classified)
