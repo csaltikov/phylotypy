@@ -20,10 +20,10 @@ def bootstrap(arr: list | np.ndarray, divider: int = 8, num_bs: int = 100) -> ND
     return np.array(list(map(lambda _: bootstrap_fn(), repeat(1, num_bs))))
 
 
-def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
+def bootstrap_kmers(kmer_arr: np.array, kmer_size: int = 8):
     '''Performs a single bootstrap sampling on a kmers array'''
-    valid_kmers = kmers[kmers != -1]
-    num_removed_kmers = len(kmers) - len(valid_kmers)
+    valid_kmers = kmer_arr[kmer_arr != -1]
+    num_removed_kmers = len(kmer_arr) - len(valid_kmers)
     n_kmers = len(valid_kmers) + num_removed_kmers
     return np.random.choice(valid_kmers, n_kmers // kmer_size, replace=True)
 
@@ -84,33 +84,23 @@ def bootstrap_consensus(classified_bs_kmers: np.ndarray, genera_names: np.ndarra
 ##
 if __name__ == "__main__":
     from time import perf_counter
-    import pickle
 
     print(Path().absolute())
-    rdp_fasta = Path("../../data/rdp_16S_v19.dada2.fasta")
-    rdp_small = Path("../../data/trainset19_072023_small_db.csv")
     rdp_small_fasta = Path("../../data/trainset19_072023_small_db.fasta")
 
     moving_pics = read_fasta.read_taxa_fasta("../../data/dna_moving_pictures.fasta")
-    rdp_df = read_fasta.read_taxa_fasta(rdp_fasta)
-    rdp_small_df = pd.read_csv(rdp_small, index_col=0)
+    rdp_df = read_fasta.read_taxa_fasta(rdp_small_fasta)
 
-    ##
     start = perf_counter()
-    database = conditional_prob.build_database(rdp_small_df)
-    with open("database_condprob.pkl", "wb") as f:
-        pickle.dump(database, f)
+    database = classifier.make_classifier(rdp_df)
     end = perf_counter()
     print(f"Time taken: {(end - start):.2f}")
 
     start = perf_counter()
-    database2 = classifier.make_classifier(rdp_small_fasta, rdp_small_fasta.parent)
+    database1 = kmers.build_kmer_database(rdp_df["sequence"], rdp_df["id"], verbose=True)
     end = perf_counter()
     print(f"Time taken: {(end - start):.2f}")
 
-    start = perf_counter()
-    database3 = kmers.build_kmer_database(rdp_small_df["sequence"], rdp_small_df["id"], verbose=True)
-    with open("database_kmers.pkl", "wb") as f:
-        pickle.dump(database3, f)
-    end = perf_counter()
-    print(f"Time taken: {(end - start):.2f}")
+    print(np.array_equal(database.conditional_prob, database1.conditional_prob))
+    print(np.array_equal(database.genera_idx, database1.genera_idx))
+    print(np.array_equal(database.genera_names, database1.genera_names))
