@@ -1,13 +1,12 @@
 from pathlib import Path
 from phylotypy import classifier, results, kmers
 from phylotypy import read_fasta
-from time import perf_counter
 
 
 if __name__ == "__main__":
     from time import perf_counter
 
-    db_fasta = Path("/Users/caltikov/PycharmProjects/phylotypy_data/local_data/silva/silva_138.2_16Sprok_dada2.fasta.gz")
+    db_fasta = Path("data/rdp_16S_v19.dada2.fasta")
     print("Loading test sequences...")
     test_seqs = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 
