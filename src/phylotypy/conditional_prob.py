@@ -5,11 +5,14 @@ from time import perf_counter
 
 import numpy as np
 import pandas as pd
+import numba as nb
 
 from phylotypy import kmers
 
 from pandarallel import pandarallel
 pandarallel.initialize(progress_bar=False, verbose=1)
+
+from phylotypy import cond_prob_cython
 
 
 def build_database(sequences, kmer_size: int = 8, **kwargs):
@@ -66,7 +69,6 @@ def fix_kmers_length(kmer_arr, seq_len: int = 1400):
 ##
 def seq_to_kmers_database(sequences_db, **kwargs):
     seq_col = kwargs.get('seq_col', 'sequence')
-    kmer_col = kwargs.get('kmer_col', 'kmers')
     id_col = kwargs.get('id_col', 'id')
     kmer_size = kwargs.get('kmer_size', 8)
 
@@ -144,68 +146,72 @@ class GenusCondProb:
         divided = np.divide(self.wi_pi, self.m_1)
         return np.log(divided).astype(np.float32)
 
+##
+@nb.njit(parallel=True)
+def genus_counts_parallel(detect_list, genera_idx, n_kmers, n_genera):
+    """Efficiently count kmers per genus using parallel processing"""
+    genus_count = np.zeros((n_kmers, n_genera), dtype=np.float32)
+    for i in nb.prange(len(genera_idx)):
+        for kmer_idx in detect_list[i]:
+            if kmer_idx != 0:
+                genus_count[kmer_idx, genera_idx[i]] += 1
+    return genus_count
+
+
+##
+def calc_genus_conditional_prob_jt(detect_list: list[list[int]],
+                                   genera_idx: list,
+                                   kmer_size: int = 8) -> np.ndarray:
+
+    unique_genera, genus_counts = np.unique(genera_idx, return_counts=True)
+    n_genera = len(unique_genera)
+    n_kmers = 4 ** kmer_size
+
+    # Create mapping from original genera indices to contiguous 0...n_genera-1 indices
+    # This ensures we can use the indices directly in our array
+    genera_mapping = {g: i for i, g in enumerate(unique_genera)}
+    mapped_genera = np.array([genera_mapping[g] for g in genera_idx], dtype=np.int32)
+
+    # Update genus counts using parallelized Numba function
+    genus_count = genus_counts_parallel(detect_list, mapped_genera, n_kmers, n_genera)
+
+    return genus_count
+
 
 ##
 if __name__ == "__main__":
-    ##
-    import timeit
-
     home_dir = Path.home()
 
     sequences = pd.read_csv(home_dir / "PycharmProjects/phylotypy/data/trainset19_072023_small_db.csv", index_col=0)
-    print(sequences.head())
+    print(sequences.shape)
     ##
     kmers_size = 8
-    kmers_db = seq_to_kmers_database(sequences, kmer_size=kmers_size)
-
-    make_class = timeit.timeit(lambda: seq_to_kmers_database(sequences, kmer_size=kmers_size), number=5)
-    print(make_class)
-
-    #
-    # ##
-    # priors = calc_priors(kmers_db, kmers_size)
-    # start = perf_counter()
-    # cond_prob_arr = GenusCondProb(kmers_db, priors, kmers_size).calculate_alt()
-    # end = perf_counter()
-    # print(cond_prob_arr.shape)
-    # print(f"{end-start:.2f}")
-    #
-    # ##
-    # start = perf_counter()
-    # cond_prob_arr = GenusCondProb(kmers_db, priors, kmers_size).calculate()
-    # end = perf_counter()
-    # print(cond_prob_arr.shape)
-    # print(f"{end-start:.2f}")
+    genera_idx, kmers_list = seq_to_kmers_database(sequences, kmer_size=kmers_size)
+    ##
+    priors = calc_priors(kmers_list, kmers_size)
+    ##
+    def c_prob(kmers_list, genera_idx, kmers_size):
+        n_genera = np.unique(genera_idx).shape[0]
+        counts = genus_counts_parallel(kmers_list[:,1:], genera_idx, 4**kmers_size, n_genera)
+        wi_pi = (counts + priors.reshape(-1, 1))
+        genus_counts = np.unique(genera_idx, return_counts=True)[1]
+        m_1 = (genus_counts + 1)
+        wi_pi /= m_1
+        return np.log(wi_pi)
 
     ##
     start = perf_counter()
-    database = build_database(sequences, kmer_size=kmers_size)
+    cond_prob = c_prob(kmers_list, genera_idx, kmers_size)
     end = perf_counter()
-    print(f"{end-start:.2f}")
-    #
-    # ##
-    # start = perf_counter()
-    # database2 = kmers.build_kmer_database(sequences["sequence"], sequences["id"])
-    # end = perf_counter()
-    # print(f"{end-start:.2f}")
-
+    print(f"{end - start:.3f} s")
     ##
-    # kmer_size = 8
-    # detected_kmers = make_kmers_database(sequences, kmer_size=kmer_size)
-    # start = perf_counter()
-    # priors = calc_priors(detected_kmers)
-    # end = perf_counter()
-    # print(f"{end-start:.2f}")
-
-    import matplotlib.pyplot as plt
-    from pathlib import Path
-    from phylotypy import classifier, results, kmers, conditional_prob
-    from phylotypy.utilities import read_fasta
-
-    rdp_fasta = Path("data/rdp_16S_v19.dada2.fasta")
-    moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
-    rdp_df = read_fasta.read_taxa_fasta(rdp_fasta)
-
-    kmer_arr = conditional_prob.seq_to_kmers_database(rdp_df)
-    priors = conditional_prob.calc_priors(kmer_arr)
-
+    detect_list = kmers.detect_kmers_across_sequences_mp(sequences["sequence"])
+    start = perf_counter()
+    cond_prob_2 = kmers.calc_genus_conditional_prob(detect_list, genera_idx, priors)
+    end = perf_counter()
+    print(f"{end - start:.3f} s")
+    ##
+    start = perf_counter()
+    cond_prob_3 = cond_prob_cython.calc_genus_conditional_prob(detect_list, np.array(genera_idx), priors)
+    end = perf_counter()
+    print(f"{end - start:.3f} s")

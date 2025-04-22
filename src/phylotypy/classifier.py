@@ -10,11 +10,45 @@ from phylotypy import cond_prob_cython
 from phylotypy import classify_bootstraps_cython
 from phylotypy import read_fasta
 
-from pandarallel import pandarallel
 
+def classify_sequences(sequences, database: kmers.KmerDB | dict, verbose=False, **kwargs, ):
+    """
+    Classify 16S rRNA DNA sequences against a reference database.
 
-def classify_sequences(sequences_df, database, verbose=False, **kwargs,):
-    genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(sequences_df, **kwargs)
+    This function takes a DataFrame of sequences, processes them into k-mers, and
+    classifies each sequence based on the provided reference database. It returns
+    a DataFrame with classification results for each sequence, including their
+    corresponding identifiers and classifications. Verbose mode allows for
+    progress tracking during classification.
+
+    Args:
+        sequences: pd.DataFrame
+            A DataFrame where each row represents a sequence with at least an
+            "id" column holding sequence identifiers and a "sequence" column.
+        database: dict
+            The reference database to classify against, containing the necessary
+            information for sequence classification.
+        verbose: bool, optional
+            If set to True, displays progress updates during sequence classification.
+            Default is False.
+        **kwargs: Any
+            Additional keyword arguments that are passed to the internal k-mer
+            conversion function.
+
+    Returns:
+        pd.DataFrame:
+            A DataFrame containing classification results. It includes a column
+            for the sequence "id" and a "classification" column with the predicted
+            classification for each sequence.
+
+    Examples:
+        >>> from phylotypy import read_fasta, classifier
+        >>> seqs = read_fasta.read_taxa_fasta("my_sequences.fa")
+        >>> ref_seqs = read_fasta.read_taxa_fasta("my_reference_sequences.fa")
+        >>> database = classifier.make_classifier(ref_seqs)
+        >>> classified = classifier.classify_sequences(seqs, database)
+    """
+    genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(sequences, **kwargs)
 
     classified = defaultdict(list)
 
@@ -23,7 +57,7 @@ def classify_sequences(sequences_df, database, verbose=False, **kwargs,):
             if i % 100 == 0:
                 print(f"Classifying sequence {i} of {len(genera_idx_test)}")
         seq_kmer = detected_kmers_test[i, 1:].flatten()
-        name = sequences_df.iloc[i]["id"]
+        name = sequences.iloc[i]["id"]
         classified["id"].append(name)
         classified["classification"].append(classify_sequence(seq_kmer, database))
 
@@ -39,22 +73,53 @@ def classify_sequence(seq_kmer, database):
     return kmers.print_taxonomy(filtered)
 
 
-def make_classifier(ref_db: pd.DataFrame, **kwargs):
+def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
     """
-    Constructs the classifier database: conditional_probabilities array and unique reference genera
+    Creates a k-mer based classifier database from a DNA sequence reference database.
+
+    This function processes a reference database of sequences and their IDs, validates its structure, and
+    builds a k-mer based classifier database. The k-mer size can be adjusted using keyword arguments.
+    The output is a database containing conditional probabilities for genera classification.
 
     Args:
-        ref_fasta: path/to/fasta/file either as Path() or string
+        ref_db (pd.DataFrame | str | Path): The reference database. It can be a DataFrame with 'id'
+            and 'sequence' columns or a file path to a FASTA file containing sequence data with taxonomy.
+        **kwargs: Additional configuration options. Supports the key 'kmers_size' to set the k-mer size
+            (default is 8).
+
     Returns:
-        kmers.KmerDb database, saved as a pkl file in the out_dir
+        KmerDB: A k-mer based database object that contains the genus conditional probabilities,
+            genus indices, and genus names.
+
+    Raises:
+        ValueError: If the reference database does not contain the required 'id' and 'sequence' columns.
+
+    Examples:
+        >>> from phylotypy import read_fasta, classifier
+        >>> ref_seqs = read_fasta.read_taxa_fasta("my_reference_sequences.fa")
+        >>> database = classifier.make_classifier(ref_seqs)
+
+        >>> # Save the database for later use:
+        >>> import pickle
+
+        >>> with open("database.pkl", "wb") as f:
+        >>>     pickle.dump(database, f)
+
+        >>> # Load the database later:
+        >>> import pickle
+        >>> with open("database.pkl", "rb") as f:
+        >>>     database = pickle.load(f)
     """
+    if isinstance(ref_db, str | Path):
+        ref_db = read_fasta.read_taxa_fasta(ref_db)
+
     ref_db_cols = ref_db.columns.to_list()
     if not set(ref_db_cols) == {"id", "sequence"}:
         raise ValueError("Reference database must contain 'id' and 'sequence' columns")
 
     kmer_size = kwargs.get('kmers_size', 8)
 
-    print("Building database...")
+    print("Building classifier database...")
 
     detect_list = kmers.detect_kmers_across_sequences(ref_db["sequence"], kmer_size=kmer_size)
 
@@ -68,45 +133,8 @@ def make_classifier(ref_db: pd.DataFrame, **kwargs):
     database = kmers.KmerDB(conditional_prob=genus_cond_prob, genera_idx=genera_idx.tolist(),
                             genera_names=genera_names)
 
+    print("Done building classifier")
     return database
-
-
-def make_classifier_depreciated(ref_fasta: Path | str, out_dir: Path | str, **kwargs):
-    """
-    Constructs the classifier database: conditional_probabilities array and unique reference genera
-
-    Args:
-        ref_fasta: path/to/fasta/file either as Path() or string
-        out_dir: path/to/output directory either as Path() or string
-
-    Returns:
-        kmers.KmerDb database, saved as a pkl file in the out_dir
-    """
-    kmers_size = kwargs.get('kmers_size', 8)
-    if check_path(ref_fasta) and check_path(out_dir):
-        ref_db = read_fasta.read_taxa_fasta(ref_fasta)
-
-        print("Building database...")
-
-        ids, detect_list = conditional_prob.seq_to_kmers_database(ref_db, kmer_size=kmers_size)
-        # detect_list = kmers.detect_kmers_across_sequences(ref_db["sequence"], kmer_size=kmer_size)
-        priors = conditional_prob.calc_priors(detect_list, kmers_size)
-
-        all_genera_names = ref_db["id"].to_list()
-        genera_idx = kmers.genera_str_to_index(all_genera_names)
-        genera_names = kmers.index_genus_mapper(all_genera_names)
-
-        cond_prob_arr = conditional_prob.GenusCondProb(detect_list, priors, kmers_size).calculate()
-
-        database = kmers.KmerDB(conditional_prob=cond_prob_arr,
-                                genera_names=genera_names,
-                                genera_idx=genera_idx)
-
-        with open(out_dir / "database.pkl", "wb") as f:
-            pickle.dump(database, f)
-        return database
-    else:
-        print("Please check path to fasta file and/or output directory")
 
 
 def check_path(object_path):
@@ -125,40 +153,6 @@ def load_classifier(db_path: Path | str):
             return pickle.load(f)
     else:
         print("Error: file not found, check db path")
-
-
-def initialize_pandarallel(**kwargs):
-    '''Initialize pandarallel with a configurable number of
-    workers If nb_workers is not provided, pandarallel
-    will use the default (typically CPU core count)'''
-    progress_bar = kwargs.get('progress_bar', True)
-    verbose = kwargs.get('verbose', 1)
-    nb_workers = kwargs.get('nb_workers', 4)
-    pandarallel.initialize(progress_bar=progress_bar, verbose=verbose, nb_workers=nb_workers)
-
-
-def process_sequence(sequence, conditional_prob, genera_names, min_confidence, n_levels):
-    kmers_detected = kmers.detect_kmers(sequence)
-    bootstrapped = kmers.bootstrap(kmers_detected)
-    classified = kmers.classify_bootstraps(bootstrapped, conditional_prob)
-    consensus = kmers.consensus_bs_class(classified, genera_names)
-    filtered = kmers.filter_taxonomy(consensus, min_confidence)
-    return kmers.print_taxonomy(filtered, n_levels)
-
-
-def classify_sequences_(sequences_df: pd.DataFrame, database, **kwargs):
-    n_levels = kwargs.get('n_levels', 6)
-    min_confidence = kwargs.get('min_confidence', 80)
-    nb_workers = kwargs.get('nb_workers', 4)
-    initialize_pandarallel(nb_workers=nb_workers, **kwargs)
-    conditional_prob = database.conditional_prob
-    genera_names = database.genera_names
-
-    sequences_df["classification"] = sequences_df["sequence"].parallel_apply(
-        process_sequence, args=(conditional_prob, genera_names, min_confidence, n_levels)
-    )
-    return sequences_df
-
 
 
 if __name__ == "__main__":

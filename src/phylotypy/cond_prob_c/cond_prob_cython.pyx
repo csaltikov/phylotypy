@@ -7,16 +7,18 @@ cimport numpy as cnp
 
 def calc_genus_conditional_prob(
         list detect_list,
-        cnp.ndarray[cnp.int32_t, ndim=1] genera_idx,
-        cnp.ndarray[cnp.float32_t, ndim=1] word_specific_priors,
+        cnp.ndarray genera_idx_input,
+        cnp.ndarray word_specific_priors,
 ) -> cnp.ndarray:
     cdef:
         Py_ssize_t seq_idx, genus_idx, kmer_idx
-        int n_sequences = genera_idx.shape[0]
-        int n_genera = np.unique(genera_idx).shape[0]
         int n_kmers = word_specific_priors.shape[0]
+        cnp.ndarray[cnp.int32_t, ndim=1] genera_idx = genera_idx_input.astype(np.int32)
+        cnp.ndarray[cnp.float32_t, ndim=1] priors = word_specific_priors.astype(np.float32)
+        int n_genera = np.unique(genera_idx).shape[0]
+        int n_sequences = genera_idx.shape[0]
         cnp.ndarray[cnp.float32_t, ndim=2] genus_count = np.zeros((n_kmers, n_genera), dtype=np.float32)
-        cnp.ndarray[cnp.int32_t, ndim=1] genus_counts = np.unique(genera_idx, return_counts=True)[1].astype(np.int32)
+        cnp.ndarray[cnp.int64_t, ndim=1] genus_counts = np.unique(genera_idx, return_counts=True)[1]
         cnp.ndarray[cnp.float32_t, ndim=2] wi_pi
         list current_detect
 
@@ -29,7 +31,7 @@ def calc_genus_conditional_prob(
             genus_count[kmer_idx, genus_idx] += 1.0
 
     # Vectorized NumPy operations
-    wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
+    wi_pi = (genus_count + priors.reshape(-1, 1))
     cdef cnp.ndarray[cnp.float32_t, ndim=1] m_1 = (genus_counts.astype(np.float32) + 1)
 
     cdef cnp.ndarray[cnp.float32_t, ndim=2] divided = np.divide(wi_pi, m_1).astype(np.float32)

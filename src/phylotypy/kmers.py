@@ -47,16 +47,22 @@ def build_kmer_database(sequences: list[str], genera: list[str],
                         kmer_size: int = 8, verbose: bool = False,
                         num_processes: int = mp.cpu_count(),
                         **kwargs) -> KmerDB:
-    """Creates a conditional probablity matrix from DNA sequences and associated genera or sequence ids.
-    The m_proc kwarg sets the kmer detection to multiprocessing.
+    """Creates a conditional probability matrix from DNA sequences and associated genera.
 
-    @param sequences: DNA seqeunce as strings in a list ["ATCGGA", "ATCGGA"]
-    @param genera: list of genera for building a model or list of ids for predicting genera
-    @param kmer_size: the 'chunk' size of DNA, 8 nucleotide kmers are the default
-    @param m_proc: whether to use multiprocessing or not
-    @param num_processes: the number of processes to use
-    @param verbose: set to True if you want to see the outputs
-    @return: kmers database dictionary
+    This function processes DNA sequences to build a k-mer database that can be used
+    for taxonomic classification. It supports both single-process and multi-process
+    k-mer detection.
+
+    Args:
+        sequences: List of DNA sequences as strings (e.g., ["ATCGGA", "ATCGGA"])
+        genera: List of genera names for building a model or sequence IDs for prediction
+        kmer_size: Size of DNA subsequences to analyze (default: 8 nucleotides)
+        use_multiprocessing: Whether to use parallel processing (default: True)
+        num_processes: Number of processes to use in parallel mode (default: CPU count)
+        verbose: Enable progress output (default: False)
+
+    Returns:
+        KmerDB: Database containing conditional probabilities and genera information
     """
     m_proc = kwargs.get('m_proc', True)
     if m_proc:
@@ -469,3 +475,18 @@ def base4_to_nucleotide(base4_seq: str | list):
         return converted
     else:
         raise ValueError(f"Input should be a list or string")
+
+
+if __name__ == "__main__":
+    # Example usage of the functions
+    sequences = ["ATCGGA", "ATCGGA", "ATCGGA", "CTCGGA"]
+    genera = ["genus1", "genus2", "genus2", "genus3"]
+
+    # Example of how to use the build_kmer_database function
+    database = build_kmer_database(
+        sequences=sequences,
+        genera=genera,
+        kmer_size=8,
+        verbose=True
+    )
+    print("Database created successfully")

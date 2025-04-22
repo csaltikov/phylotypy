@@ -93,3 +93,7 @@ class TestPredict(unittest.TestCase):
         observed = kmers.print_taxonomy(consensus, 3)
 
         self.assertEqual(expected, observed)
+
+
+if __name__ == '__main__':
+    unittest.main()

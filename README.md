@@ -11,9 +11,9 @@ Training the model with the full reference database from RDP takes about 30 seco
 
 You can modify the vignette at the end to classify your own sequences. I've done this using DADA2's output files.
 
-There's also utility.py that lets you take a fasta file of DNA seqences and process them into a dataframe for runing this classifier.
+There's also [read_fasta.py](src/phylotypy/utilities/read_fasta.py) that lets you take a fasta file of DNA seqences and process them into a dataframe for runing this classifier.
 
-I'll make a separate vignette on how to do this and classify 16S sequence data from QIIME, DADA2, or text files.
+I made a separate vignette, [vignette.py](vignette.py) on how to do this and classify 16S sequence data from QIIME, DADA2, or text files.
 
 Thanks Riffomonas for the inspiration.  Check out the videos on his Youtube channel https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j
 
@@ -28,19 +28,23 @@ uv pip install git+https://github.com/csaltikov/phylotypy.git
 
 ## How to get started:
 First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/
+ You can use the one in the [data](data/) directory called [rdp_16S_v19.dada2.fasta](data/rdp_16S_v19.dada2.fasta)
 
 I processed the latest rdp reference data into a csv file.
 
 The taxonomy string looks like:
 ```
 Bacteria;Phylum;Class;Order;Family;Genus
+
+for example:
+>Bacteria;Pseudomonadota;Gammaproteobacteria;Enterobacterales;Enterobacteriaceae;Citrobacter
+TAGAGTTTGATCCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACAC.....
 ```
 
 1. Load the training data and sequences to be classified
 ```
 from pathlib import Path
-from phylotypy import classifier, results
-from phylotypy.utilities import read_fasta
+from phylotypy import classifier, results, read_fasta
 
 rdp = read_fasta.read_taxa_fasta("data/rdp_16S_v19.dada2.fasta")
 moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
@@ -69,12 +73,12 @@ print(classified["classification"].head())
 ```
 Output:
 ```
->>>0    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
-1    Bacteria(100);Pseudomonadota(100);Betaproteoba...
-2    Bacteria(100);Bacillota(100);Bacilli(100);Lact...
-3    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
-4    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
-Name: classification, dtype: object
+   0    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
+   1    Bacteria(100);Pseudomonadota(100);Betaproteoba...
+   2    Bacteria(100);Bacillota(100);Bacilli(100);Lact...
+   3    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
+   4    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
+   Name: classification, dtype: object
 ```
 
 ## Example classification output:
@@ -88,8 +92,7 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 ## Complete code block:
 ```
 from pathlib import Path
-from phylotypy import classifier, results
-from phylotypy.utilities import read_fasta
+from phylotypy import classifier, results, read_fasta
 
 rdp = read_fasta.read_taxa_fasta("data/rdp_16S_v19.dada2.fasta")
 moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
