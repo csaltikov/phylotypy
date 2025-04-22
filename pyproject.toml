@@ -25,6 +25,7 @@ dependencies = [
     "setuptools",
     "biopython",
     "numpy",
+    "numba",
     "pandas",
     "scikit-learn",
     "requests",
