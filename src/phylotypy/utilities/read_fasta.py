@@ -10,7 +10,7 @@ def read_taxa_fasta(fasta_file: str | Path) -> pd.DataFrame:
     """Read a fasta file and return a pandas dataframe:
 
     Parameters:
-        fasta_file (string): path to fasta file
+        fasta_file (string or pathlib.Path()): path to fasta file, can be a .gz file as well
 
     Returns:
         pd.DataFrame: two column dataframe: id and sequence

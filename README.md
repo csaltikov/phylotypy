@@ -30,9 +30,9 @@ uv pip install git+https://github.com/csaltikov/phylotypy.git
 First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/
  You can use the one in the [data](data/) directory called [rdp_16S_v19.dada2.fasta](data/rdp_16S_v19.dada2.fasta)
 
-I processed the latest rdp reference data into a csv file.
+I processed the latest rdp reference data into a format that will work here and for DADA2.
 
-The taxonomy string looks like:
+The taxonomy string looks like this semicolon separated:
 ```
 Bacteria;Phylum;Class;Order;Family;Genus
 
@@ -51,7 +51,7 @@ moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
 ```
 2. Create the classifier. We'll call it database
 ```
-database = classifier.make_classifier(rdp_fasta)
+database = classifier.make_classifier(rdp)
 ```
 3. Classify the sequences
 ```
@@ -80,7 +80,16 @@ Output:
    4    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
    Name: classification, dtype: object
 ```
+Format the results using results.summarize_predictions() function.
+The output is a pandas dataframe and can be saved to csv.
+```
+from phylotypy import results
+classified = results.summarize_predictions(classified)
+print(classified.head())
 
+classified.to_csv("classified_results.csv")
+
+```
 ## Example classification output:
 The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are separated by ";".  The numbers in the () represent the confidence in the classificaiton.  The default confidence is 80%.
 ```
