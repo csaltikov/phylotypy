@@ -8,7 +8,7 @@ import pandas as pd
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 
-from phylotypy import predict
+from local_items.depreciated import predict
 
 ##
 if __name__ == "__main__":

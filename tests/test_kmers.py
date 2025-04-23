@@ -4,8 +4,7 @@ multiprocessing.set_start_method('spawn', force=True)
 import unittest
 
 import numpy as np
-import pandas as pd
-from phylotypy import kmers, conditional_prob
+from phylotypy import kmers
 
 
 class TestGetKmers(unittest.TestCase):

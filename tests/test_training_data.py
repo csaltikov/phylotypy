@@ -1,7 +1,7 @@
 from pathlib import Path
 import unittest
 
-from phylotypy.utilities import read_fasta
+from phylotypy import read_fasta
 
 
 class TestTrainingData(unittest.TestCase):
