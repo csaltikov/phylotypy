@@ -20,7 +20,7 @@ def bootstrap(arr: list | np.ndarray, divider: int = 8, num_bs: int = 100) -> ND
 
 
 def bootstrap_kmers(kmer_arr: np.array, kmer_size: int = 8):
-    '''Performs a single bootstrap sampling on a kmers array'''
+    """Performs a single bootstrap sampling on a kmers array"""
     valid_kmers = kmer_arr[kmer_arr != -1]
     num_removed_kmers = len(kmer_arr) - len(valid_kmers)
     n_kmers = len(valid_kmers) + num_removed_kmers
@@ -84,10 +84,10 @@ def bootstrap_consensus(classified_bs_kmers: np.ndarray, genera_names: np.ndarra
 if __name__ == "__main__":
     from time import perf_counter
 
-    print(Path().absolute())
-    rdp_small_fasta = Path("../../data/trainset19_072023_small_db.fasta")
+    path = Path(__file__).parent
+    rdp_small_fasta =  path / "../../data/trainset19_072023_small_db.fasta"
 
-    moving_pics = read_fasta.read_taxa_fasta("../../data/dna_moving_pictures.fasta")
+    moving_pics = read_fasta.read_taxa_fasta(path / "../../data/dna_moving_pictures.fasta")
     rdp_df = read_fasta.read_taxa_fasta(rdp_small_fasta)
 
     start = perf_counter()
@@ -100,6 +100,6 @@ if __name__ == "__main__":
     end = perf_counter()
     print(f"Time taken: {(end - start):.2f}")
 
-    print(np.array_equal(database.conditional_prob, database1.conditional_prob))
-    print(np.array_equal(database.genera_idx, database1.genera_idx))
-    print(np.array_equal(database.genera_names, database1.genera_names))
+    print(np.allclose(database.conditional_prob, database1.conditional_prob))
+    print(np.allclose(database.genera_idx, database1.genera_idx))
+    print(np.allclose(database.genera_names, database1.genera_names))

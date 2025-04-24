@@ -9,6 +9,21 @@ from phylotypy import kmers
 
 
 class GetKmerDB:
+    """
+    Singleton class for managing and accessing a k-mer database.
+
+    This class is designed to represent and manage a singleton instance of a k-mer
+    database containing conditional probabilities, genera indices, and genera
+    names. It ensures the database is loaded into memory only once, regardless of
+    how many times an instance is created, and provides properties to access
+    database attributes.
+
+    Attributes:
+        _instance (Optional[GetKmerDB]): Singleton instance of the class. Defaults to None.
+        _is_initialized (bool): Flag indicating whether the instance has been initialized.
+            Defaults to False.
+
+    """
     _instance: Optional["GetKmerDB"] = None
     _is_initialized: bool = False
 
@@ -51,6 +66,44 @@ class GetKmerDB:
 
 
 def load_db(config: dict|Path, **kwargs):
+    """
+    Loads a database configuration from a file or a dictionary and initializes a KmerDB instance.
+
+    The function accepts a configuration defined either as a dictionary or a JSON-formatted file
+    and uses it to retrieve paths for essential model components (e.g., mod_data and genera files).
+    It validates the existence of these paths and constructs an instance of the KmerDB class from
+    the given configuration.
+
+    Args:
+        config (dict | Path): A configuration dictionary or a path to a JSON file containing the
+            configuration. The configuration must define required paths and model parameters.
+        **kwargs: Additional keyword arguments. For example, "mod_dir" can be used to specify a
+            directory to override the default model file directory extracted from the configuration.
+
+    Returns:
+        KmerDB: An instance of the KmerDB initialized with model data, genera data, and model shape.
+
+    Raises:
+        TypeError: If the input `config` is not a dictionary or a valid Path object or if paths
+            extracted from the configuration are not valid Path objects.
+        FileNotFoundError: If the specified model directory or referenced files in the configuration
+            do not exist.
+
+    Examples:
+
+    Examples:
+
+    >>> db = load_db("model_config.json")
+
+    >>> db_dict = {
+        "db_name": "mini_rdp",
+        "model": "model_raw.rbf",
+        "genera": "ref_genera.npy",
+        "model_dir": "models/rdp",
+        "model_shape": [65536, 3883] }
+
+    >>> database = load_db(db_dict)
+    """
     if isinstance(config, Path):
         if config.exists():
             with open(config, 'r') as f:
@@ -89,17 +142,4 @@ def load_db(config: dict|Path, **kwargs):
 
 
 if __name__ == "__main__":
-    db = load_db(Path.home() / "PycharmProjects/phylotypy_data/local_data/models/rdp/model_config.json")
-    print(db.genera_names[0:10])
-    print(db.conditional_prob[0:10])
-
-    db_dict = {
-        "db_name": "mini_rdp",
-        "model": "model_raw.rbf",
-        "genera": "ref_genera.npy",
-        "model_dir": Path.home() / "PycharmProjects/phylotypy_data/local_data/models/rdp",
-        "model_shape": [65536, 3883] }
-
-    db2 = load_db(db_dict)
-    print(db2.genera_names[0:10])
-    print(db2.conditional_prob[0:10])
+    print(__name__)

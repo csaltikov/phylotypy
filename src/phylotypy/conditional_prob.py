@@ -7,11 +7,10 @@ import pandas as pd
 import numba as nb
 
 from phylotypy import kmers
+from phylotypy import cond_prob_cython
 
 from pandarallel import pandarallel
 pandarallel.initialize(progress_bar=False, verbose=1)
-
-from phylotypy import cond_prob_cython
 
 
 def build_database(sequences, kmer_size: int = 8, **kwargs):
@@ -45,7 +44,6 @@ def build_database(sequences, kmer_size: int = 8, **kwargs):
                         genera_names=genera_names)
 
 
-## New code
 def calc_priors(detected_kmers: np.ndarray, kmer_size: int = 8):
     num_seqs = len(detected_kmers)
     max_value = 4 ** kmer_size
@@ -79,8 +77,6 @@ def seq_to_kmers_database(sequences_db, **kwargs):
         if ".tsv" in Path(sequences_db).suffix:
             db = pd.read_csv(sequences_db, sep="\t")
 
-    # db[kmer_col] = kmers.detect_kmers_across_sequences_mp(db[seq_col])
-    # kmer_list = db[seq_col].parallel_apply(kmers.detect_kmers, kmer_size=kmer_size)
     kmer_list = kmers.detect_kmers_across_sequences_mp(db[seq_col], kmer_size=kmer_size)
     kmer_series = pd.Series(kmer_list)
     # Calculate max length
@@ -145,6 +141,7 @@ class GenusCondProb:
         divided = np.divide(self.wi_pi, self.m_1)
         return np.log(divided).astype(np.float32)
 
+
 ##
 @nb.njit(parallel=True)
 def genus_counts_parallel(detect_list, genera_idx, n_kmers, n_genera):
@@ -179,9 +176,9 @@ def calc_genus_conditional_prob_jt(detect_list: list[list[int]],
 
 ##
 if __name__ == "__main__":
-    home_dir = Path.home()
-
-    sequences = pd.read_csv(home_dir / "PycharmProjects/phylotypy/data/trainset19_072023_small_db.csv", index_col=0)
+    proj_dir = Path("../../") # training data is in the top level data directory
+    seq = pd.read_csv(proj_dir / "data/trainset19_072023_small_db.csv", index_col=0)
+    sequences = seq.sample(1000)
     print(sequences.shape)
     ##
     kmers_size = 8
@@ -198,19 +195,23 @@ if __name__ == "__main__":
         wi_pi /= m_1
         return np.log(wi_pi)
 
-    ##
+    ## speed check for using numba
     start = perf_counter()
     cond_prob = c_prob(kmers_list, genera_idx, kmers_size)
     end = perf_counter()
     print(f"{end - start:.3f} s")
-    ##
+
+    ## speed check for using non-parallel version of code
     detect_list = kmers.detect_kmers_across_sequences_mp(sequences["sequence"])
     start = perf_counter()
     cond_prob_2 = kmers.calc_genus_conditional_prob(detect_list, genera_idx, priors)
     end = perf_counter()
     print(f"{end - start:.3f} s")
-    ##
+
+    ## speed check using cython version of code
     start = perf_counter()
-    cond_prob_3 = cond_prob_cython.calc_genus_conditional_prob(detect_list, np.array(genera_idx), priors)
+    cond_prob_3 = cond_prob_cython.calc_genus_conditional_prob(detect_list,
+                                                               np.array(genera_idx, dtype=np.int32),
+                                                               priors.astype(np.float32))
     end = perf_counter()
     print(f"{end - start:.3f} s")
