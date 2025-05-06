@@ -5,7 +5,6 @@ import pickle
 
 import pandas as pd
 import numpy as np
-from PyQt5.pyrcc_main import verbose
 
 from phylotypy import kmers, conditional_prob, bootstrap
 from phylotypy import cond_prob_cython
