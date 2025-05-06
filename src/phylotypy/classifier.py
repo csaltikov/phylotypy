@@ -5,10 +5,15 @@ import pickle
 
 import pandas as pd
 import numpy as np
+from PyQt5.pyrcc_main import verbose
+
 from phylotypy import kmers, conditional_prob, bootstrap
 from phylotypy import cond_prob_cython
 from phylotypy import classify_bootstraps_cython
 from phylotypy import read_fasta
+
+from pandarallel import pandarallel
+pandarallel.initialize(progress_bar=False, verbose=1)
 
 
 def classify_sequences(sequences, database: kmers.KmerDB | dict, verbose=False, **kwargs, ):
@@ -84,8 +89,11 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
     Args:
         ref_db (pd.DataFrame | str | Path): The reference database. It can be a DataFrame with 'id'
             and 'sequence' columns or a file path to a FASTA file containing sequence data with taxonomy.
-        **kwargs: Additional configuration options. Supports the key 'kmers_size' to set the k-mer size
-            (default is 8).
+        **kwargs: Additional configuration options:
+            - kmers_size (int): Size of k-mers to use in the analysis (default: 8)
+            - multiprocess (bool): Whether to use multiprocessing for k-mer detection (default: True)
+            - n_cpu (int): Number of CPU cores to use for multiprocessing (default: 4)
+            - verbose (bool): Whether to show progress messages during processing (default: False)
 
     Returns:
         KmerDB: A k-mer based database object that contains the genus conditional probabilities,
@@ -96,7 +104,7 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
 
     Examples:
         >>> from phylotypy import read_fasta, classifier
-        >>> ref_seqs = read_fasta.read_taxa_fasta("my_reference_sequences.fa")
+        >>> ref_seqs = read_fasta.read_taxa_fasta("my_reference_sequences.fa", multiprocess=True)
         >>> database = classifier.make_classifier(ref_seqs)
 
         >>> # Save the database for later use:
@@ -118,15 +126,26 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
         raise ValueError("Reference database must contain 'id' and 'sequence' columns")
 
     kmer_size = kwargs.get('kmers_size', 8)
+    multiprocess = kwargs.get('multiprocess', True)
+    n_cpu = kwargs.get('n_cpu', 4)
+    verbose = kwargs.get('verbose', False)
 
     print("Building classifier database...")
 
-    detect_list = kmers.detect_kmers_across_sequences(ref_db["sequence"], kmer_size=kmer_size)
+    if multiprocess:
+        # detect_list = ref_db["sequence"].parallel_apply(lambda df: kmers.detect_kmer_indices(df, k=kmer_size))
+        detect_list = kmers.detect_kmers_across_sequences_mp(ref_db["sequence"],
+                                                          kmer_size=kmer_size,
+                                                          verbose=verbose)
+    else:
+        detect_list = kmers.detect_kmers_across_sequences(ref_db["sequence"],
+                                                          kmer_size=kmer_size,
+                                                          verbose=verbose)
 
     genera_idx = np.array(kmers.genera_str_to_index(ref_db["id"]), dtype=np.int32)
     genera_names = kmers.index_genus_mapper(ref_db["id"].to_list())
 
-    priors = kmers.calc_word_specific_priors(detect_list, kmer_size=kmer_size)
+    priors = kmers.calc_word_specific_priors(detect_list, kmer_size=kmer_size, verbose=verbose)
 
     genus_cond_prob = cond_prob_cython.calc_genus_conditional_prob(detect_list, genera_idx, priors.astype(np.float32))
 

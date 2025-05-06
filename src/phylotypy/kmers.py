@@ -7,10 +7,14 @@ mp.set_start_method('spawn', force=True)
 
 from pathlib import Path
 import re
-from typing import Dict, Any
+from typing import Dict, Any, List, Type
 
+import pandas as pd
 import numpy as np
 from numpy.dtypes import StringDType
+
+from pandarallel import pandarallel
+pandarallel.initialize(nb_workers=mp.cpu_count(), progress_bar=False, verbose=0)
 
 '''
 Naive Bayes Classifier for DNA sequences. The project is inspired by the 
@@ -127,13 +131,36 @@ def base4_to_index(base4_str: list) -> list:
     return converted_list
 
 
-def detect_kmers(sequence: str, kmer_size: int = 8) -> list:
+def detect_kmers(sequence: str, kmer_size: int = 8) -> List:
     """Detects kmers in a DNA sequence"""
     # Converts ACGT sequence data to base4
     kmers_: list = get_all_kmers(seq_to_base4(sequence), kmer_size)
     # Detected kmer indices, base 10, which are positions in a matrix
     kmers_ = base4_to_index(kmers_)
     return np.unique(kmers_).tolist()
+
+
+def detect_kmer_indices(sequence: str, k: int=8) -> List[list[int]]:
+    base4_map = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
+    arr = np.array([base4_map.get(nuc, -1) for nuc in sequence], dtype=np.int8)
+    if arr.size < k:
+        return np.array([], dtype=np.int64).tolist()  # Return empty list for short sequences
+
+    # Create a sliding window view
+    shape = (arr.size - k + 1, k)
+    strides = (arr.strides[0], arr.strides[0])
+    kmers = np.lib.stride_tricks.as_strided(arr, shape=shape, strides=strides)
+
+    exclude = np.any(kmers == -1, axis=1)
+
+    # Convert to base10 indices
+    valid_kmers = kmers[~exclude]
+    if valid_kmers.shape[0] == 0:
+        return np.array([], dtype=np.int64).tolist()
+
+    powers = 4 ** np.arange(k - 1, -1, -1)
+    valid_kmers = np.dot(valid_kmers, powers)
+    return np.unique(valid_kmers).tolist()
 
 
 def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: bool = False) -> list:
@@ -144,18 +171,22 @@ def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: 
     kmer_list: list = [None] * n_sequences
     for i, seq in enumerate(sequences):
         kmer_list[i] = detect_kmers(seq, kmer_size)
+    if verbose:
+        print("Done detecting kmers")
     return kmer_list
 
 
 def detect_kmers_across_sequences_mp(sequences: list,
                                      kmer_size: int = 8,
                                      num_processes: int = 4,
-                                     verbose: bool = False) -> list:
+                                     verbose: bool = False) -> list[list]:
     if verbose:
         print("Detecting kmers across sequences mp")
     with mp.Pool(num_processes) as pool:
         args_list = [(seq, kmer_size) for seq in sequences]
         results = pool.starmap(detect_kmers, args_list)
+    if verbose:
+        print("Done detecting kmers")
     return results
 
 
@@ -217,86 +248,6 @@ def calc_genus_conditional_prob(detect_list: list[list[int]],
 
     divided = np.divide(wi_pi, m_1)
     genus_cond_prob = np.log(divided).astype(np.float32)
-
-    return genus_cond_prob
-
-
-def process_chunk(args):
-    start, end, detect_list, genera_idx, genus_count_dat, shape = args
-    genus_count = np.memmap(genus_count_dat, mode='r+', dtype=np.float32, shape=shape)
-    for i in range(start, end):
-        genus_count[detect_list[i], genera_idx[i]] += 1
-    genus_count.flush()
-
-
-def calc_genus_conditional_prob_mp(detect_list: list[list[int]],
-                                   genera_idx: list,
-                                   word_specific_priors: np.ndarray,
-                                   verbose: bool = False,
-                                   **kwargs) -> np.array:
-    genus_arr = np.array(genera_idx)  # indices not the taxa names
-    genus_counts = np.unique(genus_arr, return_counts=True)[1]  # get counts of each unique genera
-    n_genera = len(genus_counts)
-    n_sequences = len(genera_idx)
-    n_kmers = len(word_specific_priors)
-
-    if verbose:
-        print(f"Calculating genus conditional probability for {n_genera} unique genera")
-
-    # Create an array with zeros, rows are kmer indices, columns number of unique genera
-    genus_count_dat = Path("genus_count.dat")
-
-    genus_count = np.memmap(genus_count_dat,
-                            dtype=np.float32,
-                            mode='w+',
-                            shape=(n_kmers, n_genera))
-
-    if verbose:
-        print("Genus conditional probability: start looping")
-        print(f"db size {genus_count.shape}")
-
-    # Prepare chunks for parallel processing or memory savings
-    chunk_size: int = kwargs.get('chunk_size', 20000)
-    multi: bool = kwargs.get('multi', False)
-    n_cpu: int = kwargs.get('n_cpu', 4)
-
-    if multi:
-        print(f"multiple processing: {multi} with {n_cpu} cpus")
-        chunks = [(start, min(start + chunk_size, n_sequences), detect_list, genera_idx, genus_count_dat, genus_count.shape)
-                  for start in range(0, n_sequences, chunk_size)]
-
-        with mp.Pool(processes=n_cpu) as pool:
-            pool.map(process_chunk, chunks)
-    else:
-        # Start filling out genus_count array
-        # Process data in chunks
-        for start in range(0, n_sequences, chunk_size):
-            end = min(start + chunk_size, n_sequences)
-
-            # Process a chunk of the data
-            for i in range(start, end):
-                genus_count[detect_list[i], genera_idx[i]] += 1
-
-            # Flush changes to disk periodically
-            genus_count.flush()
-
-    if verbose:
-        print("Genus conditional probability: done looping")
-
-    genus_count.flush()
-
-    # Calculate the likelihood for a genus to have a specific kmer
-    # (m(wi) + Pi) / (M + 1)
-    wi_pi = (genus_count + word_specific_priors.reshape(-1, 1))
-    m_1 = (genus_counts + 1)
-
-    genus_cond_prob = np.log(np.divide(wi_pi, m_1)).astype(np.float32)
-
-    # Delete the memmap object
-    del genus_count
-    # Remove the temporary file
-    if genus_count_dat.exists():
-        genus_count_dat.unlink()
 
     return genus_cond_prob
 

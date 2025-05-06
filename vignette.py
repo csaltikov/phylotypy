@@ -16,12 +16,12 @@ if __name__ == "__main__":
     start = perf_counter()
     database = classifier.make_classifier(db)
     end = perf_counter()
-    print(f"Classifer make database took {end-start:.2f} seconds to build")
+    print(f"Classifer took {end-start:.2f} seconds to build database")
 
     start = perf_counter()
     classified = classifier.classify_sequences(test_seqs, database)
     end = perf_counter()
-    print(f"Classifying sequences took {end-start:.2f} seconds")
+    print(f"Sequences classified in {end-start:.2f} seconds")
 
     print("Top 5 results:")
     classified = results.summarize_predictions(classified)

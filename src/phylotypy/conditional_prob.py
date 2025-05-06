@@ -77,8 +77,7 @@ def seq_to_kmers_database(sequences_db, **kwargs):
         if ".tsv" in Path(sequences_db).suffix:
             db = pd.read_csv(sequences_db, sep="\t")
 
-    kmer_list = kmers.detect_kmers_across_sequences_mp(db[seq_col], kmer_size=kmer_size)
-    kmer_series = pd.Series(kmer_list)
+    kmer_series = db[seq_col].parallel_apply(lambda x: kmers.detect_kmer_indices(x, k=kmer_size))
     # Calculate max length
     max_seq_len = kmer_series.str.len().max().astype(int)
 
