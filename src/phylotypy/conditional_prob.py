@@ -90,7 +90,7 @@ def seq_to_kmers_database(sequences_db, **kwargs):
     all_kmers_arr = np.hstack((
         np.array(genera_idx).reshape(-1, 1),
         np.stack(detected_kmers.to_numpy())
-    ))
+    ), dtype=int)
     return [genera_idx, all_kmers_arr]
 
 
