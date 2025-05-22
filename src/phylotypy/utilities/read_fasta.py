@@ -32,7 +32,7 @@ def read_taxa_fasta(fasta_file: str | Path) -> pd.DataFrame:
     mode = 'rt' if gz_file else 'r'  # 'rt' for text mode in gzip
 
     with open_func(fasta_file, mode) as f:
-        big_line = ""
+        big_line = ""  # place holder for the DNA sequence
 
         # First sequence
         first_line = f.readline()
@@ -46,8 +46,8 @@ def read_taxa_fasta(fasta_file: str | Path) -> pd.DataFrame:
         else:
             fasta_data["id"].append(clean_id(first_line))
 
-        # the remaining sequences
-        for line in f.readlines():
+        # the remaining sequences, some seq data might be on several lines
+        for line in f:
             if line.startswith(">"):
                 taxa_string = get_taxa_string(line)
                 if taxa_string:
@@ -56,9 +56,9 @@ def read_taxa_fasta(fasta_file: str | Path) -> pd.DataFrame:
                     fasta_data["id"].append(clean_id(line))
 
                 fasta_data["sequence"].append(big_line)
-                big_line = ""
+                big_line = ""  # reset sequence place holder
             else:
-                big_line += line.rstrip()
+                big_line += line.rstrip()  # appends the sequence
         if "U" in big_line:
             big_line = big_line.replace("U", "T")
         fasta_data["sequence"].append(big_line)
