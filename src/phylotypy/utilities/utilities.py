@@ -6,26 +6,7 @@ import pickle
 import re
 import subprocess
 
-from Bio import SeqIO, Seq
 import pandas as pd
-
-
-def fasta_to_dataframe_taxa(fasta_file, taxafile, save: bool = False):
-    data_dir = Path("data")
-    fasta_file = Path(fasta_file)
-    if not fasta_file.is_file() or not Path(taxafile).is_file():
-        print("Taxa files not found")
-        return None
-    records = []
-    for record in SeqIO.parse(fasta_file, "fasta"):
-        records.append((record.id, str(record.seq)))
-    df = pd.DataFrame(records, columns=["id", "sequence"])
-    taxtable_df = taxa_to_dataframe(taxafile)
-    refdb = df.merge(taxtable_df, on="id", how="left")
-    if save:
-        save_file = data_dir.joinpath(fasta_file.name.split(".")[0] + "_db.csv")
-        refdb.to_csv(save_file, index=False)
-    return refdb
 
 
 def dataframe_to_fasta(df, fasta_file):
