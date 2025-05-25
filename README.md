@@ -20,9 +20,9 @@ Thanks Riffomonas for the inspiration.  Check out the videos on his Youtube chan
 ## How to install
 ```
 pip install git+https://github.com/csaltikov/phylotypy.git
-
-or if using uv (recommended)
-
+```
+or if using uv (recommended) (<a href="https://docs.astral.sh/uv/getting-started/installation/">how to install uv</a>)
+```
 uv pip install git+https://github.com/csaltikov/phylotypy.git
 ```
 
@@ -112,3 +112,12 @@ classified = classifier.classify_sequences(moving_pics, database)
 classified = results.summarize_predictions(classified)
 print(classified.head())
 ```
+### Requirements
+setuptools
+numpy
+numba
+pandas
+requests
+pandarallel
+jax
+cython

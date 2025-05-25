@@ -15,20 +15,24 @@ from pandarallel import pandarallel
 pandarallel.initialize(progress_bar=False, verbose=1)
 
 
-def classify_sequences(sequences, database: kmers.KmerDB | dict, verbose=False, **kwargs, ):
+def classify_sequences(sequences: pd.DataFrame | str | Path,
+                       database: kmers.KmerDB | dict,
+                       verbose=False, **kwargs):
     """
     Classify 16S rRNA DNA sequences against a reference database.
 
-    This function takes a DataFrame of sequences, processes them into k-mers, and
+    This function takes a DataFrame of sequences of fasta file, processes them into k-mers, and
     classifies each sequence based on the provided reference database. It returns
     a DataFrame with classification results for each sequence, including their
     corresponding identifiers and classifications. Verbose mode allows for
     progress tracking during classification.
 
     Args:
-        sequences: pd.DataFrame
-            A DataFrame where each row represents a sequence with at least an
-            "id" column holding sequence identifiers and a "sequence" column.
+        sequences: pd.DataFrame or str Path
+            Input is either a str/Path to the fasta file to classify. Or a pandas
+            DataFrame. If str/Path, the fasta will be converted to a datafame.
+            Each row is a sequence with at least an "id" column holding sequence
+            identifiers and a "sequence" column.
         database: dict
             The reference database to classify against, containing the necessary
             information for sequence classification.
@@ -52,6 +56,9 @@ def classify_sequences(sequences, database: kmers.KmerDB | dict, verbose=False, 
         >>> database = classifier.make_classifier(ref_seqs)
         >>> classified = classifier.classify_sequences(seqs, database)
     """
+    if isinstance(sequences, str | Path):
+        sequences = read_fasta.read_taxa_fasta(sequences)
+
     genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(sequences, **kwargs)
 
     classified = defaultdict(list)

@@ -1,5 +1,5 @@
 from pathlib import Path
-from phylotypy import classifier, results, kmers
+from phylotypy import classifier, results
 from phylotypy import read_fasta
 
 

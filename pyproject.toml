@@ -23,11 +23,9 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "setuptools",
-    "biopython",
     "numpy",
     "numba",
     "pandas",
-    "scikit-learn",
     "requests",
     "pandarallel",
     "jax",
