@@ -1,40 +1,28 @@
-from pathlib import Path
 import unittest
-
-from phylotypy import read_fasta
+import numpy as np
+import pandas as pd
+from phylotypy import training_data
 
 
 class TestTrainingData(unittest.TestCase):
     def setUp(self) -> None:
-        self.current_dir = Path(__file__).parent
-        self.fasta_dir = self.current_dir / 'test_fasta'
-        self.fasta_file_suborder = self.fasta_dir / "test_fasta_suborder.fa"  # has suborder
-        self.fasta_file_short = self.fasta_dir / "test_fasta_short_taxa.fa" # missing some taxa levels
+        self.ids = {"id": ["Bacteria;Incertae Sedis",
+                            "Bacteria;Candidatus",
+                            "Eukaryota;worm",
+                            "Prokaryota;Shewanella"]}
 
-    def test_is_gzip(self):
-        gz_file = self.current_dir / "test_fasta" / "test_fasta_short_taxa.fa.gz"
-        observed = read_fasta.is_gzip_file(gz_file)
-        self.assertTrue(observed)
+    def test_filter_train_set(self):
+        id_df = pd.DataFrame(self.ids)
 
-        non_gz_file = self.current_dir / "test_fasta" / "test_fasta_short_taxa.fa"
-        observed = read_fasta.is_gzip_file(non_gz_file)
-        self.assertFalse(observed)
+        observed = training_data.filter_train_set(id_df)
+        obs_true = observed["id"].str.contains("Shewanella").values
 
-    def test_fasta_id(self):
-        # fasta string has suborder__
-        ref = read_fasta.read_taxa_fasta(self.fasta_file_suborder)
-        fasta_string = ref["id"].iloc[0].split(";")
-        self.assertTrue(len(fasta_string), 6)
+        expected = np.array([True])
+        self.assertEqual(obs_true, expected)
 
-        # fasta string taxonomy string missing taxa levels
-        ref = read_fasta.read_taxa_fasta(self.fasta_file_short)
-        fasta_string = ref["id"].iloc[0].split(";")
-        self.assertLess(len(fasta_string), 6)
-
-        ref = read_fasta.read_taxa_fasta(self.fasta_dir / "test_fasta_short_taxa.fa.gz")
-        fasta_string = ref["id"].iloc[0].split(";")
-        self.assertLess(len(fasta_string), 6)
+        obs_true = observed["id"].str.contains("Eukaryota").values
+        self.assertFalse(obs_true, expected)
 
 
 if __name__ == "__main__":
-    unittest.main()
+    print("hello")

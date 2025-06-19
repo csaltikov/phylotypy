@@ -39,9 +39,10 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
         verbose: bool, optional
             If set to True, displays progress updates during sequence classification.
             Default is False.
-        **kwargs: Any
+        **kwargs: min_confidence, n_levels
             Additional keyword arguments that are passed to the internal k-mer
-            conversion function.
+            conversion function. Use min_confidence (default = 80) for filtering bootstrap
+            consensus. Use n_levels to set taxonomic levels (default=6).
 
     Returns:
         pd.DataFrame:
@@ -70,18 +71,21 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
         seq_kmer = detected_kmers_test[i, 1:].flatten()
         name = sequences.iloc[i]["id"]
         classified["id"].append(name)
-        classified["classification"].append(classify_sequence(seq_kmer, database))
-
+        classified["classification"].append(classify_sequence(seq_kmer=seq_kmer,
+                                                              database=database,
+                                                              **kwargs))
     res = pd.DataFrame(classified)
     return res
 
 
-def classify_sequence(seq_kmer, database):
+def classify_sequence(seq_kmer, database, **kwargs):
+    min_confidence = kwargs.get("min_confidence", 80)
+    n_levels = kwargs.get("n_levels", 6)
     bootstrapped = bootstrap.bootstrap(seq_kmer)
     classified_kmers = classify_bootstraps_cython(bootstrapped, database.conditional_prob)
     consensus = bootstrap.bootstrap_consensus(classified_kmers, database.genera_names)
-    filtered = kmers.filter_taxonomy(consensus)
-    return kmers.print_taxonomy(filtered)
+    filtered = kmers.filter_taxonomy(classification=consensus, min_confidence=min_confidence)
+    return kmers.print_taxonomy(filtered, n_levels=n_levels)
 
 
 def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):

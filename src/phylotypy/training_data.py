@@ -1,3 +1,4 @@
+import re
 from pathlib import Path
 
 import pandas as pd
@@ -86,6 +87,25 @@ def silva_train_set(out_dir):
 
     for i, chunk in enumerate(np.array_split(ref_db, ref_db.shape[0] // chunk_size)):
         chunk.to_parquet(silva_out, compression='snappy', engine='pyarrow', index=False)
+
+
+def filter_train_set(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+    remove_values = kwargs.pop("remove_values", "Incertae|Candidatus|Eukaryota|Sedis")
+    df_ = df[~df["id"].str.contains(remove_values, na=False)]
+    df_.loc[:, "levels"] = df["id"].transform(lambda col: len(re.findall(";", col)))
+    highest_level = df_["levels"].values.max()
+    df_ = df_[df_["levels"] == highest_level]
+    return df_
+
+
+def down_sample(df, col="id", n=200, random_state=None) -> pd.DataFrame:
+    data = []
+    for _, group in df.groupby(col):
+        if len(group) > n:
+            data.append(group.sample(n, random_state=random_state))
+        else:
+            data.append(group)
+    return pd.concat(data, ignore_index=True)
 
 
 if __name__ == "__main__":
