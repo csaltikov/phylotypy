@@ -90,11 +90,13 @@ def silva_train_set(out_dir):
 
 
 def filter_train_set(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-    remove_values = kwargs.pop("remove_values", "Incertae|Candidatus|Eukaryota|Sedis")
-    df_ = df[~df["id"].str.contains(remove_values, na=False)]
-    df_.loc[:, "levels"] = df["id"].transform(lambda col: len(re.findall(";", col)))
-    highest_level = df_["levels"].values.max()
-    df_ = df_[df_["levels"] == highest_level]
+    noise = "Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture"
+    remove_values = kwargs.get("remove_values", noise)
+    df_ = (df[~df["id"].str.contains(remove_values, na=False)]
+           .assign(levels=df["id"].transform(lambda col: len(re.findall(";", col))))
+           )
+    highest_level = df_["levels"].values.mean()
+    df_ = df_[df_["levels"] == int(highest_level)]
     return df_
 
 

@@ -17,7 +17,7 @@ class TestTrainingData(unittest.TestCase):
         observed = training_data.filter_train_set(id_df)
         obs_true = observed["id"].str.contains("Shewanella").values
 
-        expected = np.array([True])
+        expected = np.any([True])
         self.assertEqual(obs_true, expected)
 
         obs_true = observed["id"].str.contains("Eukaryota").values
