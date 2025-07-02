@@ -21,3 +21,14 @@ def summarize_predictions(classified: dict | pd.DataFrame, n_levels: int = 6):
     classified_df["observed"] = classified_df[taxa_levels].apply(lambda row: ';'.join(row.values), axis=1)
     classified_df["lineage"] = classified_df[taxa_levels].apply(lambda row: join_taxa(row.values), axis=1)
     return classified_df
+
+
+def prevalence(data: pd.Series, threshold: float = 10):
+    # Determine if the counts data for a specific sequence is above a threshold value
+    filtered = data[data > threshold]
+    prev = len(filtered) / len(data)
+    return int(100 * prev)
+
+
+if __name__ == "__main__":
+    print(f"{__name__}")
