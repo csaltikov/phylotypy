@@ -132,7 +132,8 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
         ref_db = read_fasta.read_taxa_fasta(ref_db)
 
     ref_db_cols = ref_db.columns.to_list()
-    if not set(ref_db_cols) == {"id", "sequence"}:
+    required_cols = {"id", "sequence"}
+    if not required_cols.issubset(set(ref_db_cols)):
         raise ValueError("Reference database must contain 'id' and 'sequence' columns")
 
     kmer_size = kwargs.get('kmers_size', 8)
@@ -177,11 +178,39 @@ def check_path(object_path):
 
 
 def load_classifier(db_path: Path | str):
+    """
+    Load a classifier object from a pickle file.
+
+    Parameters
+    ----------
+    db_path : Path or str
+        Path to the pickle file containing the classifier.
+
+    Returns
+    -------
+    object
+        The unpickled classifier object.
+
+    Raises
+    ------
+    FileNotFoundError
+        If the provided file path does not exist.
+    pickle.UnpicklingError
+        If there is a problem loading the pickle file.
+    Exception
+        For any other issues that might arise during loading.
+    """
+    db_path = Path(db_path)
     if check_path(db_path):
-        with open(db_path, "rb") as f:
-            return pickle.load(f)
+        try:
+            with open(db_path, "rb") as f:
+                return pickle.load(f)
+        except pickle.UnpicklingError:
+            raise pickle.UnpicklingError(f"Unable to unpickle file: {db_path}")
+        except Exception as e:
+            raise Exception(f"An error occurred: {e}")
     else:
-        print("Error: file not found, check db path")
+        raise FileNotFoundError(f"Classifier file not found: {db_path}")
 
 
 if __name__ == "__main__":
