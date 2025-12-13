@@ -1,0 +1,3 @@
+{"header": {"type": "esearch", "version": "0.3"}, "esearchresult": {"count": "1", "retmax": "1", "retstart": "0", "idlist": ["2172"], "translationset": [], "translationstack": [{"term": "Methanobrevibacter[All Names]", "field": "All Names", "count": "1", "explode": "N"}, "GROUP"], "querytranslation": "Methanobrevibacter[All Names]"}}
+
+{"header": {"type": "esummary", "version": "0.3"}, "result": {"uids": ["2172"], "2172": {"uid": "2172", "status": "active", "rank": "genus", "division": "euryarchaeotes", "scientificname": "Methanobrevibacter", "commonname": "", "taxid": 2172, "akataxid": "", "genus": "", "species": "", "subsp": "", "modificationdate": "2015/07/16 00:00", "genbankdivision": "Bacteria"}}}
