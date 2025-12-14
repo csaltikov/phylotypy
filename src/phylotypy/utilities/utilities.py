@@ -1,15 +1,18 @@
-import asyncio
 import io
 import gzip
 import json
+import time
 from collections import defaultdict
 from pathlib import Path
 import pickle
 import re
 import subprocess
 import requests
-
 import pandas as pd
+
+
+MAX_RETRIES = 5  # Limit the total number of attempts
+INITIAL_WAIT_TIME = 2  # Start with a 2-second wait
 
 
 def dataframe_to_fasta(df, fasta_file):
@@ -94,12 +97,39 @@ def summarize_taxa_ids(api_res):
 
 
 def get_eutils_results(url, payload):
-    r = requests.get(url, params=payload)
-    fmt = payload.get("retmode", None)
-    if fmt == "json":
-        return r.json()
-    else:
-        return r
+    r = None
+    for attempt in range(MAX_RETRIES):
+        try:
+            r = requests.get(url, params=payload)
+            r.raise_for_status()
+        except requests.exceptions.HTTPError as e:
+            failed_response = e.response
+            if failed_response.status_code == 429:
+                wait_time = INITIAL_WAIT_TIME * (2 ** attempt)
+                retry_after = r.headers.get("Retry-After")
+                if retry_after:
+                    wait_time = int(retry_after)
+                    print(wait_time)
+                if attempt +1 == MAX_RETRIES:
+                    break
+                time.sleep(wait_time)
+                continue
+        except requests.exceptions.Timeout:
+            print("Request timed out")
+            raise
+        except requests.exceptions.RequestException as e:
+            print(f"Request failed {e}")
+            raise
+
+        fmt = payload.get("retmode", None)
+        if fmt == "json":
+            try:
+                return r.json()
+            except json.decoder.JSONDecodeError as e:
+                print(f"Request failed to decode {url}")
+                return r.text
+        else:
+            return r.text
 
 
 def get_taxa_ids(taxa_names):
