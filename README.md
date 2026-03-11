@@ -34,6 +34,10 @@ Using uv (recommended — [how to install uv](https://docs.astral.sh/uv/getting-
 uv pip install phylotypy
 ```
 
+> **Note**: Intel Mac (x86_64) users are limited to numba 0.62.1, 
+> which is pinned in this package. Apple Silicon (M-series) users 
+> are not affected.
+
 ---
 
 ## Training Data
