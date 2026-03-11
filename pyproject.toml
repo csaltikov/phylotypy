@@ -54,7 +54,6 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
-    "Programming Language :: Python :: 3.13",
 
     # License
     "License :: OSI Approved :: MIT License",
@@ -71,7 +70,7 @@ classifiers = [
     "Programming Language :: Cython",
 ]
 readme = "README.md"
-python-version = ["3.11", "3.12", "3.13"]
+python-version = ">=3.11,<3.13"
 dependencies = [
     "numpy>=2.0",
     "numba>=0.64.0",
