@@ -13,19 +13,42 @@ include-package-data = true
 
 [project]
 name = "phylotypy"
-version = "0.2.2"
+version = "0.2.3"
 description = "Naive Bayes Classifier for 16S rRNA sequence data"
 authors = [
     {name = "Chad Saltikov", email = "saltikov@ucsc.edu"}
 ]
 classifiers = [
+    # Development status
     "Development Status :: 4 - Beta",
+
+    # Audience
     "Intended Audience :: Science/Research",
+    "Intended Audience :: Education",
+
+    # Topics
     "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+    "Topic :: Scientific/Engineering :: Artificial Intelligence",
+
+    # Python versions
+    "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+
+    # License
     "License :: OSI Approved :: MIT License",
-    "Topic :: Scientific/Engineering :: Medical Science Apps.",
+
+    # Operating system
+    "Operating System :: MacOS",
+    "Operating System :: POSIX :: Linux",
+
+    # Language
+    "Natural Language :: English",
+
+    # Programming language used internally
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Programming Language :: Cython",
 ]
 readme = "README.md"
 requires-python = ">=3.11"

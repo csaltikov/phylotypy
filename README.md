@@ -1,9 +1,9 @@
 # phylotypy
 
-[![PyPI version](https://badge.fury.io/py/phylotypy.svg)](https://github.com/csaltikov/phylotypy)
-![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
-![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
-[![GitHub](https://img.shields.io/badge/GitHub-phylotypy-black?logo=github)](https://github.com/csaltikov/phylotypy)
+[![PyPI version](https://img.shields.io/pypi/v/phylotypy)](https://pypi.org/project/phylotypy/)
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Downloads](https://img.shields.io/pypi/dm/phylotypy)](https://pypi.org/project/phylotypy/)
 
 A Naive Bayesian Classifier for 16S rRNA gene sequences, inspired by the
 [phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas.
