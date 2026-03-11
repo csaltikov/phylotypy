@@ -1,15 +1,14 @@
 # phylotypy
 
-[![PyPI version](https://img.shields.io/pypi/v/phylotypy)](https://pypi.org/project/phylotypy/)
+[![PyPI version](https://img.shields.io/pypi/v/phylotypy?cacheBuster=1)](https://pypi.org/project/phylotypy/)
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![Downloads](https://img.shields.io/pypi/dm/phylotypy)](https://pypi.org/project/phylotypy/)
 
 A Naive Bayesian Classifier for 16S rRNA gene sequences, inspired by the
-[phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas.
-Designed for classifying amplicon sequence variants (ASVs) from DADA2, QIIME2,
-or raw FASTA files against a reference database of 16S rRNA sequences. The RDP training data is provided
-here in the data directory located at the github repository. But Silva and others can be used.
+[phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas. Designed for classifying amplicon sequence variants (ASVs) 
+from DADA2, QIIME2, or raw FASTA files against a reference database of 16S 
+rRNA sequences. The RDP training data is provided here in the data directory located at 
+the github repository. But Silva and others can be used.
 
 Thanks to Riffomonas for the inspiration — check out the videos on his
 [YouTube channel](https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j).
