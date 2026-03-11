@@ -3,11 +3,13 @@
 ![PyPI version](https://badge.fury.io/py/phylotypy.svg)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
+[![GitHub](https://img.shields.io/badge/GitHub-phylotypy-black?logo=github)](https://github.com/csaltikov/phylotypy)
 
 A Naive Bayesian Classifier for 16S rRNA gene sequences, inspired by the
 [phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas.
 Designed for classifying amplicon sequence variants (ASVs) from DADA2, QIIME2,
-or raw FASTA files against the RDP reference database.
+or raw FASTA files against a reference database of 16S rRNA sequences. The RDP training data is provided
+here in the data directory located at the github repository. But Silva and others can be used.
 
 Thanks to Riffomonas for the inspiration — check out the videos on his
 [YouTube channel](https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j).
@@ -16,8 +18,8 @@ Thanks to Riffomonas for the inspiration — check out the videos on his
 
 ## Performance
 
-Training on the full RDP reference database takes **~30 seconds** on a 2020 Apple Intel MacBook Pro.
-
+Training on the full RDP reference database takes **~30 seconds** on a 2020 Apple Intel MacBook Pro. 
+Newer systems should see a substantial increase in performance. 
 ---
 
 ## How to Install
@@ -42,8 +44,11 @@ Download the RDP reference training set and an example dataset before classifyin
 |------|-------------|
 | [rdp_16S_v19.dada2.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/rdp_16S_v19.dada2.fasta) | RDP trainset19072023, DADA2 format |
 | [dna_moving_pictures.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/dna_moving_pictures.fasta) | Example dataset (Moving Pictures study) |
-
-The RDP training data uses semicolon-separated taxonomy strings in this format:
+The training data fasta descriptions should a taxonomy. By default the Species level is ignored.
+```
+"Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"
+```
+The taxon string in the fasta description should follow the semicolon-separated format like this:
 ```
 >Bacteria;Pseudomonadota;Gammaproteobacteria;Enterobacterales;Enterobacteriaceae;Citrobacter
 TAGAGTTTGATCCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACAC.....
@@ -149,5 +154,7 @@ If you use phylotypy in your research, please cite:
 - Wang, Q., Garrity, G.M., Tiedje, J.M., Cole, J.R. (2007) Naive Bayesian Classifier
   for Rapid Assignment of rRNA Sequences into the New Bacterial Taxonomy.
   *Applied and Environmental Microbiology*, 73(16), 5261–5267.
+- Schloss PD.2025.phylotypr: an R package for classifying DNA sequences. 
+  Microbiol Resour Announc14:e01144-24.https://doi.org/10.1128/mra.01144-24
 - Saltikov, C. (2024) phylotypy: Python implementation of a Naive Bayesian 16S rRNA classifier.
   https://github.com/csaltikov/phylotypy
