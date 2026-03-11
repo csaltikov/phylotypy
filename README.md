@@ -19,11 +19,11 @@ Thanks Riffomonas for the inspiration.  Check out the videos on his Youtube chan
 
 ## How to install
 ```
-pip install git+https://github.com/csaltikov/phylotypy.git
+pip install phylotypy
 ```
 or if using uv (recommended) (<a href="https://docs.astral.sh/uv/getting-started/installation/">how to install uv</a>)
 ```
-uv pip install git+https://github.com/csaltikov/phylotypy.git
+uv pip install phylotypy
 ```
 
 ## How to get started:
@@ -40,14 +40,17 @@ for example:
 >Bacteria;Pseudomonadota;Gammaproteobacteria;Enterobacterales;Enterobacteriaceae;Citrobacter
 TAGAGTTTGATCCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACAC.....
 ```
+1. Download and load the training data and sequences to be classified
 
-1. Load the training data and sequences to be classified
+Download the reference training data:
+- [rdp_16S_v19.dada2.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/rdp_16S_v19.dada2.fasta)
+- [dna_moving_pictures.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/dna_moving_pictures.fasta)
 ```
 from pathlib import Path
 from phylotypy import classifier, results, read_fasta
 
-rdp = read_fasta.read_taxa_fasta("data/rdp_16S_v19.dada2.fasta")
-moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
+rdp = read_fasta.read_taxa_fasta("rdp_16S_v19.dada2.fasta")
+moving_pics = read_fasta.read_taxa_fasta("dna_moving_pictures.fasta")
 ```
 2. Create the classifier. We'll call it database
 ```
@@ -103,8 +106,8 @@ The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are
 from pathlib import Path
 from phylotypy import classifier, results, read_fasta
 
-rdp = read_fasta.read_taxa_fasta("data/rdp_16S_v19.dada2.fasta")
-moving_pics = read_fasta.read_taxa_fasta("data/dna_moving_pictures.fasta")
+rdp = read_fasta.read_taxa_fasta("rdp_16S_v19.dada2.fasta")
+moving_pics = read_fasta.read_taxa_fasta("dna_moving_pictures.fasta")
 
 database = classifier.make_classifier(rdp)
 
@@ -113,11 +116,9 @@ classified = results.summarize_predictions(classified)
 print(classified.head())
 ```
 ### Requirements
-setuptools
 numpy
 numba
 pandas
 requests
 pandarallel
 jax
-cython

@@ -48,7 +48,9 @@ def calc_priors(detected_kmers: np.ndarray, kmer_size: int = 8):
     num_seqs = len(detected_kmers)
     max_value = 4 ** kmer_size
 
+    # get all kmers in the corpus of sequences
     flat_kmers = detected_kmers[:, 1:].flatten() # ignore col 0, row indices
+    # remove negative values
     flat_kmers = flat_kmers[flat_kmers !=-1]  # -1 are encoded as NA values
     counts = np.bincount(flat_kmers, minlength=max_value)
 
@@ -177,7 +179,7 @@ def calc_genus_conditional_prob_jt(detect_list: list[list[int]],
 
 ##
 if __name__ == "__main__":
-    proj_dir = Path("../../") # training data is in the top level data directory
+    proj_dir = Path.cwd() # training data is in the top level data directory
     seq = pd.read_csv(proj_dir / "data/trainset19_072023_small_db.csv", index_col=0)
     sequences = seq.sample(1000)
     print(sequences.shape)
