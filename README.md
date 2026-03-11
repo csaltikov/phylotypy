@@ -20,6 +20,7 @@ Thanks to Riffomonas for the inspiration — check out the videos on his
 
 Training on the full RDP reference database takes **~30 seconds** on a 2020 Apple Intel MacBook Pro. 
 Newer systems should see a substantial increase in performance. 
+
 ---
 
 ## How to Install
