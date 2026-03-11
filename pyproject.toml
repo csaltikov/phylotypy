@@ -13,7 +13,26 @@ include-package-data = true
 
 [project]
 name = "phylotypy"
-version = "0.2.3"
+version = "0.2.4"
+keywords = [
+    "16S rRNA",
+    "naive bayes",
+    "classifier",
+    "phylogeny",
+    "metagenomics",
+    "microbiome",
+    "amplicon",
+    "taxonomy",
+    "bioinformatics",
+    "DADA2",
+    "QIIME",
+    "RDP",
+    "ASV",
+    "OTU",
+    "microbial ecology",
+    "environmental microbiology",
+    "sequence classification",
+]
 description = "Naive Bayes Classifier for 16S rRNA sequence data"
 authors = [
     {name = "Chad Saltikov", email = "saltikov@ucsc.edu"}
@@ -35,6 +54,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
 
     # License
     "License :: OSI Approved :: MIT License",
@@ -51,14 +71,13 @@ classifiers = [
     "Programming Language :: Cython",
 ]
 readme = "README.md"
-requires-python = ">=3.11"
+python-version: ["3.11", "3.12", "3.13"]
 dependencies = [
     "numpy>=2.0",
-    "numba>=0.60",
+    "numba>=0.64.0",
     "pandas>=2.2",
     "requests",
     "pandarallel",
-    "jax",
 ]
 
 [project.urls]
