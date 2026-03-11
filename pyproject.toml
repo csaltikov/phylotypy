@@ -13,7 +13,7 @@ include-package-data = true
 
 [project]
 name = "phylotypy"
-version = "0.2.4"
+version = "0.2.5"
 keywords = [
     "16S rRNA",
     "naive bayes",
