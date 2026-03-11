@@ -9,10 +9,9 @@ permissions:
 
 jobs:
   release-build:
-    runs-on: ${{ matrix.os}}
+    runs-on: macos-latest
     strategy:
       matrix:
-        os: [macos-latest, macos-12, macos-13]
         python-version: ["3.11", "3.12"]
     steps:
       - uses: actions/checkout@v4
