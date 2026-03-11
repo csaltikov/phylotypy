@@ -1,124 +1,153 @@
 # phylotypy
-Naive Bayesian Classifier for 16S rRNA gene sequence data
 
-Porting Riffomonas's CodeClub R package, phylotypr to python: https://github.com/riffomonas/phylotypr
+![PyPI version](https://badge.fury.io/py/phylotypy.svg)
+![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
+![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 
-It's been a great challenge learning how to interpret the R code into Python with minimal use of extra libraries.
+A Naive Bayesian Classifier for 16S rRNA gene sequences, inspired by the
+[phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas.
+Designed for classifying amplicon sequence variants (ASVs) from DADA2, QIIME2,
+or raw FASTA files against the RDP reference database.
 
-It's best to clone the repository.  Run vigentte.py to see if everything works.
+Thanks to Riffomonas for the inspiration — check out the videos on his
+[YouTube channel](https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j).
 
-Training the model with the full reference database from RDP takes about 30 seconds on my MacBook Pro.
+---
 
-You can modify the vignette at the end to classify your own sequences. I've done this using DADA2's output files.
+## Performance
 
-There's also [read_fasta.py](src/phylotypy/utilities/read_fasta.py) that lets you take a fasta file of DNA seqences and process them into a dataframe for runing this classifier.
+Training on the full RDP reference database takes **~30 seconds** on a 2020 Apple Intel MacBook Pro.
 
-I made a separate vignette, [vignette.py](vignette.py) on how to do this and classify 16S sequence data from QIIME, DADA2, or text files.
+---
 
-Thanks Riffomonas for the inspiration.  Check out the videos on his Youtube channel https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j
+## How to Install
 
-## How to install
-```
+Using pip:
+```bash
 pip install phylotypy
 ```
-or if using uv (recommended) (<a href="https://docs.astral.sh/uv/getting-started/installation/">how to install uv</a>)
-```
+
+Using uv (recommended — [how to install uv](https://docs.astral.sh/uv/getting-started/installation/)):
+```bash
 uv pip install phylotypy
 ```
 
-## How to get started:
-First download the training data, RDP's trainset19072023, either from https://mothur.org/wiki/rdp_reference_files/
- You can use the one in the [data](data/) directory called [rdp_16S_v19.dada2.fasta](data/rdp_16S_v19.dada2.fasta)
+---
 
-I processed the latest rdp reference data into a format that will work here and for DADA2.
+## Training Data
 
-The taxonomy string looks like this semicolon separated:
+Download the RDP reference training set and an example dataset before classifying:
+
+| File | Description |
+|------|-------------|
+| [rdp_16S_v19.dada2.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/rdp_16S_v19.dada2.fasta) | RDP trainset19072023, DADA2 format |
+| [dna_moving_pictures.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/dna_moving_pictures.fasta) | Example dataset (Moving Pictures study) |
+
+The RDP training data uses semicolon-separated taxonomy strings in this format:
 ```
-Bacteria;Phylum;Class;Order;Family;Genus
-
-for example:
 >Bacteria;Pseudomonadota;Gammaproteobacteria;Enterobacterales;Enterobacteriaceae;Citrobacter
 TAGAGTTTGATCCATGGCTCAGATTGAACGCTGGCGGCAGGCCTAACAC.....
 ```
-1. Download and load the training data and sequences to be classified
 
-Download the reference training data:
-- [rdp_16S_v19.dada2.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/rdp_16S_v19.dada2.fasta)
-- [dna_moving_pictures.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/dna_moving_pictures.fasta)
-```
-from pathlib import Path
+---
+
+## Quick Start
+
+### 1. Load training data and sequences to classify
+```python
 from phylotypy import classifier, results, read_fasta
 
 rdp = read_fasta.read_taxa_fasta("rdp_16S_v19.dada2.fasta")
 moving_pics = read_fasta.read_taxa_fasta("dna_moving_pictures.fasta")
 ```
-2. Create the classifier. We'll call it database
-```
+
+### 2. Train the classifier
+```python
 database = classifier.make_classifier(rdp)
 ```
-3. Classify the sequences
-```
+
+### 3. Classify sequences
+```python
 classified = classifier.classify_sequences(moving_pics, database)
 ```
-4. Format the output
-```
+
+### 4. Format and export results
+```python
 classified = results.summarize_predictions(classified)
 print(classified.columns)
 ```
+
 Output:
 ```
->>> Index(['id', 'sequence', 'classification', 'Kingdom', 'Phylum', 'Class',
+Index(['id', 'sequence', 'classification', 'Kingdom', 'Phylum', 'Class',
        'Order', 'Family', 'Genus', 'observed', 'lineage'],
       dtype='object')
 ```
+
+```python
+classified.to_csv("classified_results.csv")
 ```
-print(classified["classification"].head())
-```
-Output:
-```
-   0    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
-   1    Bacteria(100);Pseudomonadota(100);Betaproteoba...
-   2    Bacteria(100);Bacillota(100);Bacilli(100);Lact...
-   3    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
-   4    Bacteria(100);Bacteroidota(100);Bacteroidia(10...
-   Name: classification, dtype: object
-```
-Format the results using results.summarize_predictions() function.
-The output is a pandas dataframe and can be saved to csv.
-```
-from phylotypy import results
+
+---
+
+## Complete Code Block
+
+```python
+from phylotypy import classifier, results, read_fasta
+
+rdp = read_fasta.read_taxa_fasta("rdp_16S_v19.dada2.fasta")
+moving_pics = read_fasta.read_taxa_fasta("dna_moving_pictures.fasta")
+
+database = classifier.make_classifier(rdp)
+
+classified = classifier.classify_sequences(moving_pics, database)
 classified = results.summarize_predictions(classified)
 print(classified.head())
 
 classified.to_csv("classified_results.csv")
+```
+
+---
+
+## Example Classification Output
+
+Taxonomic levels (Domain → Genus) are semicolon-separated. Numbers in parentheses
+represent bootstrap confidence scores. The default confidence threshold is 80%.
 
 ```
-## Example classification output:
-The taxonomic levels "Domain", "Phylum", "Class", "Order", "Family", "Genus" are separated by ";".  The numbers in the () represent the confidence in the classificaiton.  The default confidence is 80%.
+Bacteria(100);Pseudomonadota(99);Alphaproteobacteria(99);Rhodospirillales(99);Acetobacteraceae(99);Roseomonas(83)
+
+Bacteria(99);Bacteroidota(97);Bacteroidia(93);Bacteroidales(93);Bacteroidales_unclassified(93);Bacteroidales_unclassified(93)
+
+Bacteria(100);Bacteroidota(100);Bacteroidia(100);Bacteroidales(100);Bacteroidaceae(100);Bacteroides(100)
 ```
->>> Bacteria(100);Pseudomonadota(99);Alphaproteobacteria(99);Rhodospirillales(99);Acetobacteraceae(99);Roseomonas(83)
 
->>> Bacteria(99);Bacteroidota(97);Bacteroidia(93);Bacteroidales(93);Bacteroidales_unclassified(93);Bacteroidales_unclassified(93)
+---
 
-```
-## Complete code block:
-```
-from pathlib import Path
-from phylotypy import classifier, results, read_fasta
+## Working with Your Own Data
 
-rdp = read_fasta.read_taxa_fasta("rdp_16S_v19.dada2.fasta")
-moving_pics = read_fasta.read_taxa_fasta("dna_moving_pictures.fasta")
+phylotypy works with FASTA files from DADA2, QIIME2, or any standard pipeline.
+See [read_fasta.py](src/phylotypy/utilities/read_fasta.py) for utilities to load
+and convert sequence data into the required format.
 
-database = classifier.make_classifier(rdp)
+A complete walkthrough is available in [vignette.py](vignette.py).
 
-classified = classifier.classify_sequences(moving_pics, database)
-classified = results.summarize_predictions(classified)
-print(classified.head())
-```
-### Requirements
-numpy
-numba
-pandas
-requests
-pandarallel
-jax
+---
+
+## Requirements
+
+Dependencies are installed automatically via pip. See
+[pyproject.toml](https://github.com/csaltikov/phylotypy/blob/main/pyproject.toml)
+for the full list.
+
+---
+
+## Citation
+
+If you use phylotypy in your research, please cite:
+
+- Wang, Q., Garrity, G.M., Tiedje, J.M., Cole, J.R. (2007) Naive Bayesian Classifier
+  for Rapid Assignment of rRNA Sequences into the New Bacterial Taxonomy.
+  *Applied and Environmental Microbiology*, 73(16), 5261–5267.
+- Saltikov, C. (2024) phylotypy: Python implementation of a Naive Bayesian 16S rRNA classifier.
+  https://github.com/csaltikov/phylotypy
