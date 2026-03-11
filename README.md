@@ -43,8 +43,8 @@ Download the RDP reference training set and an example dataset before classifyin
 
 | File | Description |
 |------|-------------|
-| [rdp_16S_v19.dada2.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/rdp_16S_v19.dada2.fasta) | RDP trainset19072023, DADA2 format |
-| [dna_moving_pictures.fasta](https://raw.githubusercontent.com/csaltikov/phylotypy/refs/heads/main/data/dna_moving_pictures.fasta) | Example dataset (Moving Pictures study) |
+| [rdp_16S_v19.dada2.fasta](https://github.com/csaltikov/phylotypy/blob/dca2326c0f91fff49bc3dc559df5d66fe9ee6953/data/rdp_16S_v19.dada2.fasta) | RDP trainset19072023, DADA2 format |
+| [dna_moving_pictures.fasta](https://github.com/csaltikov/phylotypy/blob/dca2326c0f91fff49bc3dc559df5d66fe9ee6953/data/dna_moving_pictures.fasta) | Example dataset (Moving Pictures study) |
 The training data fasta descriptions should a taxonomy. By default the Species level is ignored.
 ```
 "Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"
@@ -133,10 +133,10 @@ Bacteria(100);Bacteroidota(100);Bacteroidia(100);Bacteroidales(100);Bacteroidace
 ## Working with Your Own Data
 
 phylotypy works with FASTA files from DADA2, QIIME2, or any standard pipeline.
-See [read_fasta.py](src/phylotypy/utilities/read_fasta.py) for utilities to load
+See [read_fasta.py](https://github.com/csaltikov/phylotypy/blob/dca2326c0f91fff49bc3dc559df5d66fe9ee6953/src/phylotypy/utilities/read_fasta.py) for utilities to load
 and convert sequence data into the required format.
 
-A complete walkthrough is available in [vignette.py](vignette.py).
+A complete walkthrough is available in [vignette.py](https://github.com/csaltikov/phylotypy/blob/dca2326c0f91fff49bc3dc559df5d66fe9ee6953/vignette.py).
 
 ---
 
