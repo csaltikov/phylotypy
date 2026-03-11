@@ -1,6 +1,6 @@
 # phylotypy
 
-![PyPI version](https://badge.fury.io/py/phylotypy.svg)
+[![PyPI version](https://badge.fury.io/py/phylotypy.svg)](https://github.com/csaltikov/phylotypy)
 ![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)
 [![GitHub](https://img.shields.io/badge/GitHub-phylotypy-black?logo=github)](https://github.com/csaltikov/phylotypy)
