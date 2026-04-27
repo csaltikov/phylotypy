@@ -182,7 +182,8 @@ def detect_kmers_across_sequences_mp(sequences: list,
                                      verbose: bool = False) -> list[list]:
     if verbose:
         print("Detecting kmers across sequences mp")
-    with mp.Pool(num_processes) as pool:
+    ctx = mp.get_context("fork")
+    with ctx.Pool(num_processes) as pool:
         args_list = [(seq, kmer_size) for seq in sequences]
         results = pool.starmap(detect_kmers, args_list)
     if verbose:
