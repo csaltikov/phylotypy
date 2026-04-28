@@ -1,19 +1,15 @@
 name: Upload Python Package
-
 on:
   release:
     types: [published]
-
 permissions:
   contents: read
-
 jobs:
-  release-build:
-    runs-on: ${{ matrix.os }}
+  release-build-macos:
+    runs-on: macos-latest
     strategy:
       matrix:
         python-version: ["3.11", "3.12", "3.13"]
-        os: [macos-latest, ubuntu-latest]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -27,12 +23,28 @@ jobs:
       - name: Upload distributions
         uses: actions/upload-artifact@v4
         with:
-          name: release-dists-${{ matrix.python-version }}
+          name: release-dists-macos-${{ matrix.python-version }}
           path: dist/
+
+  release-build-linux:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build manylinux wheels
+        uses: pypa/cibuildwheel@v2.22.0
+        env:
+          CIBW_BUILD: "cp311-* cp312-* cp313-*"
+          CIBW_SKIP: "*-win* *-musllinux*"
+          CIBW_BEFORE_BUILD: "pip install setuptools wheel Cython numpy"
+      - name: Upload distributions
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-dists-linux
+          path: wheelhouse/
 
   pypi-publish:
     runs-on: ubuntu-latest
-    needs: release-build
+    needs: [release-build-macos, release-build-linux]
     permissions:
       id-token: write
     environment:

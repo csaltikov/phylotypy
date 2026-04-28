@@ -11,3 +11,4 @@ __pycache__
 /data/*.pkl*
 /local_items
 /training_data/
+.github/workflows/python-publish_backup.yml
