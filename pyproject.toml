@@ -13,7 +13,7 @@ include-package-data = true
 
 [project]
 name = "phylotypy"
-version = "0.2.7"
+version = "0.3.0"
 keywords = [
     "16S rRNA",
     "naive bayes",
@@ -87,3 +87,8 @@ Repository = "https://github.com/csaltikov/phylotypy"
 
 [project.optional-dependencies]
 test = ["pytest"]
+
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore::DeprecationWarning:multiprocessing"
+]

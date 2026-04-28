@@ -1,15 +1,16 @@
 from dataclasses import dataclass, field
 from functools import partial
 from itertools import repeat
-
-import multiprocessing as mp
-mp.set_start_method('spawn', force=True)
-
-from pathlib import Path
-import re
 from typing import Dict, Any, List, Type
 
-import pandas as pd
+import multiprocessing as mp
+import platform
+
+if platform.system() == "Darwin":
+    mp.set_start_method('spawn', force=True)
+
+import re
+
 import numpy as np
 from numpy.dtypes import StringDType
 
@@ -45,6 +46,20 @@ class KmerDB:
             "genera_idx": self.genera_idx,
             "genera_names": self.genera_names
         }
+
+
+
+@dataclass
+class KmerIndices:
+    """CSR-style compressed kmer storage — replaces list of lists."""
+    indices: np.ndarray   # flat int32 array of all kmer indices
+    offsets: np.ndarray   # int32 array of length n_sequences+1
+
+    def __len__(self):
+        return len(self.offsets) - 1
+
+    def __getitem__(self, i):
+        return self.indices[self.offsets[i]:self.offsets[i+1]]
 
 
 def build_kmer_database(sequences: list[str], genera: list[str],
@@ -166,29 +181,53 @@ def detect_kmer_indices(sequence: str, k: int=8) -> List[list[int]]:
 def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: bool = False) -> list:
     """Find all kmers for a list of nucleotide sequences"""
     if verbose:
-        print("Detecting kmers across sequences")
+        print("Detecting kmers across sequences (standard)")
+    
     n_sequences = len(sequences)
-    kmer_list: list = [None] * n_sequences
+    offsets = np.zeros(n_sequences + 1, dtype=np.int32)
+    results: list = [None] * n_sequences
+    
     for i, seq in enumerate(sequences):
-        kmer_list[i] = detect_kmers(seq, kmer_size)
+        r = detect_kmer_indices(seq, k=kmer_size)
+        results[i] = r
+        offsets[i+1] = offsets[i] + len(r)
+        
+    indices = np.empty(offsets[-1], dtype=np.int32)
+    for i, r in enumerate(results):
+        indices[offsets[i]:offsets[i+1]] = r
+    
+    del results
+    
     if verbose:
         print("Done detecting kmers")
-    return kmer_list
+    return KmerIndices(indices=indices, offsets=offsets)
 
 
 def detect_kmers_across_sequences_mp(sequences: list,
                                      kmer_size: int = 8,
                                      num_processes: int = 4,
-                                     verbose: bool = False) -> list[list]:
+                                     verbose: bool = False) -> KmerIndices:
     if verbose:
         print("Detecting kmers across sequences mp")
-    ctx = mp.get_context("fork")
+    ctx = mp.get_context("spawn")
     with ctx.Pool(num_processes) as pool:
         args_list = [(seq, kmer_size) for seq in sequences]
         results = pool.starmap(detect_kmers, args_list)
+        
+    offsets = np.zeros(len(results) + 1, dtype=np.int32)
+    for i, r in enumerate(results):
+        offsets[i+1] = offsets[i]  + len(r)
+    
+    indices = np.empty(offsets[-1], dtype=np.int32)
+    for i, r in enumerate(results):
+        indices[offsets[i]:offsets[i+1]] = r
+    
+    del results
+    
     if verbose:
         print("Done detecting kmers")
-    return results
+    return KmerIndices(indices=indices, offsets=offsets)
+
 
 
 def calc_word_specific_priors(detected_kmers_list: list,
@@ -213,12 +252,11 @@ def calc_word_specific_priors(detected_kmers_list: list,
     n_seqs = len(detected_kmers_list)  # the corpus of N sequences
     priors = np.zeros(4 ** kmer_size)
 
-    for idx_list in detected_kmers_list:
+    for i in range(n_seqs):
+        idx_list = detected_kmers_list[i]
         priors[idx_list] +=1
-
-    # expected-likelihood estimate using Jeffreys-Perks law of succession
-    # 0 < Pi < 1
-    return (priors + 0.5) / (n_seqs + 1)
+    priors = (priors + 0.5) / (n_seqs + 1)
+    return priors
 
 
 def calc_genus_conditional_prob(detect_list: list[list[int]],

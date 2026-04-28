@@ -1,4 +1,10 @@
 #!/usr/bin/env python3
+import multiprocessing
+import platform
+
+if platform.system() == "Darwin":
+    multiprocessing.set_start_method("spawn", force=True)
+    
 from collections import defaultdict
 from pathlib import Path
 import pickle
@@ -10,6 +16,7 @@ from phylotypy import kmers, conditional_prob, bootstrap
 from phylotypy import cond_prob_cython
 from phylotypy import classify_bootstraps_cython
 from phylotypy import read_fasta
+from phylotypy import training_data
 
 from pandarallel import pandarallel
 pandarallel.initialize(progress_bar=False, verbose=1)
@@ -60,7 +67,9 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
     if isinstance(sequences, str | Path):
         sequences = read_fasta.read_taxa_fasta(sequences)
 
-    genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(sequences, **kwargs)
+    genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(
+        sequences, **kwargs
+        )
 
     classified = defaultdict(list)
 
@@ -104,6 +113,10 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
             - multiprocess (bool): Whether to use multiprocessing for k-mer detection (default: True)
             - n_cpu (int): Number of CPU cores to use for multiprocessing (default: 4)
             - verbose (bool): Whether to show progress messages during processing (default: False)
+            - filter_db (bool): filter records used to create the database; see training_data.py
+            - max_per_genus (int): used for down sampling and max records per unique genera
+            - random_state (int): for down-sampling database, set to 42 
+            
 
     Returns:
         KmerDB: A k-mer based database object that contains the genus conditional probabilities,
@@ -116,6 +129,11 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
         >>> from phylotypy import read_fasta, classifier
         >>> ref_seqs = read_fasta.read_taxa_fasta("my_reference_sequences.fa", multiprocess=True)
         >>> database = classifier.make_classifier(ref_seqs)
+        
+        >>> # downsample and filter option
+        >>> database_filt = classifier.make_classifier(ref_seqs,
+        >>>                                            filter_db=True,
+        >>>                                            max_per_genus=50)
 
         >>> # Save the database for later use:
         >>> import pickle
@@ -130,24 +148,40 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
     """
     if isinstance(ref_db, str | Path):
         ref_db = read_fasta.read_taxa_fasta(ref_db)
+        
+    filter_db: bool = kwargs.get("filter_db", False)
+    max_per_genus: int = kwargs.get("max_per_genus", 200)
+    random_state: int = kwargs.get("random_state", 42)
+    mmap_threshold_gb: float|int = kwargs.get("mmap_threshold_gb", 8.0)
+    kmer_size: int = kwargs.get('kmers_size', 8)
+    multiprocess: bool = kwargs.get('multiprocess', True)
+    n_cpu: int = kwargs.get('n_cpu', 4)
+    verbose: bool() = kwargs.get('verbose', False)
+    
+    if filter_db:
+        print(f"Before filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
+        ref_db = training_data.filter_train_set(ref_db)
+        print(f"After filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
+        ref_db = training_data.down_sample(ref_db, col="id", 
+                                           n=max_per_genus,
+                                           random_state=random_state)
+        print(f"After downsample: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
+        print(f"Matrix will be: {65536 * ref_db['id'].nunique() * 4 / 1e9:.2f} GB")
 
     ref_db_cols = ref_db.columns.to_list()
     required_cols = {"id", "sequence"}
     if not required_cols.issubset(set(ref_db_cols)):
         raise ValueError("Reference database must contain 'id' and 'sequence' columns")
 
-    kmer_size = kwargs.get('kmers_size', 8)
-    multiprocess = kwargs.get('multiprocess', True)
-    n_cpu = kwargs.get('n_cpu', 4)
-    verbose = kwargs.get('verbose', False)
-
     print("Building classifier database...")
+    print(f"Mutiprocessing is set to: {multiprocess}")
 
     if multiprocess:
         # detect_list = ref_db["sequence"].parallel_apply(lambda df: kmers.detect_kmer_indices(df, k=kmer_size))
         detect_list = kmers.detect_kmers_across_sequences_mp(ref_db["sequence"],
                                                           kmer_size=kmer_size,
-                                                          verbose=verbose)
+                                                          verbose=verbose,
+                                                          num_processes=n_cpu)
     else:
         detect_list = kmers.detect_kmers_across_sequences(ref_db["sequence"],
                                                           kmer_size=kmer_size,
@@ -155,12 +189,41 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
 
     genera_idx = np.array(kmers.genera_str_to_index(ref_db["id"]), dtype=np.int32)
     genera_names = kmers.index_genus_mapper(ref_db["id"].to_list())
-
+    
+    del ref_db
+    
     priors = kmers.calc_word_specific_priors(detect_list, kmer_size=kmer_size, verbose=verbose)
+    
+    n_kmers = 4 ** kmer_size
+    n_genera = len(set(genera_idx))
+    matrix_gb = (4 ** kmer_size * n_genera * 4) / 1e9
+    if verbose:
+        print(f"genus_count matrix will be: {matrix_gb:.2f} GB")
+        print(f"n_sequences: {len(detect_list)}")
+        print(f"n_genera: {n_genera}")
+        print(f"n_kmers: {n_kmers}")
+        print(f"total kmer indices: {detect_list.indices.shape[0]:,}")
+    
+    if matrix_gb > mmap_threshold_gb:
+        print("Large matrix detected, using memmap...")
+        genus_cond_prob = cond_prob_cython.calc_genus_conditional_prob_mmap(
+            detect_list.indices, detect_list.offsets,
+            genera_idx, priors.astype(np.float32)
+        )
+    else:
+        genus_cond_prob = cond_prob_cython.calc_genus_conditional_prob(
+            detect_list.indices, detect_list.offsets,
+            genera_idx, priors.astype(np.float32)
+        )
 
-    genus_cond_prob = cond_prob_cython.calc_genus_conditional_prob(detect_list, genera_idx, priors.astype(np.float32))
+    del detect_list
+    del priors
+    
+    import gc
+    gc.collect()  # force Python to actually release the memory
 
-    database = kmers.KmerDB(conditional_prob=genus_cond_prob, genera_idx=genera_idx.tolist(),
+    database = kmers.KmerDB(conditional_prob=genus_cond_prob,
+                            genera_idx=genera_idx,
                             genera_names=genera_names)
 
     print("Done building classifier")

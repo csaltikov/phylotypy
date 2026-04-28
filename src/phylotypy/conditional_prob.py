@@ -1,4 +1,12 @@
 #!/usr/bin/env python3
+import multiprocessing
+import platform
+
+
+if platform.system() == "Darwin":
+    multiprocessing.set_start_method('spawn', force=True)
+    
+    
 from pathlib import Path
 from time import perf_counter
 
