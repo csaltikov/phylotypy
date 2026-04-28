@@ -78,6 +78,7 @@ dependencies = [
     "pandas>=2.2",
     "requests",
     "pandarallel",
+    "pyarrow"
 ]
 
 [project.urls]
@@ -90,5 +91,5 @@ test = ["pytest"]
 
 [tool.pytest.ini_options]
 filterwarnings = [
-    "ignore::DeprecationWarning:multiprocessing"
+    "ignore::DeprecationWarning:multiprocessing.popen_fork"
 ]
