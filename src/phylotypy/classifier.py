@@ -22,6 +22,13 @@ from pandarallel import pandarallel
 pandarallel.initialize(progress_bar=False, verbose=1)
 
 
+def detect_n_levels(genera_names: np.ndarray) -> int:
+    """Infer the number of taxonomic levels from the majority semicolon count in genera_names."""
+    counts = np.char.count(genera_names, ";")
+    majority = np.bincount(counts).argmax()
+    return int(majority) + 1
+
+
 def classify_sequences(sequences: pd.DataFrame | str | Path,
                        database: kmers.KmerDB | dict,
                        verbose=False, **kwargs):
@@ -40,7 +47,7 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
             DataFrame. If str/Path, the fasta will be converted to a datafame.
             Each row is a sequence with at least an "id" column holding sequence
             identifiers and a "sequence" column.
-        database: dict
+        database: dict or kmers.KmerDB
             The reference database to classify against, containing the necessary
             information for sequence classification.
         verbose: bool, optional
@@ -66,6 +73,9 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
     """
     if isinstance(sequences, str | Path):
         sequences = read_fasta.read_taxa_fasta(sequences)
+
+    if "n_levels" not in kwargs:
+        kwargs["n_levels"] = detect_n_levels(database.genera_names)
 
     genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(
         sequences, **kwargs
