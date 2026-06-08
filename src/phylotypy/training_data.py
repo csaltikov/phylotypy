@@ -1,11 +1,7 @@
-import re
 from pathlib import Path
-
 import pandas as pd
 import requests
 import tarfile
-import gzip
-
 import numpy as np
 
 from phylotypy.utilities import read_fasta
@@ -90,14 +86,88 @@ def silva_train_set(out_dir):
 
 
 def filter_train_set(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
-    noise = "Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture"
-    remove_values = kwargs.get("remove_values", noise)
-    df_ = (df[~df["id"].str.contains(remove_values, na=False)]
-           .assign(levels=df["id"].transform(lambda col: len(re.findall(";", col))))
+    """
+    Filter a reference database by taxonomy level and remove noisy sequences.
+
+    Removes sequences containing unwanted taxonomic terms (e.g. metagenomes,
+    Eukaryota, Candidatus) and retains only sequences with a specific number
+    of taxonomic levels. Useful for standardizing training data before
+    building a classifier.
+
+    Args:
+        df: DataFrame with 'id' and 'sequence' columns where 'id' contains
+            semicolon-delimited taxonomy strings e.g.
+            'Bacteria;Firmicutes;Bacilli;Lactobacillales;Lactobacillaceae;Lactobacillus'
+        **kwargs:
+            terms (str): Pipe-delimited regex pattern of terms to exclude.
+                Default: 'Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture'
+            n_levels (int): Number of taxonomic levels to retain. Default: 6
+
+    Returns:
+        pd.DataFrame: Filtered DataFrame with only sequences matching the
+            specified taxonomy depth and free of noisy terms.
+
+    Examples:
+        >>> from phylotypy import read_fasta, training_data
+        >>> silva = read_fasta.read_taxa_fasta("silva_138.fasta.gz")
+        >>> silva.shape
+        (231218, 2)
+
+        >>> # Default filtering — 6 levels, standard noise terms
+        >>> filtered = training_data.filter_train_set(silva)
+        >>> filtered.shape
+        (158970, 3)
+
+        >>> # Custom taxonomy depth
+        >>> filtered = training_data.filter_train_set(silva, n_levels=7)
+
+        >>> # Add custom noise terms
+        >>> filtered = training_data.filter_train_set(silva,
+        ...                                           terms="Incertae|metagenome|Eukaryota|uncultured")
+    """
+    noise = "Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture|endosymbiont"
+    
+    taxa_levels_full = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
+    terms = kwargs.get("terms", noise)
+    n_levels = kwargs.get("n_levels", 6)
+    threshold = kwargs.get("threshold", 5)
+    
+    df_ = (df[~df["id"].str.contains(terms, na=False)]
+           .assign(levels=lambda x: x['id'].str.count(";") + 1)
            )
-    highest_level = df_["levels"].values.mean()
-    df_ = df_[df_["levels"] == int(highest_level)]
-    return df_
+    df_["id"] = df_["id"].str.replace(r"[\[\]]", "", regex=True)
+    
+    if n_levels == 7:
+        df_ = df_[df_["levels"] >= 6].copy()
+        df_[taxa_levels_full] = df_['id'].str.split(";", expand=True)
+        df_["Species"] = df_["Species"].fillna("")
+        
+        # fill_species
+        df_["Species"] = np.where(
+            df_["Species"].str.strip() == "",
+            df_["Genus"] + "_sp",
+            df_["Genus"] + "_" + df_["Species"]
+        )
+        
+        # collapse low-rep taxa
+        species_counts = df_["Species"].value_counts()
+        low_rep_taxa = set(species_counts[species_counts < threshold].index)  # set for O(1) lookup
+        
+        df_["Species"] = np.where(
+            df_["Species"].isin(low_rep_taxa),
+            df_["Genus"] + "_sp",
+            df_["Species"]
+        )
+        
+        df_["id"] = df_[taxa_levels_full].fillna("").apply(lambda x: ";".join(x), axis=1)
+        
+        post_collapse_counts = df_["id"].value_counts()
+        still_singleton = set(post_collapse_counts[post_collapse_counts < 2].index)
+        df_ = df_[~df_["id"].isin(still_singleton)]
+        
+        return df_[["id", "sequence"]]
+    else:
+        return df_[df_["levels"] == n_levels]
 
 
 def down_sample(df, col="id", n=200, random_state=None) -> pd.DataFrame:
@@ -111,4 +181,4 @@ def down_sample(df, col="id", n=200, random_state=None) -> pd.DataFrame:
 
 
 if __name__ == "__main__":
-    rdp_train_set_19()
+    print("Tools for processing phylotypy training data sets")

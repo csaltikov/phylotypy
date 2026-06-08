@@ -14,7 +14,7 @@ class TestTrainingData(unittest.TestCase):
     def test_filter_train_set(self):
         id_df = pd.DataFrame(self.ids)
 
-        observed = training_data.filter_train_set(id_df)
+        observed = training_data.filter_train_set(id_df, n_levels=2)
         obs_true = observed["id"].str.contains("Shewanella").values
 
         expected = np.any([True])

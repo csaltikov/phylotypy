@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 
 
 def summarize_predictions(classified: dict | pd.DataFrame, n_levels: int = 6):
@@ -6,9 +7,16 @@ def summarize_predictions(classified: dict | pd.DataFrame, n_levels: int = 6):
         classified_df = pd.DataFrame(classified)
     else:
         classified_df = classified.copy()
+    
     taxa_levels_full = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
+    
+    counts = classified["classification"].str.count(";")
+    majority = np.bincount(counts).argmax()
+    
+    n_levels = int(majority) + 1
     taxa_levels = taxa_levels_full[:n_levels]
     tax_level_codes = [f"{t[0].lower()}__" for t in taxa_levels]
+    
     classified_df[taxa_levels] = classified_df["classification"].str.split(";", expand=True)
 
     def join_taxa(taxa_split):
@@ -23,11 +31,17 @@ def summarize_predictions(classified: dict | pd.DataFrame, n_levels: int = 6):
     return classified_df
 
 
-def prevalence(data: pd.Series, threshold: float = 10):
-    # Determine if the counts data for a specific sequence is above a threshold value
-    filtered = data[data > threshold]
-    prev = len(filtered) / len(data)
-    return int(100 * prev)
+def prevalence(data: pd.Series, min_count: int = 1) -> int:
+    '''Percent of samples in which a feature meets the minimum count threshold.
+    
+    Args:
+        data: pd.Series of the features and their counts across all samples
+        min_count: the minimum counts required to establish a sample positive for a feature
+    
+    Returns:
+        int: prevalence as a whole-number percentage (0–100)
+    '''
+    return int(100 * (data >= min_count).sum() / len(data))
 
 
 if __name__ == "__main__":

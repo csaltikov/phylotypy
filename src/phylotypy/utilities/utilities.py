@@ -8,6 +8,7 @@ import pickle
 import re
 import subprocess
 import requests
+import xml.etree.ElementTree as ET
 import pandas as pd
 
 
@@ -97,11 +98,20 @@ def summarize_taxa_ids(api_res):
 
 
 def get_eutils_results(url, payload):
-    r = None
     for attempt in range(MAX_RETRIES):
         try:
             r = requests.get(url, params=payload)
             r.raise_for_status()
+            
+            fmt = payload.get("retmode", None)
+            if fmt == "json":
+                try:
+                    return r.json()
+                except json.JSONDecodeError:
+                    print(f"Request failed to decode {url}")
+                    return r.text
+            return r.text
+            
         except requests.exceptions.HTTPError as e:
             failed_response = e.response
             if failed_response.status_code == 429:
@@ -109,27 +119,46 @@ def get_eutils_results(url, payload):
                 retry_after = r.headers.get("Retry-After")
                 if retry_after:
                     wait_time = int(retry_after)
-                    print(wait_time)
                 if attempt +1 == MAX_RETRIES:
-                    break
+                    print(f"Max retries reached for {url}")
+                    raise
+                print(f"Rate limited, waiting {wait_time}s (attempt {attempt + 1}/{MAX_RETRIES})")
                 time.sleep(wait_time)
-                continue
+            else:
+                raise
+                
         except requests.exceptions.Timeout:
             print("Request timed out")
             raise
+            
         except requests.exceptions.RequestException as e:
             print(f"Request failed {e}")
             raise
 
-        fmt = payload.get("retmode", None)
-        if fmt == "json":
-            try:
-                return r.json()
-            except json.decoder.JSONDecodeError as e:
-                print(f"Request failed to decode {url}")
-                return r.text
-        else:
-            return r.text
+
+def parse_taxa_xml(res):
+    root = ET.fromstring(res)
+    top_level = root.findall("Taxon")
+    
+    def parse_lineage(lineage):
+        saved_lineage = {}
+        for rec in lineage:
+            level = rec.findtext("Rank")
+            taxon = rec.findtext("ScientificName")
+            saved_lineage[level] = taxon
+        return saved_lineage
+
+    all_results = []
+    for taxon in top_level:
+        taxid = taxon.findtext("TaxId")
+        name = taxon.findtext("ScientificName")
+        rank = taxon.findtext("Rank")
+        
+        extended_lineage = parse_lineage(taxon.find("LineageEx"))
+        extended_lineage["taxid"] = taxid
+        extended_lineage[rank] = name
+        all_results.append(extended_lineage)
+    return all_results
 
 
 def get_taxa_ids(taxa_names):
@@ -137,33 +166,29 @@ def get_taxa_ids(taxa_names):
         taxa_names = [taxa_names]
     terms = " OR ".join(taxa_names)
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
-    summary_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esummary.fcgi"
+    fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
     payload = dict(db="taxonomy", term=terms, retmode="json")
-    r0 = get_eutils_results(url=search_url, payload=payload)
-    with open("log.txt", "w") as f:
-        json.dump(r0, f)
-        f.write("\n\n")
+    response = get_eutils_results(url=search_url, payload=payload)
 
-    exceed_limit = r0.get("error", [])
+    exceed_limit = response.get("error", [])
     if exceed_limit:
         print(exceed_limit)
         return dict(error=exceed_limit)
 
-    res0 = r0.get("esearchresult", {}).get("idlist", [])
-    taxa_errors = r0.get("esearchresult", {}).get("errorlist", [])
+    ids_list = response.get("esearchresult", {}).get("idlist", [])
+    taxa_errors = response.get("esearchresult", {}).get("errorlist", [])
     if taxa_errors:
         print("Taxa not found: ", taxa_errors)
 
-    taxa_id_payload = dict(db="taxonomy", id=",".join(res0), retmode="json")
-    found_ids = get_eutils_results(url=summary_url, payload=taxa_id_payload)
-    with open("log.txt", "a") as f:
-        json.dump(found_ids, f)
+    taxa_id_payload = dict(db="taxonomy", id=",".join(ids_list), retmode="xml")
+    found_ids = get_eutils_results(url=fetch_url, payload=taxa_id_payload)
+
     return found_ids
 
 
 if __name__ == "__main__":
-    print(f"Support tools for phylotypy package")
+    print("Support tools for phylotypy package")
     taxa_list = [
         "Methanobrevibacter",
         "Halobacterium",
@@ -178,10 +203,11 @@ if __name__ == "__main__":
         "Salmonella"
     ]
     res0 = get_taxa_ids(taxa_list)
-    res0_dict = summarize_taxa_ids(res0)
+    res0_dict = parse_taxa_xml(res0)
+    # res0_dict = summarize_taxa_ids(res0)
     res0_df = pd.DataFrame(res0_dict)
     print(res0_df.head())
-    print(get_taxa_ids(["Methanobrevibacter"]))
+    # print(get_taxa_ids(["Methanobrevibacter"]))
 
 
 

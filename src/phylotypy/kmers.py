@@ -137,7 +137,7 @@ def seq_to_base4(sequence: str | list):
             converted.append(convert_dna(seq))
         return converted
     else:
-        raise ValueError(f"Input should be a list or string")
+        raise ValueError("Input should be a list or string")
 
 
 def base4_to_index(base4_str: list) -> list:
@@ -464,7 +464,7 @@ def base4_to_nucleotide(base4_seq: str | list):
             converted.append(convert_base4(seq))
         return converted
     else:
-        raise ValueError(f"Input should be a list or string")
+        raise ValueError("Input should be a list or string")
 
 
 if __name__ == "__main__":
