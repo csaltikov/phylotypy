@@ -16,9 +16,7 @@ import numba as nb
 
 from phylotypy import kmers
 from phylotypy import cond_prob_cython
-
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=False, verbose=1)
+from phylotypy import _worker_pool
 
 
 def build_database(sequences, kmer_size: int = 8, **kwargs):
@@ -78,6 +76,10 @@ def seq_to_kmers_database(sequences_db, **kwargs):
     seq_col = kwargs.get('seq_col', 'sequence')
     id_col = kwargs.get('id_col', 'id')
     kmer_size = kwargs.get('kmer_size', 8)
+    verbose = kwargs.get('verbose', False)
+
+    if verbose:
+        print(f"kmer_size is set to {kmer_size}")
 
     db = sequences_db
 
@@ -89,12 +91,14 @@ def seq_to_kmers_database(sequences_db, **kwargs):
         else:
             db = pd.read_csv(sequences_db, sep=None, engine='python')
 
-    kmer_series = db[seq_col].parallel_apply(lambda x: kmers.detect_kmer_indices(x, k=kmer_size))
+    pool = _worker_pool.get_pool()
+    kmer_results = pool.starmap(kmers.detect_kmer_indices, [(s, kmer_size) for s in db[seq_col]])
+    kmer_series = pd.Series(kmer_results, index=db.index)
     # Calculate max length
     max_seq_len = kmer_series.str.len().max().astype(int)
 
-    # apply function that makes the list objects the same length
-    detected_kmers = kmer_series.parallel_apply(lambda x: fix_kmers_length(np.array(x), max_seq_len))
+    # pad each sequence's kmer array to a common length (cheap; no pool needed)
+    detected_kmers = kmer_series.apply(lambda x: fix_kmers_length(x, max_seq_len))
     genera_idx = kmers.genera_str_to_index(db[id_col])
 
     print("Done with detecting k-mers")

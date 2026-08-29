@@ -8,6 +8,7 @@ from pathlib import Path
 
 import numpy as np
 from numpy.typing import NDArray
+from scipy import stats
 
 from phylotypy import kmers, classifier
 from phylotypy.utilities import read_fasta
@@ -76,6 +77,40 @@ def bootstrap_consensus(classified_bs_kmers: np.ndarray, genera_names: np.ndarra
         most_common = counter.most_common(1)[0]  # Returns (taxon, count)
         taxa_consensus[i] = most_common[0]
         confidence_consensus[i] = most_common[1]
+
+    return dict(taxonomy=taxa_consensus, confidence=confidence_consensus)
+
+
+##
+def bootstrap_consensus_batch(bs_res: np.ndarray, genera_names: np.ndarray) -> dict:
+    """
+    Vectorized equivalent of bootstrap_consensus() across every sequence at once.
+
+    Args:
+        bs_res: (n_seq, num_bs) int array of genus indices, one row per sequence
+            (as returned by batch_classifier.classify_all()).
+        genera_names: 1D array of ';'-joined taxonomy strings, indexed by genus id.
+
+    Returns:
+        dict with "taxonomy" (n_seq, n_levels object array) and
+        "confidence" (n_seq, n_levels int array), giving the per-level bootstrap
+        consensus and its replicate count for every sequence.
+    """
+    genera_split = np.array([g.split(";") for g in genera_names])
+    n_seq = bs_res.shape[0]
+    n_levels = genera_split.shape[1]
+
+    taxa_consensus = np.empty((n_seq, n_levels), dtype=object)
+    confidence_consensus = np.zeros((n_seq, n_levels), dtype=int)
+
+    for level in range(n_levels):
+        # Genera sharing the same taxon at this level must be pooled together
+        # before voting, since bs_res holds genus ids, not level-specific ones.
+        labels, codes_for_genera = np.unique(genera_split[:, level], return_inverse=True)
+        level_codes = codes_for_genera[bs_res]  # (n_seq, num_bs)
+        mode_result = stats.mode(level_codes, axis=1, keepdims=False)
+        taxa_consensus[:, level] = labels[mode_result.mode]
+        confidence_consensus[:, level] = mode_result.count
 
     return dict(taxonomy=taxa_consensus, confidence=confidence_consensus)
 

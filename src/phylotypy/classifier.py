@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import multiprocessing
 import platform
+import warnings
 
 if platform.system() == "Darwin":
     multiprocessing.set_start_method("spawn", force=True)
@@ -17,13 +18,12 @@ from phylotypy import cond_prob_cython
 from phylotypy import classify_bootstraps_cython
 from phylotypy import read_fasta
 from phylotypy import training_data
-
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=False, verbose=1)
+from phylotypy.batch_classifier import ClassifyAll
 
 
-def detect_n_levels(genera_names: np.ndarray) -> int:
+def detect_n_levels(genera_names: np.ndarray | pd.Series | list) -> int:
     """Infer the number of taxonomic levels from the majority semicolon count in genera_names."""
+    genera_names = np.asarray(genera_names, dtype=str)
     counts = np.char.count(genera_names, ";")
     majority = np.bincount(counts).argmax()
     return int(majority) + 1
@@ -74,30 +74,31 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
     if isinstance(sequences, str | Path):
         sequences = read_fasta.read_taxa_fasta(sequences)
 
-    if "n_levels" not in kwargs:
-        kwargs["n_levels"] = detect_n_levels(database.genera_names)
+    min_confidence = kwargs.get("min_confidence", 80)
+    n_levels = kwargs.get("n_levels") or detect_n_levels(database.genera_names)
 
-    genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(
-        sequences, **kwargs
-        )
+    classify_seqs = ClassifyAll()
+    classify_seqs.classify(sequences=sequences,
+                           database=database,
+                           verbose=verbose,
+                                   **kwargs)
 
-    classified = defaultdict(list)
-
-    for i, idx in enumerate(genera_idx_test):
-        if verbose:
-            if i % 100 == 0:
-                print(f"Classifying sequence {i} of {len(genera_idx_test)}")
-        seq_kmer = detected_kmers_test[i, 1:].flatten()
-        name = sequences.iloc[i]["id"]
-        classified["id"].append(name)
-        classified["classification"].append(classify_sequence(seq_kmer=seq_kmer,
-                                                              database=database,
-                                                              **kwargs))
-    res = pd.DataFrame(classified)
+    res = classify_seqs.results(
+        min_confidence=min_confidence,
+        verbose=verbose
+    )
+    if verbose:
+        print(f"Classified {len(res)} sequences to {n_levels} taxonomic levels")
     return res
 
 
 def classify_sequence(seq_kmer, database, **kwargs):
+    warnings.warn(
+        "classify_sequence() is deprecated as of version 0.4.0 and will be removed in 1.0.0. "
+        "Pass single-sequence DataFrames or FASTA files directly to classify_sequences() instead.",
+        category=DeprecationWarning,
+        stacklevel=2
+    )
     min_confidence = kwargs.get("min_confidence", 80)
     n_levels = kwargs.get("n_levels", 6)
     bootstrapped = bootstrap.bootstrap(seq_kmer)
@@ -119,12 +120,12 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
         ref_db (pd.DataFrame | str | Path): The reference database. It can be a DataFrame with 'id'
             and 'sequence' columns or a file path to a FASTA file containing sequence data with taxonomy.
         **kwargs: Additional configuration options:
-            - kmers_size (int): Size of k-mers to use in the analysis (default: 8)
+            - kmer_size (int): Size of k-mers to use in the analysis (default: 8)
             - multiprocess (bool): Whether to use multiprocessing for k-mer detection (default: True)
             - n_cpu (int): Number of CPU cores to use for multiprocessing (default: 4)
             - verbose (bool): Whether to show progress messages during processing (default: False)
             - filter_db (bool): filter records used to create the database; see training_data.py
-            - max_per_genus (int): used for down sampling and max records per unique genera
+            - max_per_genus (int): used for down sampling and max records per unique genera, filter_db must be True
             - random_state (int): for down-sampling database, set to 42 
             
 
@@ -163,20 +164,21 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
     max_per_genus: int = kwargs.get("max_per_genus", 200)
     random_state: int = kwargs.get("random_state", 42)
     mmap_threshold_gb: float|int = kwargs.get("mmap_threshold_gb", 8.0)
-    kmer_size: int = kwargs.get('kmers_size', 8)
+    kmer_size: int = kwargs.get('kmer_size', 8)
     multiprocess: bool = kwargs.get('multiprocess', True)
     n_cpu: int = kwargs.get('n_cpu', 4)
     verbose: bool() = kwargs.get('verbose', False)
-    
+
     if filter_db:
+        n_levels = kwargs.get("n_levels") or detect_n_levels(ref_db["id"])
         print(f"Before filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
-        ref_db = training_data.filter_train_set(ref_db)
+        ref_db = training_data.filter_train_set(ref_db, n_levels=n_levels)
         print(f"After filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
         ref_db = training_data.down_sample(ref_db, col="id", 
                                            n=max_per_genus,
                                            random_state=random_state)
         print(f"After downsample: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
-        print(f"Matrix will be: {65536 * ref_db['id'].nunique() * 4 / 1e9:.2f} GB")
+        print(f"Matrix will be: {(4**kmer_size) * ref_db['id'].nunique() * 4 / 1e9:.2f} GB")
 
     ref_db_cols = ref_db.columns.to_list()
     required_cols = {"id", "sequence"}
@@ -187,7 +189,6 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
     print(f"Mutiprocessing is set to: {multiprocess}")
 
     if multiprocess:
-        # detect_list = ref_db["sequence"].parallel_apply(lambda df: kmers.detect_kmer_indices(df, k=kmer_size))
         detect_list = kmers.detect_kmers_across_sequences_mp(ref_db["sequence"],
                                                           kmer_size=kmer_size,
                                                           verbose=verbose,

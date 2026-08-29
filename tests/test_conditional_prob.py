@@ -1,9 +1,6 @@
 import multiprocessing
 multiprocessing.set_start_method("spawn", force=True)
 
-from pandarallel import pandarallel
-pandarallel.initialize(progress_bar=True, verbose=1)
-
 import unittest
 import numpy as np
 import pandas as pd

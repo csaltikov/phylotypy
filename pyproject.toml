@@ -13,7 +13,7 @@ include-package-data = true
 
 [project]
 name = "phylotypy"
-version = "0.3.3"
+version = "0.3.4"
 keywords = [
     "16S rRNA",
     "naive bayes",
@@ -77,8 +77,8 @@ dependencies = [
     "numba>=0.61.0,<0.63.0",
     "pandas>=2.2",
     "requests",
-    "pandarallel",
-    "pyarrow"
+    "pyarrow",
+    "scipy"
 ]
 
 [project.urls]

@@ -89,9 +89,7 @@ class TestGetKmers(unittest.TestCase):
 
         detected = kmers.detect_kmers(sequence)
 
-        self.assertEqual(len(detected), len(indices))
-        print(np.array_equal(np.array(indices), detected))
-        self.assertTrue(True) #
+        self.assertEqual(set(detected), set(indices))
 
         sequence_2 = "ATGCGCTAGTAGCATGCN"
         kmer = kmers.get_all_kmers(kmers.seq_to_base4(sequence_2))
@@ -175,7 +173,6 @@ class TestGetKmers(unittest.TestCase):
 
         for pos, cond_prod in self.expected_cond_prods.items():
             log_cond_prod = np.log(cond_prod).astype(np.float32)
-            print(log_cond_prod, db.conditional_prob[pos,])
             self.assertTrue(np.array_equal(db.conditional_prob[pos,],
                                            log_cond_prod)
                             )
@@ -244,33 +241,6 @@ class TestGetKmers(unittest.TestCase):
 
         self.assertTrue(observed_bs_kmers.shape, expected_shape)
 
-    def test_bootstrap_sampler(self):
-        kmer_size = 3
-        sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
-        genera = ["A", "B", "B"]
-        db = kmers.build_kmer_database(sequences, genera, kmer_size)
-
-        unknown_kmers = kmers.detect_kmers("ATGCGCTC", kmer_size)
-        expected_classification = 1
-
-        detected_classification = kmers.classify_bs(unknown_kmers, db)
-        self.assertEqual(detected_classification, expected_classification)
-
-    def test_classify_bs(self):
-        kmer_size = 2
-        sequences = ["CTGCGCTA", "ATGCGCTC", "ATGCGCTC"]
-        genera = ["A", "B", "B"]
-        db = kmers.build_kmer_database(sequences, genera, kmer_size)
-        kmers_list = [3, 6, 13, 14]
-        expected = 1
-        observed = kmers.classify_bs(kmers_list, db)
-        self.assertEqual(observed, expected)
-
-        kmers_list = [9, 12, 15]
-        expected = 0
-        observed = kmers.classify_bs(kmers_list, db)
-        self.assertEqual(observed, expected)
-
     def test_consensus_classified_bootstrap_samples(self):
         ref_genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 
@@ -285,7 +255,6 @@ class TestGetKmers(unittest.TestCase):
         expected["confidence"] = np.array([100, 80, 80])
 
         observed = kmers.consensus_bs_class(bs_class, db.genera_names)
-        print(observed["taxonomy"])
         self.assertTrue(np.array_equal(expected["confidence"], observed["confidence"]))
 
         self.assertTrue(np.array_equal(expected["taxonomy"], observed["taxonomy"]))

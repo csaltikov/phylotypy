@@ -85,7 +85,7 @@ def silva_train_set(out_dir):
         chunk.to_parquet(silva_out, compression='snappy', engine='pyarrow', index=False)
 
 
-def filter_train_set(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
+def filter_train_set(df: pd.DataFrame, n_levels: int = 6, **kwargs) -> pd.DataFrame:
     """
     Filter a reference database by taxonomy level and remove noisy sequences.
 
@@ -129,7 +129,6 @@ def filter_train_set(df: pd.DataFrame, **kwargs) -> pd.DataFrame:
     
     taxa_levels_full = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
     terms = kwargs.get("terms", noise)
-    n_levels = kwargs.get("n_levels", 6)
     threshold = kwargs.get("threshold", 5)
     
     df_ = (df[~df["id"].str.contains(terms, na=False)]

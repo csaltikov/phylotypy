@@ -49,7 +49,7 @@ class TestClassifier(unittest.TestCase):
     def test_classify_sequence(self):
         database = classifier.make_classifier(self.test_ref, multiprocess=True, n_cpu=8, verbose=True)
 
-        res = classifier.classify_sequences(self.test_ref, database)
+        res = classifier.classify_sequences(self.test_ref, database, verbose=True)
         observed = res.iloc[0, 1]
         expected_res = "Bacteria(100);Actinomycetota(100);Actinobacteria(100);Mycobacteriales(100);Mycobacteriaceae(100);Mycobacterium(100)"
 

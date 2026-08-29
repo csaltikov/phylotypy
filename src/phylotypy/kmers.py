@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 from functools import partial
 from itertools import repeat
-from typing import Dict, Any, List, Type
+from typing import Dict, Any, Type
 
 import multiprocessing as mp
 import platform
@@ -14,8 +14,7 @@ import re
 import numpy as np
 from numpy.dtypes import StringDType
 
-from pandarallel import pandarallel
-pandarallel.initialize(nb_workers=mp.cpu_count(), progress_bar=False, verbose=0)
+from phylotypy import _worker_pool
 
 '''
 Naive Bayes Classifier for DNA sequences. The project is inspired by the 
@@ -110,11 +109,6 @@ def build_kmer_database(sequences: list[str], genera: list[str],
                   genera_names=genera_names)
 
 
-def classify(bs_kmer, database: KmerDB):
-    classified_list = classify_bootstraps(bs_kmer, database.conditional_prob)
-    return classified_list
-
-
 def get_all_kmers(sequence: str, kmer_size: int = 8) -> list:
     return [sequence[i: i + kmer_size] for i in range(len(sequence) - kmer_size + 1)]
 
@@ -146,20 +140,20 @@ def base4_to_index(base4_str: list) -> list:
     return converted_list
 
 
-def detect_kmers(sequence: str, kmer_size: int = 8) -> List:
+def detect_kmers(sequence: str, kmer_size: int = 8) -> np.ndarray:
     """Detects kmers in a DNA sequence"""
     # Converts ACGT sequence data to base4
     kmers_: list = get_all_kmers(seq_to_base4(sequence), kmer_size)
     # Detected kmer indices, base 10, which are positions in a matrix
     kmers_ = base4_to_index(kmers_)
-    return np.unique(kmers_).tolist()
+    return np.unique(kmers_).astype(np.int32)
 
 
-def detect_kmer_indices(sequence: str, k: int=8) -> List[list[int]]:
+def detect_kmer_indices(sequence: str, k: int=8) -> np.ndarray:
     base4_map = {'A': 0, 'C': 1, 'G': 2, 'T': 3}
     arr = np.array([base4_map.get(nuc, -1) for nuc in sequence], dtype=np.int8)
     if arr.size < k:
-        return np.array([], dtype=np.int64).tolist()  # Return empty list for short sequences
+        return np.array([], dtype=np.int32)  # Return empty array for short sequences
 
     # Create a sliding window view
     shape = (arr.size - k + 1, k)
@@ -171,11 +165,11 @@ def detect_kmer_indices(sequence: str, k: int=8) -> List[list[int]]:
     # Convert to base10 indices
     valid_kmers = kmers[~exclude]
     if valid_kmers.shape[0] == 0:
-        return np.array([], dtype=np.int64).tolist()
+        return np.array([], dtype=np.int32)
 
     powers = 4 ** np.arange(k - 1, -1, -1)
     valid_kmers = np.dot(valid_kmers, powers)
-    return np.unique(valid_kmers).tolist()
+    return np.unique(valid_kmers).astype(np.int32)
 
 
 def detect_kmers_across_sequences(sequences: list, kmer_size: int = 8, verbose: bool = False) -> list:
@@ -209,25 +203,35 @@ def detect_kmers_across_sequences_mp(sequences: list,
                                      verbose: bool = False) -> KmerIndices:
     if verbose:
         print("Detecting kmers across sequences mp")
-    ctx = mp.get_context("spawn")
-    with ctx.Pool(num_processes) as pool:
-        args_list = [(seq, kmer_size) for seq in sequences]
-        results = pool.starmap(detect_kmers, args_list)
-        
-    offsets = np.zeros(len(results) + 1, dtype=np.int32)
-    for i, r in enumerate(results):
-        offsets[i+1] = offsets[i]  + len(r)
-    
-    indices = np.empty(offsets[-1], dtype=np.int32)
-    for i, r in enumerate(results):
-        indices[offsets[i]:offsets[i+1]] = r
-    
-    del results
-    
+        print(f"Kmer size is set to {kmer_size}")
+
+    n_sequences = len(sequences)
+    # Cheap upper bound on total kmer indices (no kmer detection needed to compute it),
+    # so the output buffer can be preallocated instead of materializing every
+    # per-sequence result in a list before compacting them.
+    upper_bound = sum(max(0, len(seq) - kmer_size + 1) for seq in sequences)
+
+    pool = _worker_pool.get_pool(num_processes)
+    func = partial(detect_kmers, kmer_size=kmer_size)
+    chunksize = max(1, n_sequences // (num_processes * 4))
+
+    indices = np.empty(upper_bound, dtype=np.int32)
+    offsets = np.zeros(n_sequences + 1, dtype=np.int32)
+
+    cursor = 0
+    for i, r in enumerate(pool.imap(func, sequences, chunksize=chunksize)):
+        n = len(r)
+        indices[cursor:cursor + n] = r
+        cursor += n
+        offsets[i + 1] = cursor
+
+    # upper_bound over-counts kmers dropped by N-filtering/dedup (~2% in practice);
+    # a view is enough to trim to the real total, no need to pay for a full copy.
+    indices = indices[:cursor]
+
     if verbose:
         print("Done detecting kmers")
     return KmerIndices(indices=indices, offsets=offsets)
-
 
 
 def calc_word_specific_priors(detected_kmers_list: list,
@@ -320,19 +324,6 @@ def bootstrap(kmer_index: list | np.ndarray, n_bootstraps: int = 100, fraction: 
         np.random.seed(kwargs.get('seed'))
     bootstrap_fn = partial(bootstrap_kmers, kmer_index, fraction)
     return np.array(list(map(lambda _: bootstrap_fn(), repeat(1, n_bootstraps))))
-
-
-def classify_bs(kmer_index: list, db):
-    """Classify a single bootstrap sample of kmers from a sample"""
-    model_mask = db.conditional_prob[kmer_index, :]
-    class_sum = np.sum(model_mask, axis=0)
-    max_idx = np.argmax(class_sum)
-    return max_idx
-
-
-def classify_bootstraps(bs_indices: np.array, conditional_prob):
-    """"Classify an array of kmer bootstraps from a sample"""
-    return np.argmax(np.sum(conditional_prob[bs_indices], axis=1), axis=1)
 
 
 def consensus_bs_class(bs_class: np.array, genera_names) -> dict[str, list | Any]:
