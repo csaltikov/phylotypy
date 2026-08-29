@@ -63,7 +63,7 @@ def summarize(bs_res, sequences, database, min_confidence=80, n_levels=None, ver
     for i in range(bs_res.shape[0]):
         if verbose:
             if i % 100 == 0:
-                print(f"Classifying sequence {i} of {len(classified["id"])}")
+                print(f"Classifying sequence {i} of {len(classified['id'])}")
         consensus = dict(taxonomy=taxa_consensus[i], confidence=confidence_consensus[i])
         filtered = kmers.filter_taxonomy(classification=consensus, min_confidence=min_confidence)
         classified["classification"].append(kmers.print_taxonomy(consensus=filtered, n_levels=n_levels))
