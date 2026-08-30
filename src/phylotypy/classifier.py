@@ -31,7 +31,15 @@ def detect_n_levels(genera_names: np.ndarray | pd.Series | list) -> int:
 
 def classify_sequences(sequences: pd.DataFrame | str | Path,
                        database: kmers.KmerDB | dict,
-                       verbose=False, **kwargs):
+                       *,
+                       verbose: bool = False,
+                       min_confidence: float = 80,
+                       n_levels: int | None = None,
+                       kmer_size: int = 8,
+                       seq_col: str = "sequence",
+                       id_col: str = "id",
+                       num_bs: int = 100,
+                       chunk: int = 20_000):
     """
     Classify 16S rRNA DNA sequences against a reference database.
 
@@ -53,10 +61,24 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
         verbose: bool, optional
             If set to True, displays progress updates during sequence classification.
             Default is False.
-        **kwargs: min_confidence, n_levels
-            Additional keyword arguments that are passed to the internal k-mer
-            conversion function. Use min_confidence (default = 80) for filtering bootstrap
-            consensus. Use n_levels to set taxonomic levels (default=6).
+        min_confidence: float, optional
+            Bootstrap confidence threshold (0-100) below which a taxonomic rank is
+            dropped in favor of an "_unclassified" placeholder. Default: 80.
+        n_levels: int, optional
+            Number of taxonomic levels in the output classification string. If
+            None (default), it's auto-detected from the reference database.
+        kmer_size: int, optional
+            K-mer size used to convert sequences to k-mer indices; must match the
+            kmer_size the reference database was built with. Default: 8.
+        seq_col: str, optional
+            Name of the column in `sequences` holding the DNA sequence. Default: "sequence".
+        id_col: str, optional
+            Name of the column in `sequences` holding the sequence identifier. Default: "id".
+        num_bs: int, optional
+            Number of bootstrap replicates used for the confidence estimate. Default: 100.
+        chunk: int, optional
+            Number of bootstrap rows processed per batch during classification;
+            tune down to reduce peak memory on very large inputs. Default: 20_000.
 
     Returns:
         pd.DataFrame:
@@ -74,14 +96,17 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
     if isinstance(sequences, str | Path):
         sequences = read_fasta.read_taxa_fasta(sequences)
 
-    min_confidence = kwargs.get("min_confidence", 80)
-    n_levels = kwargs.get("n_levels") or detect_n_levels(database.genera_names)
+    n_levels = n_levels or detect_n_levels(database.genera_names)
 
     classify_seqs = ClassifyAll()
     classify_seqs.classify(sequences=sequences,
                            database=database,
                            verbose=verbose,
-                                   **kwargs)
+                           kmer_size=kmer_size,
+                           seq_col=seq_col,
+                           id_col=id_col,
+                           num_bs=num_bs,
+                           chunk=chunk)
 
     res = classify_seqs.results(
         min_confidence=min_confidence,
@@ -108,7 +133,16 @@ def classify_sequence(seq_kmer, database, **kwargs):
     return kmers.print_taxonomy(filtered, n_levels=n_levels)
 
 
-def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
+def make_classifier(ref_db: pd.DataFrame | str | Path, *,
+                    kmer_size: int = 8,
+                    multiprocess: bool = True,
+                    n_cpu: int = 4,
+                    verbose: bool = False,
+                    filter_db: bool = False,
+                    max_per_genus: int = 200,
+                    random_state: int = 2112,
+                    mmap_threshold_gb: float | int = 8.0,
+                    n_levels: int | None = None):
     """
     Creates a k-mer based classifier database from a DNA sequence reference database.
 
@@ -119,15 +153,17 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
     Args:
         ref_db (pd.DataFrame | str | Path): The reference database. It can be a DataFrame with 'id'
             and 'sequence' columns or a file path to a FASTA file containing sequence data with taxonomy.
-        **kwargs: Additional configuration options:
-            - kmer_size (int): Size of k-mers to use in the analysis (default: 8)
-            - multiprocess (bool): Whether to use multiprocessing for k-mer detection (default: True)
-            - n_cpu (int): Number of CPU cores to use for multiprocessing (default: 4)
-            - verbose (bool): Whether to show progress messages during processing (default: False)
-            - filter_db (bool): filter records used to create the database; see training_data.py
-            - max_per_genus (int): used for down sampling and max records per unique genera, filter_db must be True
-            - random_state (int): for down-sampling database, set to 42 
-            
+        kmer_size (int): Size of k-mers to use in the analysis (default: 8)
+        multiprocess (bool): Whether to use multiprocessing for k-mer detection (default: True)
+        n_cpu (int): Number of CPU cores to use for multiprocessing (default: 4)
+        verbose (bool): Whether to show progress messages during processing (default: False)
+        filter_db (bool): filter records used to create the database; see training_data.py
+        max_per_genus (int): used for down sampling and max records per unique genera, filter_db must be True
+        random_state (int): for down-sampling database, set to 42
+        mmap_threshold_gb (float | int): if the conditional-probability matrix would exceed this
+            size in GB, build it memory-mapped instead of in RAM (default: 8.0)
+        n_levels (int, optional): taxonomic depth to filter ref_db down to when filter_db=True.
+            If None (default), it's auto-detected from ref_db's taxonomy strings.
 
     Returns:
         KmerDB: A k-mer based database object that contains the genus conditional probabilities,
@@ -138,9 +174,9 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
 
     Examples:
         >>> from phylotypy import read_fasta, classifier
-        >>> ref_seqs = read_fasta.read_taxa_fasta("my_reference_sequences.fa", multiprocess=True)
-        >>> database = classifier.make_classifier(ref_seqs)
-        
+        >>> ref_seqs = read_fasta.read_taxa_fasta("my_reference_sequences.fa")
+        >>> database = classifier.make_classifier(ref_seqs, multiprocess=True)
+
         >>> # downsample and filter option
         >>> database_filt = classifier.make_classifier(ref_seqs,
         >>>                                            filter_db=True,
@@ -159,18 +195,9 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, **kwargs):
     """
     if isinstance(ref_db, str | Path):
         ref_db = read_fasta.read_taxa_fasta(ref_db)
-        
-    filter_db: bool = kwargs.get("filter_db", False)
-    max_per_genus: int = kwargs.get("max_per_genus", 200)
-    random_state: int = kwargs.get("random_state", 42)
-    mmap_threshold_gb: float|int = kwargs.get("mmap_threshold_gb", 8.0)
-    kmer_size: int = kwargs.get('kmer_size', 8)
-    multiprocess: bool = kwargs.get('multiprocess', True)
-    n_cpu: int = kwargs.get('n_cpu', 4)
-    verbose: bool() = kwargs.get('verbose', False)
 
     if filter_db:
-        n_levels = kwargs.get("n_levels") or detect_n_levels(ref_db["id"])
+        n_levels = n_levels or detect_n_levels(ref_db["id"])
         print(f"Before filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
         ref_db = training_data.filter_train_set(ref_db, n_levels=n_levels)
         print(f"After filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")

@@ -1,6 +1,5 @@
 from dataclasses import dataclass, field
 from functools import partial
-from itertools import repeat
 from typing import Dict, Any, Type
 
 import multiprocessing as mp
@@ -309,21 +308,6 @@ def index_genus_mapper(genera_list: list):
     unique_genera = np.unique(genera_list)
     # return factor_map
     return unique_genera
-
-
-def bootstrap_kmers(kmers: np.array, kmer_size: int = 8):
-    '''Performs a single bootstrap sampling on a kmers array'''
-    n_kmers = len(kmers) // kmer_size
-    return np.random.choice(kmers, n_kmers, replace=True)
-
-
-def bootstrap(kmer_index: list | np.ndarray, n_bootstraps: int = 100, fraction: int = 8, **kwargs) -> np.ndarray:
-    ''''Performs multiple bootstrap samplings on a list of kmers'''
-    if kwargs.get('seed'):
-        print(kwargs.get('seed'))
-        np.random.seed(kwargs.get('seed'))
-    bootstrap_fn = partial(bootstrap_kmers, kmer_index, fraction)
-    return np.array(list(map(lambda _: bootstrap_fn(), repeat(1, n_bootstraps))))
 
 
 def consensus_bs_class(bs_class: np.array, genera_names) -> dict[str, list | Any]:

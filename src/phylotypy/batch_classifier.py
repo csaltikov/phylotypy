@@ -79,14 +79,18 @@ class ClassifyAll:
         self.genera_idx = None
         self.detected_kmers_test = None
 
-    def calc_kmer_mat(self, sequences, **kwargs):
-        self.genera_idx, self.kmer_mat = conditional_prob.seq_to_kmers_database(sequences, **kwargs)
+    def calc_kmer_mat(self, sequences, seq_col: str = "sequence", id_col: str = "id",
+                      kmer_size: int = 8, verbose: bool = False):
+        self.genera_idx, self.kmer_mat = conditional_prob.seq_to_kmers_database(
+            sequences, seq_col=seq_col, id_col=id_col, kmer_size=kmer_size, verbose=verbose
+        )
 
-    def classify(self, sequences, database, num_bs: int = 100, chunk=20_000, **kwargs):
-        verbose = kwargs.get("verbose", False)
+    def classify(self, sequences, database, num_bs: int = 100, chunk: int = 20_000,
+                seq_col: str = "sequence", id_col: str = "id",
+                kmer_size: int = 8, verbose: bool = False):
         self.database = database
         self.sequences = sequences
-        self.calc_kmer_mat(sequences, **kwargs)
+        self.calc_kmer_mat(sequences, seq_col=seq_col, id_col=id_col, kmer_size=kmer_size, verbose=verbose)
 
         self.bs_results = classify_all(
             kmer_mat=self.kmer_mat,

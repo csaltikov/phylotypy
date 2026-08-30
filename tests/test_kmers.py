@@ -222,25 +222,6 @@ class TestGetKmers(unittest.TestCase):
         expected = "B"
         self.assertTrue(np.array_equal(observed, expected))
 
-    def test_bootstrap_kmers(self):
-        kmers_arr = np.arange(100)
-        kmer_size = 8
-        expected_n_kmers = 100 // 8
-
-        detected = kmers.bootstrap_kmers(kmers_arr, kmer_size)
-        self.assertEqual(detected.shape[0], expected_n_kmers)
-
-        detected_in_kmers = np.isin(detected, kmers_arr)
-        self.assertTrue(np.all(detected_in_kmers))
-
-    def test_bootstrap(self):
-        kmers_detected = kmers.detect_kmers(self.sequence, 3)
-        np.random.seed(42)
-        observed_bs_kmers = kmers.bootstrap(kmers_detected, 5, fraction=3)
-        expected_shape = [5, 7]
-
-        self.assertTrue(observed_bs_kmers.shape, expected_shape)
-
     def test_consensus_classified_bootstrap_samples(self):
         ref_genera = np.array(["A;a;A", "A;a;B", "A;a;C", "A;b;A", "A;b;B", "A;b;C"])
 

@@ -11,12 +11,6 @@ class TestGetKmers(unittest.TestCase):
     def setUp(self) -> None:
         self.kmers = kmers
         self.sequence = "ATGCGCTAGTAGCATGC"
-        self.expected_cond_prods = {
-            25: (np.array([1, 2]) + 0.875) / (np.array([1, 2]) + 1),  # [0.9375, 0.95833333]
-            28: (np.array([1, 0]) + 0.375) / (np.array([1, 2]) + 1),  # [0.6875, 0.125 ]
-            29: (np.array([0, 2]) + 0.625) / (np.array([1, 2]) + 1),  # [0.3125, 0.875 ]
-            62: (np.array([0, 0]) + 0.125) / (np.array([1, 2]) + 1)  # [0.0625, 0.04166667]
-        }
         self.kmer_size = 3
         self.sequences = ["ATGCGCTA", "ATGCGCTC", "ATGCGCTC"]
         self.genera = ["A", "B", "B"]
@@ -36,15 +30,6 @@ class TestGetKmers(unittest.TestCase):
         observed_idx, observed_kmers = conditional_prob.seq_to_kmers_database(self.sequences_df, kmer_size=self.kmer_size)
         expected_idx = np.array([0,1,1])
         self.assertTrue(np.array_equal(observed_kmers[:,0], expected_idx))
-
-    def test_build_database(self):
-        observed_arr = conditional_prob.build_database(self.sequences_df, kmer_size=self.kmer_size)
-        observed = np.exp(observed_arr.conditional_prob[25]).astype(np.float16)
-        expected = self.expected_cond_prods[25].astype(np.float16)
-        print(observed)
-        print(expected)
-        self.assertTrue(np.array_equal(observed, expected))
-
 
 if __name__ == "__main__":
     unittest.main()

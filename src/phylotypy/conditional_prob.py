@@ -19,37 +19,6 @@ from phylotypy import cond_prob_cython
 from phylotypy import _worker_pool
 
 
-def build_database(sequences, kmer_size: int = 8, **kwargs):
-    """
-    Builds a k-mer database for genetic sequence classification by calculating genus-specific conditional
-    probabilities, priors, and mapping genus names to indices.
-
-    Args:
-        sequences: Input genetic sequences provided as a DataFrame containing sequence data and metadata.
-            Must include an identifier column specified by the `id_col`.
-        kmer_size: Size of k-mers to generate from the input sequences. Represents the window size for
-            slicing sequences into smaller subsequences.
-        **kwargs: Optional keyword arguments:
-            - id_col (str): Name of the column in `sequences` DataFrame identifying genera. Defaults to "id".
-
-    Returns:
-        KmerDB: A database object containing calculated conditional probabilities, genus indices, and genus names.
-    """
-    id_col = kwargs.get('id_col', "id")
-
-    genera = sequences[id_col]
-    genera_names = kmers.index_genus_mapper(genera)
-
-    genera_idx, detected_kmers = seq_to_kmers_database(sequences, kmer_size=kmer_size)
-    priors = calc_priors(detected_kmers, kmer_size)
-
-    cond_prob_arr = GenusCondProb(detected_kmers, priors, kmer_size).calculate()
-
-    return kmers.KmerDB(conditional_prob=cond_prob_arr,
-                        genera_idx=genera_idx,
-                        genera_names=genera_names)
-
-
 def calc_priors(detected_kmers: np.ndarray, kmer_size: int = 8):
     num_seqs = len(detected_kmers)
     max_value = 4 ** kmer_size
@@ -72,11 +41,8 @@ def fix_kmers_length(kmer_arr, seq_len: int = 1400):
 
 
 ##
-def seq_to_kmers_database(sequences_db, **kwargs):
-    seq_col = kwargs.get('seq_col', 'sequence')
-    id_col = kwargs.get('id_col', 'id')
-    kmer_size = kwargs.get('kmer_size', 8)
-    verbose = kwargs.get('verbose', False)
+def seq_to_kmers_database(sequences_db, seq_col: str = 'sequence', id_col: str = 'id',
+                          kmer_size: int = 8, verbose: bool = False):
 
     if verbose:
         print(f"kmer_size is set to {kmer_size}")

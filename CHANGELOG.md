@@ -5,6 +5,47 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-08-30
+
+### Fixed
+
+- `training_data.filter_train_set(n_levels=7)` crashed (`ValueError: Columns must
+  be same length as key`) on any reference database containing a taxonomy string
+  with more than 7 semicolon-delimited levels — a realistic case for raw,
+  uncleaned reference releases (verified against a real raw SILVA release, whose
+  taxonomy depths actually span 1 to 7 levels before cleaning). The row filter
+  before the fixed-width column split now restricts to 6-7 levels, so malformed
+  deeper entries are excluded instead of crashing the whole filter.
+
+### Changed — breaking
+
+- `make_classifier()`, `classify_sequences()`, `conditional_prob.seq_to_kmers_database()`,
+  `batch_classifier.ClassifyAll.calc_kmer_mat()`/`.classify()`, and
+  `training_data.filter_train_set()` now take explicit, named parameters instead
+  of an untyped `**kwargs` catch-all (e.g. `kmer_size`, `min_confidence`,
+  `n_levels`, `terms`, `threshold`, and others — see each function's docstring
+  for the full list). Two practical effects: a misspelled or unrecognized
+  keyword argument now raises `TypeError` immediately instead of being silently
+  ignored (this is what let a `kmers_size`/`kmer_size` typo go unnoticed for a
+  while), and `make_classifier()`, `classify_sequences()`, and
+  `filter_train_set()` are now keyword-only past their first one or two
+  positional arguments — any code passing their options positionally will need
+  to switch to keyword arguments.
+
+### Removed
+
+- Deleted unused, superseded code with no callers outside their own tests:
+  `get_kmer_db.py` (the whole module — `GetKmerDB`, `load_db`),
+  `conditional_prob.build_database()`, and `kmers.bootstrap()`/`bootstrap_kmers()`.
+  None of these were used by the actual classification pipeline.
+
+### Tests
+
+- Added a regression test for the `filter_train_set` fix using real taxa strings
+  pulled from a raw SILVA release, spanning the full 1-7 level range plus a
+  constructed 8-level (malformed) case.
+- Removed tests tied to the deleted dead code.
+
 ## [0.3.4] - 2026-08-29
 
 ### Performance

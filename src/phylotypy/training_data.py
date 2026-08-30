@@ -17,10 +17,16 @@ def download_and_extract(url, output_dir: str | Path):
     """
     # Ensure output_dir is a Path object
     if isinstance(output_dir, str):
-        output_dir = Path(output_dir)
+        print(f"Download directory is a string {output_dir}")
+        output_dir = Path(output_dir).expanduser().resolve()
 
     # Ensure the output directory exists
-    output_dir.mkdir(parents=True, exist_ok=True)
+    if not output_dir.exists():
+        print(f"Creating output directory: {output_dir}...")
+        output_dir.mkdir(parents=True, exist_ok=True)
+
+    else:
+        return print("there's a problem")
 
     # Path to the downloaded file
     download_path = output_dir / Path(url).name.rstrip("?download")
@@ -40,6 +46,7 @@ def download_and_extract(url, output_dir: str | Path):
             response.raise_for_status()
 
     print(f"File downloaded to {output_dir}")
+    return output_dir
 
 
 def rdp_train_set_19(out_dir: str | Path):
@@ -50,8 +57,8 @@ def rdp_train_set_19(out_dir: str | Path):
     """
     print("Starting...")
     link_address = "https://mothur.s3.us-east-2.amazonaws.com/wiki/trainset19_072023.rdp.tgz"
-    download_and_extract(link_address, out_dir)
-    fasta_file = Path(out_dir) / "trainset19_072023.rdp.tgz"
+    output_dir = download_and_extract(link_address, out_dir)
+    fasta_file = Path(output_dir) / "trainset19_072023.rdp.tgz"
     with tarfile.open(fasta_file, 'r:gz') as tar:
         tar.extractall(filter="data")
         for item in tar.getmembers():
@@ -70,22 +77,23 @@ def open_training_set(out_dir: str | Path, fasta_file: str | Path, db_name: str)
 
 
 def silva_train_set(out_dir):
-    out_path = Path(out_dir)
     print("Starting...file is big!")
-    link_address = "https://zenodo.org/records/3986799/files/silva_nr99_v138_train_set.fa.gz?download"
-    download_and_extract(link_address, out_path)
-    fasta_file = out_path.joinpath("silva_nr99_v138_train_set.fa.gz")
-    ref_db: pd.DataFrame = read_fasta.read_taxa_fasta(fasta_file)
+    # https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toGenus_trainset.fa.gz?download=1
+    link_address = "https://zenodo.org/records/14169026/files/silva_nr99_v138.2_toGenus_trainset.fa.gz"
+    output_dir = download_and_extract(link_address, out_dir)
+    fasta_file = output_dir.joinpath("silva_nr99_v138.2_toGenus_trainset.fa.gz")
+    ref_db = read_fasta.read_taxa_fasta(fasta_file)
     print("Done processing fasta file")
-    silva_out = out_path.joinpath("silva_nr99_v138_train_set.parquet")
-
-    chunk_size = 10000
-
-    for i, chunk in enumerate(np.array_split(ref_db, ref_db.shape[0] // chunk_size)):
-        chunk.to_parquet(silva_out, compression='snappy', engine='pyarrow', index=False)
+    silva_out = (output_dir.joinpath("silva_nr99_v138.2_toGenus_trainset.parquet"))
+    print(f"Converting {fasta_file.name} to parquet...")
+    ref_db.to_parquet(silva_out, compression='snappy', engine='pyarrow', index=False)
 
 
-def filter_train_set(df: pd.DataFrame, n_levels: int = 6, **kwargs) -> pd.DataFrame:
+DEFAULT_NOISE_TERMS = "Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture|endosymbiont"
+
+
+def filter_train_set(df: pd.DataFrame, n_levels: int = 6, *,
+                     terms: str = DEFAULT_NOISE_TERMS, threshold: int = 5) -> pd.DataFrame:
     """
     Filter a reference database by taxonomy level and remove noisy sequences.
 
@@ -98,10 +106,12 @@ def filter_train_set(df: pd.DataFrame, n_levels: int = 6, **kwargs) -> pd.DataFr
         df: DataFrame with 'id' and 'sequence' columns where 'id' contains
             semicolon-delimited taxonomy strings e.g.
             'Bacteria;Firmicutes;Bacilli;Lactobacillales;Lactobacillaceae;Lactobacillus'
-        **kwargs:
-            terms (str): Pipe-delimited regex pattern of terms to exclude.
-                Default: 'Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture'
-            n_levels (int): Number of taxonomic levels to retain. Default: 6
+        n_levels (int): Number of taxonomic levels to retain. Default: 6
+        terms (str): Pipe-delimited regex pattern of terms to exclude.
+            Default: 'Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture|endosymbiont'
+        threshold (int): Minimum number of representative sequences a species
+            needs (n_levels=7 only) before its epithet is collapsed to
+            "{Genus}_sp". Default: 5
 
     Returns:
         pd.DataFrame: Filtered DataFrame with only sequences matching the
@@ -125,11 +135,7 @@ def filter_train_set(df: pd.DataFrame, n_levels: int = 6, **kwargs) -> pd.DataFr
         >>> filtered = training_data.filter_train_set(silva,
         ...                                           terms="Incertae|metagenome|Eukaryota|uncultured")
     """
-    noise = "Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus|culture|endosymbiont"
-    
     taxa_levels_full = ["Kingdom", "Phylum", "Class", "Order", "Family", "Genus", "Species"]
-    terms = kwargs.get("terms", noise)
-    threshold = kwargs.get("threshold", 5)
     
     df_ = (df[~df["id"].str.contains(terms, na=False)]
            .assign(levels=lambda x: x['id'].str.count(";") + 1)
@@ -137,7 +143,10 @@ def filter_train_set(df: pd.DataFrame, n_levels: int = 6, **kwargs) -> pd.DataFr
     df_["id"] = df_["id"].str.replace(r"[\[\]]", "", regex=True)
     
     if n_levels == 7:
-        df_ = df_[df_["levels"] >= 6].copy()
+        # Restrict to 6-7 levels so the split below can never produce more than
+        # len(taxa_levels_full) columns (a taxonomy string with >7 levels would
+        # otherwise crash the fixed-width column assignment two lines down).
+        df_ = df_[df_["levels"].between(6, 7)].copy()
         df_[taxa_levels_full] = df_['id'].str.split(";", expand=True)
         df_["Species"] = df_["Species"].fillna("")
         
