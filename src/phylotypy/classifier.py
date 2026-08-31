@@ -218,22 +218,22 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, *,
     if isinstance(ref_db, str | Path):
         ref_db = read_fasta.read_taxa_fasta(ref_db)
 
+    ref_db_cols = ref_db.columns.to_list()
+    required_cols = {"id", "sequence"}
+    if not required_cols.issubset(set(ref_db_cols)):
+        raise ValueError("Reference database must contain 'id' and 'sequence' columns")
+
     if filter_db:
         n_levels = n_levels or detect_n_levels(ref_db["id"])
         print(f"Before filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
         ref_db = training_data.filter_train_set(ref_db, n_levels=n_levels, verbose=verbose)
         print(f"After filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
     if max_per_genus:
-        ref_db = training_data.down_sample(ref_db, col="id", 
+        ref_db = training_data.down_sample(ref_db, col="id",
                                            n=max_per_genus,
                                            random_state=random_state)
         print(f"After downsample: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
     print(f"Matrix will be: {(4**kmer_size) * ref_db['id'].nunique() * 4 / 1e9:.2f} GB")
-
-    ref_db_cols = ref_db.columns.to_list()
-    required_cols = {"id", "sequence"}
-    if not required_cols.issubset(set(ref_db_cols)):
-        raise ValueError("Reference database must contain 'id' and 'sequence' columns")
 
     check_taxonomic_levels(ref_db)
 
