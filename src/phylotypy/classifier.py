@@ -29,6 +29,28 @@ def detect_n_levels(genera_names: np.ndarray | pd.Series | list) -> int:
     return int(majority) + 1
 
 
+def check_taxonomic_levels(ref_db: pd.DataFrame, id_col: str = "id") -> None:
+    """
+    Verify every taxonomy string in ref_db[id_col] has the same number of
+    ';'-delimited taxonomic levels. A ragged reference database builds fine
+    here but fails later in consensus_bs_class, which stacks the per-sequence
+    taxonomy splits into a single array and requires them to be the same length.
+    """
+    counts_summary = read_fasta.count_taxonomic_levels(ref_db[id_col])
+    if len(counts_summary) > 1:
+        raise ValueError(
+            "ref_db contains taxonomy strings with inconsistent numbers of taxonomic "
+            f"levels:\n{counts_summary.to_string()}\n"
+            "All 'id' entries must have the same number of ';'-delimited levels before "
+            "building a classifier, or classify_sequences() will fail later on.\n"
+            "Options:\n"
+            "  - Fix/pad the taxonomy strings in ref_db so every entry has the same depth.\n"
+            "  - Call make_classifier(ref_db, filter_db=True) to filter ref_db down to a "
+            "single consistent depth (see training_data.filter_train_set).\n"
+            "  - Pass n_levels=<int> together with filter_db=True to control which depth is kept."
+        )
+
+
 def classify_sequences(sequences: pd.DataFrame | str | Path,
                        database: kmers.KmerDB | dict,
                        *,
@@ -139,7 +161,7 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, *,
                     n_cpu: int = 4,
                     verbose: bool = False,
                     filter_db: bool = False,
-                    max_per_genus: int = 200,
+                    max_per_genus: int = None,
                     random_state: int = 2112,
                     mmap_threshold_gb: float | int = 8.0,
                     n_levels: int | None = None):
@@ -199,18 +221,21 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, *,
     if filter_db:
         n_levels = n_levels or detect_n_levels(ref_db["id"])
         print(f"Before filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
-        ref_db = training_data.filter_train_set(ref_db, n_levels=n_levels)
+        ref_db = training_data.filter_train_set(ref_db, n_levels=n_levels, verbose=verbose)
         print(f"After filter: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
+    if max_per_genus:
         ref_db = training_data.down_sample(ref_db, col="id", 
                                            n=max_per_genus,
                                            random_state=random_state)
         print(f"After downsample: {len(ref_db):,} sequences, {ref_db['id'].nunique():,} genera")
-        print(f"Matrix will be: {(4**kmer_size) * ref_db['id'].nunique() * 4 / 1e9:.2f} GB")
+    print(f"Matrix will be: {(4**kmer_size) * ref_db['id'].nunique() * 4 / 1e9:.2f} GB")
 
     ref_db_cols = ref_db.columns.to_list()
     required_cols = {"id", "sequence"}
     if not required_cols.issubset(set(ref_db_cols)):
         raise ValueError("Reference database must contain 'id' and 'sequence' columns")
+
+    check_taxonomic_levels(ref_db)
 
     print("Building classifier database...")
     print(f"Mutiprocessing is set to: {multiprocess}")

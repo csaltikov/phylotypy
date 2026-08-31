@@ -1,8 +1,8 @@
 from pathlib import Path
 import pandas as pd
 import requests
-import tarfile
 import numpy as np
+from urllib.parse import urlparse, urljoin
 
 from phylotypy.utilities import read_fasta
 
@@ -49,20 +49,26 @@ def download_and_extract(url, output_dir: str | Path):
     return output_dir
 
 
-def rdp_train_set_19(out_dir: str | Path):
+def rdp_train_set_19(out_dir: str | Path, level: str = "genus"):
     """
     Download the RDP's latest 16S rRNA full length gene training data set.
     The trainset is trainset19_072023.  The function converts the files into
     a Pandas Dataframe for use in the Phylotypy.train() function
     """
+    base_url = "https://zenodo.org/records/14168771/files/"
+
     print("Starting...")
-    link_address = "https://mothur.s3.us-east-2.amazonaws.com/wiki/trainset19_072023.rdp.tgz"
+    #link_address = "https://mothur.s3.us-east-2.amazonaws.com/wiki/trainset19_072023.rdp.tgz"
+    if level == "species":
+        link_address = urljoin(base_url, "rdp_19_toSpecies_trainset.fa.gz")
+    else:
+        link_address = urljoin(base_url, "rdp_19_toGenus_trainset.fa.gz")
     output_dir = download_and_extract(link_address, out_dir)
-    fasta_file = Path(output_dir) / "trainset19_072023.rdp.tgz"
-    with tarfile.open(fasta_file, 'r:gz') as tar:
-        tar.extractall(filter="data")
-        for item in tar.getmembers():
-            print(f"Extracted: {item.name}")
+    file_name = urlparse(link_address).path.split("/")[-1]
+    fasta_file = output_dir.joinpath(file_name)
+    print(fasta_file)
+    print(fasta_file.exists())
+    return fasta_file
 
 
 def open_training_set(out_dir: str | Path, fasta_file: str | Path, db_name: str):
@@ -93,7 +99,8 @@ DEFAULT_NOISE_TERMS = "Incertae|Sedis|metagenome|Eukaryota|Metagenome|Candidatus
 
 
 def filter_train_set(df: pd.DataFrame, n_levels: int = 6, *,
-                     terms: str = DEFAULT_NOISE_TERMS, threshold: int = 5) -> pd.DataFrame:
+                     terms: str = DEFAULT_NOISE_TERMS, threshold: int = 5,
+                     verbose: bool = False) -> pd.DataFrame:
     """
     Filter a reference database by taxonomy level and remove noisy sequences.
 
@@ -112,6 +119,8 @@ def filter_train_set(df: pd.DataFrame, n_levels: int = 6, *,
         threshold (int): Minimum number of representative sequences a species
             needs (n_levels=7 only) before its epithet is collapsed to
             "{Genus}_sp". Default: 5
+        verbose (bool): print how many sequences were dropped for having the
+            wrong taxonomic depth. Default: False
 
     Returns:
         pd.DataFrame: Filtered DataFrame with only sequences matching the
@@ -146,7 +155,11 @@ def filter_train_set(df: pd.DataFrame, n_levels: int = 6, *,
         # Restrict to 6-7 levels so the split below can never produce more than
         # len(taxa_levels_full) columns (a taxonomy string with >7 levels would
         # otherwise crash the fixed-width column assignment two lines down).
+        n_before = len(df_)
         df_ = df_[df_["levels"].between(6, 7)].copy()
+        if verbose:
+            print(f"Removed {n_before - len(df_):,} sequences with taxonomic depth outside 6-7 levels "
+                  f"(kept {len(df_):,})")
         df_[taxa_levels_full] = df_['id'].str.split(";", expand=True)
         df_["Species"] = df_["Species"].fillna("")
         
@@ -175,7 +188,12 @@ def filter_train_set(df: pd.DataFrame, n_levels: int = 6, *,
         
         return df_[["id", "sequence"]]
     else:
-        return df_[df_["levels"] == n_levels]
+        n_before = len(df_)
+        df_filtered = df_[df_["levels"] == n_levels]
+        if verbose:
+            print(f"Removed {n_before - len(df_filtered):,} sequences with taxonomic depth != {n_levels} "
+                  f"(kept {len(df_filtered):,})")
+        return df_filtered
 
 
 def down_sample(df, col="id", n=200, random_state=None) -> pd.DataFrame:
