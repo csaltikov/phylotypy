@@ -14,15 +14,14 @@ Thanks to Riffomonas for the inspiration — check out the videos on his
 [YouTube channel](https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j).
 
 ---
-
 ## Performance
 
 The full RDP reference database takes **~7.5 seconds** and
 the full Silva reference database (genus level) takes **~19 seconds**
 on a 2020 Apple Intel MacBook Pro with 16Gb of RAM.  Newer systems should 
 see a substantial increase in performance.
----
 
+---
 ## How to Install
 
 Using pip:
