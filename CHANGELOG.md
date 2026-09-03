@@ -5,6 +5,71 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-08-30
+
+### Performance
+
+- `batch_classifier.classify_all()`'s bootstrap-classification step is at least
+  2.2x faster (measured on real data). It previously built a one-hot
+  `scipy.sparse` matrix per chunk and ran a general sparse-dense matmul to
+  score each bootstrap replicate against the reference database — a lot of
+  machinery for what's actually a "sum a handful of dense rows and argmax"
+  operation. Replaced with a `numba` `@njit(parallel=True)` kernel that does
+  exactly that, parallelized across bootstrap replicates. Verified
+  byte-identical output against the previous implementation given the same
+  bootstrap draw.
+
+### Added
+
+- `classify_sequences()` and `classify_all()` now estimate the memory the
+  bootstrap-sampling step will need before allocating it, and raise a clear
+  `MemoryError` (with a suggested `num_bs` that would fit) if it would exceed
+  30% of the machine's total RAM — this is the scenario most likely to bite
+  someone who points classify_sequences() at far more sequences than expected
+  (e.g. raw sequencing reads instead of ASVs/OTUs; see the Docs note below).
+  The check is dependency-free (reads OS-exposed total memory via
+  `os.sysconf`, the same information `top`/Activity Monitor can see; degrades
+  to a no-op on platforms where that isn't available, e.g. Windows) and can be
+  bypassed with `classify_sequences(..., force=True)` for anyone who knows
+  their machine can handle it.
+
+### Fixed
+
+- `classify_all()` never actually passed `kmer_size` down to `bootstrap_all()`,
+  which defaults to 8 — so any non-default `kmer_size` silently produced the
+  wrong number of bootstrap sub-samples per replicate instead of an error.
+  Fixed by threading `kmer_size` through explicitly; found while wiring up the
+  memory check above, which needed an accurate value to be meaningful.
+- Fixed a latent circular import (`batch_classifier` → `bootstrap` →
+  `classifier` → `batch_classifier`) that only surfaced if `batch_classifier`
+  happened to be the first `phylotypy` submodule imported directly in a fresh
+  process. `bootstrap.py` was importing `classifier` at module level for a
+  manual timing comparison inside its own `if __name__ == "__main__":` block —
+  the only place it was actually used. Moved to a local import there.
+
+### Changed — breaking
+
+- Removed the `chunk` parameter from `classify_all()`, `ClassifyAll.classify()`,
+  and `classify_sequences()`. It existed to bound memory while chunking the
+  now-removed `scipy.sparse` step; the numba kernel above has no equivalent
+  memory concern, so the parameter no longer did anything.
+
+### Docs
+
+- Clarified in `classify_sequences()` and `read_taxa_fasta()`'s docstrings that
+  the sequences being classified should be representative, dereplicated
+  sequences (ASVs from DADA2, OTU centroids, or long-read consensus sequences
+  for Oxford Nanopore data) — not raw sequencing reads, regardless of
+  platform. Explains why: wasted redundant compute, uncorrected sequencing
+  errors, and the memory-check scenario above.
+
+### Chore
+
+- Suppressed a known-benign `numba` internal warning ("FNV hashing is not
+  implemented in Numba") from both normal library usage and the test suite's
+  output — it's informational noise about numba's own hashing implementation,
+  unrelated to anything in this package.
+
 ## [0.4.0] - 2026-08-30
 
 ### Fixed

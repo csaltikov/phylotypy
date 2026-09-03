@@ -1,9 +1,56 @@
+import os
 import numpy as np
-from scipy import sparse
+import numba as nb
 from pathlib import Path
 from phylotypy import kmers, conditional_prob, bootstrap
 from collections import defaultdict
 import pandas as pd
+
+_MEMORY_SAFETY_FRACTION = 0.3
+
+
+def _total_system_memory_bytes():
+    """Best-effort total system RAM in bytes via POSIX sysconf. Returns None on
+    platforms where this isn't available (e.g. Windows), so the safety check
+    below degrades gracefully rather than crashing. Deliberately dependency-free
+    (no psutil) -- this only reads OS-exposed aggregate memory stats, the same
+    information any unprivileged process/tool (top, Activity Monitor) can see.
+    """
+    try:
+        return os.sysconf("SC_PAGE_SIZE") * os.sysconf("SC_PHYS_PAGES")
+    except (ValueError, OSError, AttributeError):
+        return None
+
+
+def _check_bootstrap_memory(n_sequences, num_bs, n_sub, force):
+    """Refuse to run classify_all's bootstrap step if it would need more than
+    _MEMORY_SAFETY_FRACTION of total system RAM just for the sampled-kmer array
+    -- that risks a crash or severe swap thrashing, not just a slow run. Pass
+    force=True to bypass this if you know your machine can handle it.
+    """
+    if force:
+        return
+
+    total_memory = _total_system_memory_bytes()
+    if total_memory is None:
+        return  # can't determine total RAM on this platform; best-effort only
+
+    projected_bytes = n_sequences * num_bs * n_sub * 8  # bs array is int64
+    budget = total_memory * _MEMORY_SAFETY_FRACTION
+
+    if projected_bytes > budget:
+        max_num_bs = max(1, int(budget // (n_sequences * n_sub * 8)))
+        raise MemoryError(
+            f"Classifying {n_sequences:,} sequences with num_bs={num_bs} would need "
+            f"~{projected_bytes / 1e9:.1f} GB for bootstrap sampling alone -- more than "
+            f"{_MEMORY_SAFETY_FRACTION:.0%} of this machine's {total_memory / 1e9:.1f} GB "
+            f"of total RAM. This risks crashing or severely slowing your system, not just "
+            f"running slowly.\n"
+            f"Try num_bs<={max_num_bs} with this many sequences, or classify fewer "
+            f"sequences at a time. If you understand the risk and want to proceed anyway, "
+            f"pass force=True."
+        )
+
 
 def bootstrap_all(kmer_mat, kmer_size: int = 8, num_bs: int = 100, rng=None):
     """Bootstrap sample kmer indices. Take an 2D array of kmers where each row
@@ -17,35 +64,47 @@ def bootstrap_all(kmer_mat, kmer_size: int = 8, num_bs: int = 100, rng=None):
     return kmer_mat[np.arange(seq)[:, None, None], pos]
 
 
-def classify_all(kmer_mat, database, num_bs: int = 100, chunk=20_000, verbose: bool = False):
+@nb.njit(parallel=True, fastmath=True)
+def _classify_all_kernel(BS, cond_prob):
+    """For each bootstrap replicate (row of BS), sum the cond_prob rows for its
+    sampled kmer indices and take the argmax genus. Parallelized across rows.
+    """
+    M, n_sub = BS.shape
+    n_genera = cond_prob.shape[1]
+    genus = np.empty(M, dtype=np.int64)
+    for i in nb.prange(M):
+        acc = np.zeros(n_genera, dtype=np.float32)
+        for j in range(n_sub):
+            k = BS[i, j]
+            acc += cond_prob[k, :]
+        best = 0
+        best_val = acc[0]
+        for g in range(1, n_genera):
+            if acc[g] > best_val:
+                best_val = acc[g]
+                best = g
+        genus[i] = best
+    return genus
+
+
+def classify_all(kmer_mat, database, num_bs: int = 100, kmer_size: int = 8,
+                 verbose: bool = False, force: bool = False):
     cond_prob = database.conditional_prob
-    n_kmers = cond_prob.shape[0]
-    seq = kmer_mat.shape[0]
+    seq, length = kmer_mat.shape
+    n_sub = length // kmer_size
 
-    bs = bootstrap_all(kmer_mat, num_bs=num_bs)
-    n_sub = bs.shape[2]
-    BS = bs.reshape(seq * num_bs, n_sub)
-
-    genus = np.empty(seq * num_bs, dtype=np.int64)
+    _check_bootstrap_memory(seq, num_bs, n_sub, force)
 
     if verbose:
-        print(f"Processing {kmer_mat.shape[0]} sequences")
+        print(f"Processing {seq} sequences")
 
-    n_chunks = -(-BS.shape[0] // chunk)  # ceil division
-    # if chunk equals num_bs, one sequence is processed per loop
-    for chunk_idx, start in enumerate(range(0, BS.shape[0], chunk), start=1):
-        block = BS[start:start + chunk]
-        M = block.shape[0]
-        rows = np.repeat(np.arange(M), n_sub)
-        C = sparse.csr_matrix(
-            (np.ones(M * n_sub, np.float32), (rows, block.ravel())),
-            shape=(M, n_kmers),
-        )
-        genus[start:start + M] = (C @ cond_prob).argmax(axis=1)
+    bs = bootstrap_all(kmer_mat, kmer_size=kmer_size, num_bs=num_bs)
+    BS = np.ascontiguousarray(bs.reshape(seq * num_bs, n_sub))
 
-        if verbose:
-            sequences_done = min(seq, (start + M) // num_bs)
-            print(f"Chunk {chunk_idx}/{n_chunks}: {sequences_done}/{seq} sequences processed")
+    genus = _classify_all_kernel(BS, cond_prob)
+
+    if verbose:
+        print(f"Done classifying {seq} sequences")
     return genus.reshape(seq, num_bs)
 
 
@@ -85,9 +144,9 @@ class ClassifyAll:
             sequences, seq_col=seq_col, id_col=id_col, kmer_size=kmer_size, verbose=verbose
         )
 
-    def classify(self, sequences, database, num_bs: int = 100, chunk: int = 20_000,
+    def classify(self, sequences, database, num_bs: int = 100,
                 seq_col: str = "sequence", id_col: str = "id",
-                kmer_size: int = 8, verbose: bool = False):
+                kmer_size: int = 8, verbose: bool = False, force: bool = False):
         self.database = database
         self.sequences = sequences
         self.calc_kmer_mat(sequences, seq_col=seq_col, id_col=id_col, kmer_size=kmer_size, verbose=verbose)
@@ -96,8 +155,9 @@ class ClassifyAll:
             kmer_mat=self.kmer_mat,
             database=self.database,
             num_bs=num_bs,
-            chunk=chunk,
-            verbose=verbose
+            kmer_size=kmer_size,
+            verbose=verbose,
+            force=force,
         )
 
     def results(self, min_confidence=80, n_levels=None, verbose=False):

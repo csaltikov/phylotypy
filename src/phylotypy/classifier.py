@@ -61,7 +61,7 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
                        seq_col: str = "sequence",
                        id_col: str = "id",
                        num_bs: int = 100,
-                       chunk: int = 20_000):
+                       force: bool = False):
     """
     Classify 16S rRNA DNA sequences against a reference database.
 
@@ -71,12 +71,29 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
     corresponding identifiers and classifications. Verbose mode allows for
     progress tracking during classification.
 
+    Important:
+        `sequences` should be representative, dereplicated sequences — e.g. ASVs
+        from DADA2, OTU centroids from clustering (mothur, QIIME2, vsearch), or
+        consensus/representative sequences from a long-read pipeline (e.g.
+        NanoCLUST, emu) for Oxford Nanopore data — not raw sequencing reads.
+        This holds regardless of sequencing platform. Classifying raw reads
+        directly is both far slower than necessary (each read is classified
+        independently even when thousands of reads represent the same handful
+        of true organisms) and less accurate (raw reads carry uncorrected
+        sequencing errors, and may still include unmerged paired ends or
+        untrimmed adapters/primers that dereplication or consensus pipelines
+        remove). Bootstrap sampling internally allocates memory proportional to
+        `n_sequences * num_bs * (sequence_length / kmer_size)`; pointing this at
+        an unprocessed, FASTQ-derived file with hundreds of thousands to
+        millions of reads can exhaust available memory before it finishes.
+
     Args:
         sequences: pd.DataFrame or str Path
             Input is either a str/Path to the fasta file to classify. Or a pandas
             DataFrame. If str/Path, the fasta will be converted to a datafame.
             Each row is a sequence with at least an "id" column holding sequence
-            identifiers and a "sequence" column.
+            identifiers and a "sequence" column. Should be representative
+            sequences (see Important, above), not raw sequencing reads.
         database: dict or kmers.KmerDB
             The reference database to classify against, containing the necessary
             information for sequence classification.
@@ -98,9 +115,13 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
             Name of the column in `sequences` holding the sequence identifier. Default: "id".
         num_bs: int, optional
             Number of bootstrap replicates used for the confidence estimate. Default: 100.
-        chunk: int, optional
-            Number of bootstrap rows processed per batch during classification;
-            tune down to reduce peak memory on very large inputs. Default: 20_000.
+        force: bool, optional
+            Before allocating the bootstrap-sampling array, phylotypy estimates its size
+            and refuses to proceed (raising MemoryError) if it would exceed 30% of this
+            machine's total RAM, since that risks a crash or severe swap thrashing rather
+            than just a slow run — this is most likely to trigger if `sequences` contains
+            far more entries than expected (see Important, above). Pass True to skip this
+            check and proceed anyway. Default: False.
 
     Returns:
         pd.DataFrame:
@@ -128,7 +149,7 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
                            seq_col=seq_col,
                            id_col=id_col,
                            num_bs=num_bs,
-                           chunk=chunk)
+                           force=force)
 
     res = classify_seqs.results(
         min_confidence=min_confidence,

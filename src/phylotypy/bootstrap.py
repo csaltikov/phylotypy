@@ -10,7 +10,7 @@ import numpy as np
 from numpy.typing import NDArray
 from scipy import stats
 
-from phylotypy import kmers, classifier
+from phylotypy import kmers
 from phylotypy.utilities import read_fasta
 
 
@@ -118,6 +118,7 @@ def bootstrap_consensus_batch(bs_res: np.ndarray, genera_names: np.ndarray) -> d
 ##
 if __name__ == "__main__":
     from time import perf_counter
+    from phylotypy import classifier
 
     path = Path(__file__).parent
     rdp_small_fasta =  path / "../../data/trainset19_072023_small_db.fasta"

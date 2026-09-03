@@ -9,6 +9,11 @@ import pandas as pd
 def read_taxa_fasta(fasta_file: str | Path, is_ref: bool = False) -> pd.DataFrame:
     """Read a fasta file and return a pandas dataframe:
 
+    Note: for sequences you intend to classify (see classifier.classify_sequences),
+    this file should hold representative, dereplicated sequences — ASVs, OTU
+    centroids, or long-read consensus sequences — not raw sequencing reads,
+    regardless of platform. See classify_sequences()'s docstring for why.
+
     Parameters:
         fasta_file (string or pathlib.Path()): path to fasta file, can be a .gz file as well
         is_ref (bool): set True when fasta_file is a reference database (not a set of
