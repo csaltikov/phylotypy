@@ -2,7 +2,7 @@ import os
 import numpy as np
 import numba as nb
 from pathlib import Path
-from phylotypy import kmers, conditional_prob, bootstrap
+from phylotypy import kmers, bootstrap
 from collections import defaultdict
 import pandas as pd
 
@@ -140,7 +140,7 @@ class ClassifyAll:
 
     def calc_kmer_mat(self, sequences, seq_col: str = "sequence", id_col: str = "id",
                       kmer_size: int = 8, verbose: bool = False):
-        self.genera_idx, self.kmer_mat = conditional_prob.seq_to_kmers_database(
+        self.genera_idx, self.kmer_mat = kmers.seq_to_kmers_database(
             sequences, seq_col=seq_col, id_col=id_col, kmer_size=kmer_size, verbose=verbose
         )
 

@@ -3,7 +3,7 @@ import unittest
 import numpy as np
 import pandas as pd
 
-from phylotypy import kmers, bootstrap, conditional_prob
+from phylotypy import kmers, bootstrap
 from phylotypy.classify_bootstraps import classify_bootstraps_cython
 
 
@@ -20,8 +20,8 @@ class TestClassifyBootstrapCy(unittest.TestCase):
                                                   self.ref_genera,
                                                   kmer_size=self.kmer_size)
 
-        genera_idx_test, detected_kmers_test = conditional_prob.seq_to_kmers_database(self.sequences_df,
-                                                                                      kmer_size=self.kmer_size)
+        genera_idx_test, detected_kmers_test = kmers.seq_to_kmers_database(self.sequences_df,
+                                                                           kmer_size=self.kmer_size)
         # ref A
         seq_kmer = detected_kmers_test[0, 1:]
 

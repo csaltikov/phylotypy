@@ -13,7 +13,7 @@ include-package-data = true
 
 [project]
 name = "phylotypy"
-version = "0.6.0"
+version = "0.7.0"
 keywords = [
     "16S rRNA",
     "naive bayes",
@@ -85,6 +85,9 @@ dependencies = [
 Homepage = "https://github.com/csaltikov/phylotypy"
 Repository = "https://github.com/csaltikov/phylotypy"
 "Bug Tracker" = "https://github.com/csaltikov/phylotypy/issues"
+
+[project.scripts]
+phylotypy = "phylotypy.cli:main"
 
 [project.optional-dependencies]
 test = ["pytest"]

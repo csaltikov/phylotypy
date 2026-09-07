@@ -72,11 +72,12 @@ def bootstrap_consensus(classified_bs_kmers: np.ndarray, genera_names: np.ndarra
     confidence_consensus = np.zeros(n_levels, dtype=int)
 
     # Use Counter directly instead of apply_along_axis with custom function
+    num_bs = res.shape[0]
     for i in range(n_levels):
         counter = Counter(res[:, i])
         most_common = counter.most_common(1)[0]  # Returns (taxon, count)
         taxa_consensus[i] = most_common[0]
-        confidence_consensus[i] = most_common[1]
+        confidence_consensus[i] = int(100 * most_common[1] / num_bs)
 
     return dict(taxonomy=taxa_consensus, confidence=confidence_consensus)
 
@@ -110,7 +111,7 @@ def bootstrap_consensus_batch(bs_res: np.ndarray, genera_names: np.ndarray) -> d
         level_codes = codes_for_genera[bs_res]  # (n_seq, num_bs)
         mode_result = stats.mode(level_codes, axis=1, keepdims=False)
         taxa_consensus[:, level] = labels[mode_result.mode]
-        confidence_consensus[:, level] = mode_result.count
+        confidence_consensus[:, level] = (100 * mode_result.count / bs_res.shape[1]).astype(int)
 
     return dict(taxonomy=taxa_consensus, confidence=confidence_consensus)
 

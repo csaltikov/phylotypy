@@ -86,6 +86,11 @@ def unpickle_and_decompress(input_file: str | Path):
     return obj
 
 
+def load_pickle(input_file: str | Path):
+    with open(input_file, 'rb') as f:
+        return pickle.load(f)
+
+
 def summarize_taxa_ids(api_res):
     '''Formats the NCBI esummary "result" output'''
     recs = defaultdict(list)
@@ -102,7 +107,7 @@ def get_eutils_results(url, payload):
         try:
             r = requests.get(url, params=payload)
             r.raise_for_status()
-            
+
             fmt = payload.get("retmode", None)
             if fmt == "json":
                 try:
@@ -111,7 +116,7 @@ def get_eutils_results(url, payload):
                     print(f"Request failed to decode {url}")
                     return r.text
             return r.text
-            
+
         except requests.exceptions.HTTPError as e:
             failed_response = e.response
             if failed_response.status_code == 429:
@@ -126,11 +131,11 @@ def get_eutils_results(url, payload):
                 time.sleep(wait_time)
             else:
                 raise
-                
+
         except requests.exceptions.Timeout:
             print("Request timed out")
             raise
-            
+
         except requests.exceptions.RequestException as e:
             print(f"Request failed {e}")
             raise
@@ -139,7 +144,7 @@ def get_eutils_results(url, payload):
 def parse_taxa_xml(res):
     root = ET.fromstring(res)
     top_level = root.findall("Taxon")
-    
+
     def parse_lineage(lineage):
         saved_lineage = {}
         for rec in lineage:
@@ -153,22 +158,27 @@ def parse_taxa_xml(res):
         taxid = taxon.findtext("TaxId")
         name = taxon.findtext("ScientificName")
         rank = taxon.findtext("Rank")
-        
-        extended_lineage = parse_lineage(taxon.find("LineageEx"))
+        lineage = taxon.find("LineageEx")
+
+        extended_lineage = parse_lineage(lineage)
         extended_lineage["taxid"] = taxid
         extended_lineage[rank] = name
         all_results.append(extended_lineage)
     return all_results
 
 
-def get_taxa_ids(taxa_names):
+def get_taxa_ids(taxa_names, email: str = None):
     if not isinstance(taxa_names, list):
         taxa_names = [taxa_names]
-    terms = " OR ".join(taxa_names)
+    #terms = " OR ".join(taxa_names)
+    terms = " OR ".join(f'{name}[Scientific Name]' for name in taxa_names)
+    term = f"({terms}) AND Bacteria[Subtree]"
+    print(term)
     search_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/esearch.fcgi"
     fetch_url = "https://eutils.ncbi.nlm.nih.gov/entrez/eutils/efetch.fcgi"
 
     payload = dict(db="taxonomy", term=terms, retmode="json")
+    payload.update(tool="my_script_name", email=email)
     response = get_eutils_results(url=search_url, payload=payload)
 
     exceed_limit = response.get("error", [])
@@ -202,12 +212,9 @@ if __name__ == "__main__":
         "Pseudomonas",
         "Salmonella"
     ]
-    res0 = get_taxa_ids(taxa_list)
+    res0 = get_taxa_ids(taxa_list, email="me@gmail.com")
     res0_dict = parse_taxa_xml(res0)
     # res0_dict = summarize_taxa_ids(res0)
     res0_df = pd.DataFrame(res0_dict)
     print(res0_df.head())
     # print(get_taxa_ids(["Methanobrevibacter"]))
-
-
-

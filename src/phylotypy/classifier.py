@@ -13,7 +13,7 @@ import pickle
 import pandas as pd
 import numpy as np
 
-from phylotypy import kmers, conditional_prob, bootstrap
+from phylotypy import kmers, bootstrap
 from phylotypy import cond_prob_cython
 from phylotypy import classify_bootstraps_cython
 from phylotypy import read_fasta

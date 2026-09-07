@@ -5,6 +5,32 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-09-06
+
+### Fixed
+
+- `bootstrap.bootstrap_consensus_batch()` (used by the active `classify_sequences()`
+  path via `batch_classifier.summarize()`) stored the raw bootstrap-replicate vote
+  count into `confidence` instead of converting it to a percentage. This only
+  coincidentally looked correct at the default `num_bs=100`; for any other
+  `num_bs` (e.g. 10), a taxon with unanimous bootstrap support got
+  `confidence=10` instead of `100`, which then failed to clear
+  `min_confidence`'s default threshold of 80, causing every level past the
+  first to incorrectly fall back to `_unclassified`. Fixed to match
+  `kmers.get_consensus()`'s existing `int(100 * fraction)` convention. Applied
+  the same fix to the deprecated `bootstrap_consensus()` for consistency.
+- `cli.py`'s `classify` subcommand didn't write any output file when
+  `--res-extended` was passed — `results.summarize_predictions()` was called to
+  build the extended report, but the `.to_csv()` write only happened in the
+  non-extended branch. Both paths now write to `--out`.
+
+### Tests
+
+- Added `tests/test_bootstrap.py` coverage for `bootstrap_consensus()` and
+  `bootstrap_consensus_batch()` using a non-default `num_bs=10`, which the
+  existing tests didn't exercise and is how the confidence-percentage bug
+  above went unnoticed.
+
 ## [0.6.0] - 2026-08-30
 
 ### Performance

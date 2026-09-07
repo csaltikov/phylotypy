@@ -1,5 +1,6 @@
 from dataclasses import dataclass, field
 from functools import partial
+from pathlib import Path
 from typing import Dict, Any, Type
 
 import multiprocessing as mp
@@ -11,6 +12,7 @@ if platform.system() == "Darwin":
 import re
 
 import numpy as np
+import pandas as pd
 from numpy.dtypes import StringDType
 
 from phylotypy import _worker_pool
@@ -233,6 +235,52 @@ def detect_kmers_across_sequences_mp(sequences: list,
     return KmerIndices(indices=indices, offsets=offsets)
 
 
+def fix_kmers_length(kmer_arr, seq_len: int = 1400):
+    n_missing = seq_len - len(kmer_arr)
+    return np.concatenate([kmer_arr, np.full(n_missing, -1, dtype=int)])
+
+
+def seq_to_kmers_database(sequences_db, seq_col: str = 'sequence', id_col: str = 'id',
+                          kmer_size: int = 8, verbose: bool = False):
+    """Builds a dense, padded kmer-index matrix for a batch of query sequences.
+
+    Unlike detect_kmers_across_sequences[_mp] (CSR-style, for building the
+    reference database), this pads every sequence's kmer indices to a common
+    length so the result is a rectangular array -- needed by batch_classifier's
+    bootstrap resampling, which samples columns directly.
+    """
+    if verbose:
+        print(f"kmer_size is set to {kmer_size}")
+
+    db = sequences_db
+
+    if isinstance(sequences_db, str):
+        if ".csv" in Path(sequences_db).suffix:
+            db = pd.read_csv(sequences_db)
+        if ".tsv" in Path(sequences_db).suffix:
+            db = pd.read_csv(sequences_db, sep="\t")
+        else:
+            db = pd.read_csv(sequences_db, sep=None, engine='python')
+
+    pool = _worker_pool.get_pool()
+    kmer_results = pool.starmap(detect_kmer_indices, [(s, kmer_size) for s in db[seq_col]])
+    kmer_series = pd.Series(kmer_results, index=db.index)
+    # Calculate max length
+    max_seq_len = kmer_series.str.len().max().astype(int)
+
+    # pad each sequence's kmer array to a common length (cheap; no pool needed)
+    detected_kmers = kmer_series.apply(lambda x: fix_kmers_length(x, max_seq_len))
+    genera_idx = genera_str_to_index(db[id_col])
+
+    print("Done with detecting k-mers")
+    # Create final array first column are the sequence indices
+    all_kmers_arr = np.hstack((
+        np.array(genera_idx).reshape(-1, 1),
+        np.stack(detected_kmers.to_numpy())
+    ), dtype=int)
+    return [genera_idx, all_kmers_arr]
+
+
 def calc_word_specific_priors(detected_kmers_list: list,
                               kmer_size: int = 8,
                               verbose: bool = False) -> np.ndarray:
@@ -260,6 +308,23 @@ def calc_word_specific_priors(detected_kmers_list: list,
         priors[idx_list] +=1
     priors = (priors + 0.5) / (n_seqs + 1)
     return priors
+
+
+def calc_priors_dense(detected_kmers: np.ndarray, kmer_size: int = 8):
+    """calc_word_specific_priors, but for the dense/padded matrix produced by
+    seq_to_kmers_database instead of a CSR-style detected-kmers list."""
+    num_seqs = len(detected_kmers)
+    max_value = 4 ** kmer_size
+
+    # get all kmers in the corpus of sequences
+    flat_kmers = detected_kmers[:, 1:].flatten()  # ignore col 0, row indices
+    # remove negative values
+    flat_kmers = flat_kmers[flat_kmers != -1]  # -1 are encoded as NA values
+    counts = np.bincount(flat_kmers, minlength=max_value)
+
+    # expected-likelihood estimate using Jeffreys-Perks law of succession
+    # 0 < Pi < 1
+    return (counts + 0.5) / (num_seqs + 1)
 
 
 def calc_genus_conditional_prob(detect_list: list[list[int]],
