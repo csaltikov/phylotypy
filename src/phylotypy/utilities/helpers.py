@@ -10,10 +10,15 @@ import subprocess
 import requests
 import xml.etree.ElementTree as ET
 import pandas as pd
+from . import read_fasta
 
 
 MAX_RETRIES = 5  # Limit the total number of attempts
 INITIAL_WAIT_TIME = 2  # Start with a 2-second wait
+FASTA_EXTS = (
+    ".fasta", ".fa", ".fna", ".faa", ".ffn", ".frn", ".fas", ".seq",
+    ".fasta.gz", ".fa.gz", ".fna.gz", ".faa.gz", ".ffn.gz", ".frn.gz", ".fas.gz", ".seq.gz"
+)
 
 
 def dataframe_to_fasta(df, fasta_file):
@@ -100,6 +105,35 @@ def summarize_taxa_ids(api_res):
             for k, v in vv.items():
                 recs[k].append(v)
     return recs
+
+
+def load_and_validate_seqs(seqs) -> pd.DataFrame:
+    if isinstance(seqs, (str, Path)):
+        file_path = Path(seqs)
+        seqs_str = str(seqs).lower()
+
+        if seqs_str.endswith((".csv", ".tsv")):
+            sep = "\t" if seqs_str.endswith(".tsv") else ","
+            seqs = pd.read_csv(seqs, sep=sep)
+        elif seqs_str.endswith(FASTA_EXTS):
+            seqs = read_fasta.read_taxa_fasta(seqs)
+        else:
+            raise ValueError(
+                f"Unsupported file extension for '{file_path}'. Expected fasta, csv, or tsv."
+            )
+    if not isinstance(seqs, pd.DataFrame):
+        raise TypeError(
+            f"Expected a file path or pandas DataFrame, but received {type(seqs).__name__}."
+        )
+
+    required_cols = {"id", "sequence"}
+    missing_cols = required_cols - set(seqs.columns)
+    if missing_cols:
+        raise ValueError(
+            f"Sequence data is missing required column(s): {sorted(missing_cols)}. "
+            f"Found columns: {list(seqs.columns)}"
+        )
+    return seqs
 
 
 def get_eutils_results(url, payload):

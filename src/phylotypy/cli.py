@@ -62,24 +62,33 @@ def build_parser() -> argparse.ArgumentParser:
         help="build a classifier database from a reference fasta and save it to disk",
     )
     build_cmd.add_argument("-i", "--input", required=True, type=_existing_file,
-                           help="reference fasta with taxonomy strings in the sequence headers")
+                           help="reference fasta with taxonomy strings in the sequence headers "
+                                "or a csv/tsv file with column names 'id' and 'sequence'"
+                           )
     build_cmd.add_argument("-o", "--out", required=True, type=Path,
-                           help="output path for the pickled classifier database")
+                           help="output path for the pickled classifier database"
+                           )
     build_cmd.add_argument("--kmer-size", type=int, default=8,
-                           help="k-mer size used to build the database (default: 8)")
+                           help="k-mer size used to build the database (default: 8)"
+                           )
     build_cmd.add_argument("--threads", type=int, default=4,
-                           help="number of CPU processes to use while building (default: 4)")
+                           help="number of CPU processes to use while building (default: 4)"
+                           )
     build_cmd.add_argument("--filter-db", action="store_true",
                            help="filter the reference database to a single consistent "
-                                "taxonomic depth and drop noisy entries before building")
+                                "taxonomic depth and drop noisy entries before building"
+                           )
     build_cmd.add_argument("--max-per-genus", type=int, default=None,
                            help="down-sample to at most this many sequences per genus "
-                                "(requires --filter-db)")
+                                "(requires --filter-db)"
+                           )
     build_cmd.add_argument("--n-levels", type=int, default=None,
                            help="taxonomic depth to keep when --filter-db is set "
-                                "(default: auto-detected)")
+                                "(default: auto-detected)"
+                           )
     build_cmd.add_argument("-v", "--verbose", action="store_true",
-                           help="print progress messages")
+                           help="print progress messages"
+                           )
     build_cmd.set_defaults(func=run_build)
 
     # --- classify ---
@@ -89,20 +98,26 @@ def build_parser() -> argparse.ArgumentParser:
     )
     classify_cmd.add_argument("-i", "--input", required=True, type=_existing_file,
                               help="fasta of representative/dereplicated sequences to classify "
-                                   "(e.g. ASVs or OTU centroids -- not raw reads)")
+                                   "(e.g. ASVs or OTU centroids -- not raw reads) "
+                              )
     classify_cmd.add_argument("-d", "--db", required=True, type=_existing_file,
                               help="reference database: a prebuilt classifier (.pkl/.pickle, "
-                                   "from `phylotypy build`) or a raw reference fasta, which "
-                                   "will be built on the fly")
+                                   "from `phylotypy build`) or a raw reference fasta, "
+                                   "which will be built on the fly, "
+                                   "or a csv/tsv file with column names 'id' and 'sequence'"
+                              )
     classify_cmd.add_argument("-o", "--out", required=True, type=Path,
                               help="output path for classification results (.tsv or .csv; "
-                                   "default tab-separated)")
+                                   "default tab-separated)"
+                              )
     classify_cmd.add_argument("--save-db", type=Path, default=None,
                               help="if --db is a raw fasta, add a file path to save the built "
-                                   " classifier here for reuse (avoids rebuilding it on the next run)")
+                                   " classifier here for reuse (avoids rebuilding it on the next run)"
+                              )
     classify_cmd.add_argument("--res-extended", help="Created an extended results report "
                               "including qiime formatted lineage, lineages split into taxonomic levels",
-                              action="store_true")
+                              action="store_true"
+                              )
     _add_common_classify_args(classify_cmd)
     classify_cmd.set_defaults(func=run_classify)
 
@@ -118,7 +133,7 @@ def run_build(args: argparse.Namespace) -> None:
 
     t0 = time.time()
     database = classifier.make_classifier(
-        args.input,
+        ref_db=args.input,
         kmer_size=args.kmer_size,
         multiprocess=args.threads > 1,
         n_cpu=args.threads,
@@ -150,7 +165,7 @@ def run_classify(args: argparse.Namespace) -> None:
             print(f"{args.db} doesn't look like a prebuilt database (.pkl/.pickle); "
                   "building a classifier from it first...")
         database = classifier.make_classifier(
-            args.db,
+            ref_db=args.db,
             kmer_size=args.kmer_size,
             multiprocess=(args.threads or 1) > 1,
             n_cpu=args.threads or 4,

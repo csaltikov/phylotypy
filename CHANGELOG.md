@@ -5,6 +5,27 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.5] - 2026-09-07
+
+### Fixed
+
+- Renamed `src/utilities/utilities.py` to `src/utilities/helper.py` to
+  avoid cirrcular imports and give the module a more appropriate name
+
+### Added
+
+- Added `load_and_validate_seqs()` that checks the file types either fasta 
+  formatted, csv/tsv, or dataframe. The classifier module can take a variatey
+  of common file extensions for fasta sequences. If a csv/tsv file is used the
+  descriptions should be under the `id` columns and the sequences under 
+  `sequence` column.
+
+### Tests
+
+- Added `tests/test_helpers.py`, which tests the new `load_and_validate_seqs()`
+  function. The test ensures that the incoming data files have the propoer 
+  column names and data types.
+
 ## [0.7.0] - 2026-09-06
 
 ### Fixed

@@ -19,6 +19,7 @@ from phylotypy import classify_bootstraps_cython
 from phylotypy import read_fasta
 from phylotypy import training_data
 from phylotypy.batch_classifier import ClassifyAll
+from phylotypy import helpers
 
 
 def detect_n_levels(genera_names: np.ndarray | pd.Series | list) -> int:
@@ -136,8 +137,7 @@ def classify_sequences(sequences: pd.DataFrame | str | Path,
         >>> database = classifier.make_classifier(ref_seqs)
         >>> classified = classifier.classify_sequences(seqs, database)
     """
-    if isinstance(sequences, str | Path):
-        sequences = read_fasta.read_taxa_fasta(sequences)
+    sequences = helpers.load_and_validate_seqs(sequences)
 
     n_levels = n_levels or detect_n_levels(database.genera_names)
 
@@ -236,13 +236,7 @@ def make_classifier(ref_db: pd.DataFrame | str | Path, *,
         >>> with open("database.pkl", "rb") as f:
         >>>     database = pickle.load(f)
     """
-    if isinstance(ref_db, str | Path):
-        ref_db = read_fasta.read_taxa_fasta(ref_db)
-
-    ref_db_cols = ref_db.columns.to_list()
-    required_cols = {"id", "sequence"}
-    if not required_cols.issubset(set(ref_db_cols)):
-        raise ValueError("Reference database must contain 'id' and 'sequence' columns")
+    ref_db = helpers.load_and_validate_seqs(ref_db)
 
     if filter_db:
         n_levels = n_levels or detect_n_levels(ref_db["id"])

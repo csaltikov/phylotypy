@@ -150,8 +150,94 @@ majority depth in your data if you don't pass one, and prints the same before/af
 counts when `verbose=True`.
 
 ---
+## Command line interface
 
-## Quick Start
+Classifying sequences can be done on the command line using:
+
+```commandline
+phylotypy classify --input dna_moving_pictures.fasta \
+                   --db rdp_16S_v19.dada2.fasta \
+                   --out classied_seqs.tsv \
+                   --verbose
+```
+
+You can save the classifier (a pickle file) and reuse it later by specificying --save-db:
+
+```commandline
+phylotypy classify --input dna_moving_pictures.fasta \
+                   --db rdp_16S_v19.dada2.fasta \
+                   --save-db rdp_classifer.pickle \ # set the path
+                   --out classied_seqs.tsv \
+                   --verbose
+                   
+# resuse on another run saves time since the db is already built
+phylotypy classify --input my_sequences.fasta \
+                   --db rdp_classifer.pickle \
+                   --out classied_my_seqs.tsv \
+                   --verbose
+```
+### Help menu:
+
+```commandline
+phylotypy --help
+
+usage: phylotypy [-h] [--version] {build,classify} ...
+
+Naive Bayes classifier for 16S rRNA sequence data.
+
+positional arguments:
+  {build,classify}
+    build           build a classifier database from a reference fasta and save it to disk
+    classify        classify sequences against a database
+
+options:
+  -h, --help        show this help message and exit
+  --version         show program's version number and exit
+```
+--
+```commandline
+phylotypy classify --help
+usage: phylotypy classify [-h] -i INPUT -d DB -o OUT [--save-db SAVE_DB] [--res-extended] [--kmer-size KMER_SIZE] [--num-bootstrap NUM_BOOTSTRAP]
+                          [--min-consensus MIN_CONSENSUS] [--n-levels N_LEVELS] [--threads THREADS] [--force] [-v]
+
+options:
+  -h, --help            show this help message and exit
+  -i, --input INPUT     fasta of representative/dereplicated sequences to classify (e.g. ASVs or OTU centroids -- not raw reads)
+  -d, --db DB           reference database: a prebuilt classifier (.pkl/.pickle, from `phylotypy build`) or a raw reference fasta, which will be built on the fly
+  -o, --out OUT         output path for classification results (.tsv or .csv; default tab-separated)
+  --save-db SAVE_DB     if --db is a raw fasta, add a file path to save the built classifier here for reuse (avoids rebuilding it on the next run)
+  --res-extended        Created an extended results report including qiime formatted lineage, lineages split into taxonomic levels
+  --kmer-size KMER_SIZE
+                        k-mer size; must match the database's k-mer size (default: 8)
+  --num-bootstrap NUM_BOOTSTRAP
+                        number of bootstrap replicates for the confidence estimate (default: 100)
+  --min-consensus MIN_CONSENSUS
+                        bootstrap confidence threshold 0-100; ranks below this are reported as '_unclassified' (default: 80)
+  --n-levels N_LEVELS   number of taxonomic levels in the output (default: auto-detected from the reference database)
+  --threads THREADS     number of CPU threads to use for classification (default: all cores)
+  --force               skip the memory-safety check before bootstrap sampling
+  -v, --verbose         print progress messages
+```
+--
+```commandline
+phylotypy build --help
+usage: phylotypy build [-h] -i INPUT -o OUT [--kmer-size KMER_SIZE] [--threads THREADS] [--filter-db] [--max-per-genus MAX_PER_GENUS] [--n-levels N_LEVELS] [-v]
+
+options:
+  -h, --help            show this help message and exit
+  -i, --input INPUT     reference fasta with taxonomy strings in the sequence headers
+  -o, --out OUT         output path for the pickled classifier database
+  --kmer-size KMER_SIZE
+                        k-mer size used to build the database (default: 8)
+  --threads THREADS     number of CPU processes to use while building (default: 4)
+  --filter-db           filter the reference database to a single consistent taxonomic depth and drop noisy entries before building
+  --max-per-genus MAX_PER_GENUS
+                        down-sample to at most this many sequences per genus (requires --filter-db)
+  --n-levels N_LEVELS   taxonomic depth to keep when --filter-db is set (default: auto-detected)
+  -v, --verbose         print progress messages
+```
+
+## Using the API
 
 ### 1. Load training data and sequences to classify
 ```python
