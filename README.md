@@ -5,9 +5,32 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 A Naive Bayesian Classifier for 16S rRNA gene sequences, inspired by the
-[phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas. Designed for classifying amplicon sequence variants (ASVs) 
-from DADA2, QIIME2, or raw FASTA files against a reference database of 16S 
-rRNA sequences. The RDP training data is provided here in the data directory located at 
+[phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas. Designed for classifying amplicon 
+sequence variants (ASVs) from DADA2, QIIME2, or raw FASTA files against a reference database of 16S 
+rRNA sequences. PhylotyPY was built to run on a laptop with modest hardware. The
+project is opitmized to protect memory and take a computer's mutiple cpus.
+
+DADA2's assignTaxonomy has no way to save and reuse a classifier. And large reference
+fasta files like Silva tend to choke a lower resourced computer. QIIME2 requires conda 
+installation and the use of artifacts files. Phylotypy is meant to replace DADA2 and QIIME2's classifcation
+steps. Phylotypy takes standard fasta files and csv/tsv file as input options.  The output is
+a standard tsv file with columns containing several lineage formats and separate taxonomic levels: 
+
+```shell
+# lineage with percent confidence scrores
+Bacteria(100);Pseudomonadota(95);Deltaproteobacteria(92);Desulfovibrionales(92);Desulfovibrionaceae(90);Desulfovibrio(80)
+
+# semicolon separate lineage
+Bacteria;Pseudomonadota;Deltaproteobacteria;Desulfovibrionales;Desulfovibrionaceae;Desulfovibrio
+
+# qiime formated lineage
+k__Bacteria;p__Pseudomonadota;c__Deltaproteobacteria;o__Desulfovibrionales;f__Desulfovibrionaceae;g__Desulfovibrio
+```
+|Kingdom|Phylum|Class|Order|Family|Genus|
+|-------|-------|-----|-----|------|-----|
+|Bacteria|Pseudomonadota|Deltaproteobacteria|Desulfovibrionales|Desulfovibrionaceae|Desulfovibrio|
+
+The RDP training data is provided here in the data directory located at 
 the github repository. But Silva and others can be used.
 
 Thanks to Riffomonas for the inspiration — check out the videos on his
@@ -154,7 +177,7 @@ counts when `verbose=True`.
 
 Classifying sequences can be done on the command line using:
 
-```commandline
+```shell
 phylotypy classify --input dna_moving_pictures.fasta \
                    --db rdp_16S_v19.dada2.fasta \
                    --out classied_seqs.tsv \
@@ -163,7 +186,7 @@ phylotypy classify --input dna_moving_pictures.fasta \
 
 You can save the classifier (a pickle file) and reuse it later by specificying --save-db:
 
-```commandline
+```shell
 phylotypy classify --input dna_moving_pictures.fasta \
                    --db rdp_16S_v19.dada2.fasta \
                    --save-db rdp_classifer.pickle \ # set the path
@@ -178,7 +201,7 @@ phylotypy classify --input my_sequences.fasta \
 ```
 ### Help menu:
 
-```commandline
+```shell
 phylotypy --help
 
 usage: phylotypy [-h] [--version] {build,classify} ...
@@ -195,7 +218,7 @@ options:
   --version         show program's version number and exit
 ```
 --
-```commandline
+```shell
 phylotypy classify --help
 usage: phylotypy classify [-h] -i INPUT -d DB -o OUT [--save-db SAVE_DB] [--res-extended] [--kmer-size KMER_SIZE] [--num-bootstrap NUM_BOOTSTRAP]
                           [--min-consensus MIN_CONSENSUS] [--n-levels N_LEVELS] [--threads THREADS] [--force] [-v]
@@ -219,7 +242,7 @@ options:
   -v, --verbose         print progress messages
 ```
 --
-```commandline
+```shell
 phylotypy build --help
 usage: phylotypy build [-h] -i INPUT -o OUT [--kmer-size KMER_SIZE] [--threads THREADS] [--filter-db] [--max-per-genus MAX_PER_GENUS] [--n-levels N_LEVELS] [-v]
 
@@ -269,7 +292,7 @@ print(classified.columns)
 ```
 
 Output:
-```
+```python
 Index(['id', 'sequence', 'classification', 'Kingdom', 'Phylum', 'Class',
        'Order', 'Family', 'Genus', 'observed', 'lineage'],
       dtype='object')
@@ -305,7 +328,7 @@ classified.to_csv("classified_results.csv")
 Taxonomic levels (Domain → Genus) are semicolon-separated. Numbers in parentheses
 represent bootstrap confidence scores. The default confidence threshold is 80%.
 
-```
+```python
 Bacteria(100);Pseudomonadota(99);Alphaproteobacteria(99);Rhodospirillales(99);Acetobacteraceae(99);Roseomonas(83)
 
 Bacteria(99);Bacteroidota(97);Bacteroidia(93);Bacteroidales(93);Bacteroidales_unclassified(93);Bacteroidales_unclassified(93)
