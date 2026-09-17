@@ -8,15 +8,17 @@ A Naive Bayesian Classifier for 16S rRNA gene sequences, inspired by the
 [phylotypr](https://github.com/riffomonas/phylotypr) R package by Riffomonas. Designed for classifying amplicon 
 sequence variants (ASVs) from DADA2, QIIME2, or raw FASTA files against a reference database of 16S 
 rRNA sequences. PhylotyPY was built to run on a laptop with modest hardware. The
-project is opitmized to protect memory and take a computer's mutiple cpus.
+project is memory opitmized and takes advantage of a computer's mutiple cpus.
 
-DADA2's assignTaxonomy has no way to save and reuse a classifier. And large reference
-fasta files like Silva tend to choke a lower resourced computer. QIIME2 requires conda 
-installation and the use of artifacts files. Phylotypy is meant to replace DADA2 and QIIME2's classifcation
-steps. Phylotypy takes standard fasta files and csv/tsv file as input options.  The output is
-a standard tsv file with columns containing several lineage formats and separate taxonomic levels: 
+DADA2's assignTaxonomy has no option to save and reuse a classifier. And large reference
+fasta files like Silva can tie up a computer for an extended time period. QIIME2 requires conda 
+installation and produces artifact files needing to be inter-converted. 
 
-```shell
+Phylotypy was created to be a drop-in replacement for DADA2 and QIIME2's classifcation steps. 
+Phylotypy takes fasta  files and csv/tsv file as input options.  The output is a tsv
+file with columns containing several lineage formats and separate taxonomic levels: 
+
+```commandline
 # lineage with percent confidence scrores
 Bacteria(100);Pseudomonadota(95);Deltaproteobacteria(92);Desulfovibrionales(92);Desulfovibrionaceae(90);Desulfovibrio(80)
 
@@ -31,10 +33,12 @@ k__Bacteria;p__Pseudomonadota;c__Deltaproteobacteria;o__Desulfovibrionales;f__De
 |Bacteria|Pseudomonadota|Deltaproteobacteria|Desulfovibrionales|Desulfovibrionaceae|Desulfovibrio|
 
 The RDP training data is provided here in the data directory located at 
-the github repository. But Silva and others can be used.
+the github repository. But Silva and others can be used. Please see the section below 
+on how to format the fasta description.
 
-Thanks to Riffomonas for the inspiration — check out the videos on his
-[YouTube channel](https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j).
+Phylotypy was written from the ground up but using methods presented in
+Riffamonas's CodeClude series.  I want to thank P. Schloss and Riffomonas for the inspiration for phylotypy. Check out the videos on his
+[YouTube channel](https://youtube.com/playlist?list=PLmNrK_nkqBpIZlWa3yGEc2-wX7An2kpCL&si=LmHDV02K5_wb6C0j). 
 
 ---
 ## Performance
