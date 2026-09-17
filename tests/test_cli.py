@@ -122,6 +122,52 @@ class TestClassifyCommand(TestCliBase):
         results = pd.read_csv(out_tsv, sep="\t")
         self.assertEqual(len(results), 4)
 
+    def test_classify_terminal_report_prints_a_bar_chart(self):
+        out_tsv = self.tmp_path / "results.tsv"
+        code, stdout = self.run_cli([
+            "classify", "-i", str(self.query_fasta), "-d", str(self.db_pkl),
+            "-o", str(out_tsv), "--terminal-report",
+        ])
+
+        self.assertEqual(code, 0)
+        self.assertIn("Phylum-level summary", stdout)
+        self.assertIn("Actinomycetota", stdout)
+        self.assertIn("resolved at phylum", stdout)
+
+    def test_classify_t_report_alias_and_rank_option(self):
+        out_tsv = self.tmp_path / "results.tsv"
+        code, stdout = self.run_cli([
+            "classify", "-i", str(self.query_fasta), "-d", str(self.db_pkl),
+            "-o", str(out_tsv), "--t-report", "--report-rank", "genus",
+        ])
+
+        self.assertEqual(code, 0)
+        self.assertIn("Genus-level summary", stdout)
+        self.assertIn("Mycobacterium", stdout)
+
+    def test_classify_report_top_folds_the_tail_into_other(self):
+        out_tsv = self.tmp_path / "results.tsv"
+        code, stdout = self.run_cli([
+            "classify", "-i", str(self.query_fasta), "-d", str(self.db_pkl),
+            "-o", str(out_tsv), "--t-report", "--report-rank", "genus", "--report-top", "1",
+        ])
+
+        self.assertEqual(code, 0)
+        self.assertIn("Other (", stdout)
+
+    def test_classify_reports_a_bad_report_rank_without_a_traceback(self):
+        out_tsv = self.tmp_path / "results.tsv"
+        buf_err = io.StringIO()
+        with contextlib.redirect_stderr(buf_err):
+            code, stdout = self.run_cli([
+                "classify", "-i", str(self.query_fasta), "-d", str(self.db_pkl),
+                "-o", str(out_tsv), "--t-report", "--report-rank", "subphylum",
+            ])
+
+        self.assertEqual(code, 0)  # results were still written
+        self.assertTrue(out_tsv.exists())
+        self.assertIn("Could not build the terminal report", buf_err.getvalue())
+
     def test_classify_rejects_a_missing_db_file(self):
         with self.assertRaises(SystemExit) as ctx:
             self.run_cli([

@@ -118,6 +118,21 @@ def build_parser() -> argparse.ArgumentParser:
                               "including qiime formatted lineage, lineages split into taxonomic levels",
                               action="store_true"
                               )
+    classify_cmd.add_argument("--terminal-report", "--t-report", dest="terminal_report",
+                              action="store_true",
+                              help="print a bar-chart summary of the classifications to the "
+                                   "terminal after writing the results"
+                              )
+    classify_cmd.add_argument("--report-rank", default="phylum",
+                              help="taxonomic rank to summarize with --terminal-report: "
+                                   "kingdom, phylum, class, order, family, genus or species "
+                                   "(default: phylum)"
+                              )
+    classify_cmd.add_argument("--report-top", type=int, default=15,
+                              help="maximum number of taxa to chart with --terminal-report; "
+                                   "the rest are folded into an 'Other' row, 0 for no limit "
+                                   "(default: 15)"
+                              )
     _add_common_classify_args(classify_cmd)
     classify_cmd.set_defaults(func=run_classify)
 
@@ -197,6 +212,16 @@ def run_classify(args: argparse.Namespace) -> None:
     classified_results.to_csv(args.out, sep=sep, index=False)
 
     print(f"Classified {len(classified_results)} sequences in {time.time() - t0:.1f}s -> {args.out}")
+
+    if args.terminal_report:
+        from phylotypy import terminal_report
+        print()
+        try:
+            terminal_report.print_report(classified_results,
+                                         rank=args.report_rank,
+                                         top=args.report_top)
+        except terminal_report.ReportError as e:
+            print(f"Could not build the terminal report: {e}", file=sys.stderr)
 
 
 def main(argv: list[str] | None = None) -> int:

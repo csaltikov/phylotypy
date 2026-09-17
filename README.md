@@ -199,6 +199,66 @@ phylotypy classify --input my_sequences.fasta \
                    --out classied_my_seqs.tsv \
                    --verbose
 ```
+### Terminal report
+
+Add `--terminal-report` (or the shorter `--t-report`) to print a bar chart of the
+classifications right after the results file is written. It summarizes at the
+phylum level by default:
+
+```shell
+phylotypy classify --input dna_moving_pictures.fasta \
+                   --db rdp_classifer.pickle \
+                   --out classified_seqs.tsv \
+                   --t-report
+```
+
+```text
+Phylum-level summary  393 sequences · 17 taxa
+────────────────────────────────────────────────────────────────────────────────
+Pseudomonadota         ████████████████████████████████████████████  120  30.5%
+Bacillota              ███████████████████████████████▍              85  21.6%
+Bacteroidota           ██████████████████████▏                       60  15.3%
+Actinomycetota         ███████████████▌                              42  10.7%
+Verrucomicrobiota      ██████▋                                       18   4.6%
+Bacteria_unclassified  █████▏                                        14   3.6%
+Desulfobacterota       ████▍                                         12   3.1%
+Other (10 taxa)        ███████████▊                                  32   8.1%
+────────────────────────────────────────────────────────────────────────────────
+resolved at phylum: 379/393 (96.4%) · mean confidence 91.4
+```
+
+Bars are scaled to the most abundant taxon; the counts are numbers of sequences
+(ASVs/OTUs), not read abundances. `*_unclassified` rows are drawn dim and are
+excluded from the taxa count and from "resolved at <rank>".
+
+Use `--report-rank` for a different rank and `--report-top` to change how many
+taxa are charted before the tail is folded into an "Other" row
+(`--report-top 0` charts everything):
+
+```shell
+phylotypy classify -i asvs.fasta -d rdp_classifer.pickle -o classified.tsv \
+                   --t-report --report-rank genus --report-top 25
+```
+
+The same report is available from the API, for example when working in a REPL:
+
+```python
+from phylotypy import classifier, terminal_report
+
+classified = classifier.classify_sequences(seqs, database)
+terminal_report.print_report(classified, rank="phylum", top=20)
+
+# or capture it as a string (e.g. to write into a log)
+text = terminal_report.render_report(classified, rank="genus", color=False, width=100)
+
+# just the numbers, no chart
+summary = terminal_report.summarize_rank(classified, "phylum")
+summary.counts.head()
+```
+
+Color is used only when stdout is a terminal, and is disabled when `NO_COLOR` is
+set, so piping or redirecting the output stays clean.
+
 ### Help menu:
 
 ```shell
@@ -220,8 +280,9 @@ options:
 --
 ```shell
 phylotypy classify --help
-usage: phylotypy classify [-h] -i INPUT -d DB -o OUT [--save-db SAVE_DB] [--res-extended] [--kmer-size KMER_SIZE] [--num-bootstrap NUM_BOOTSTRAP]
-                          [--min-consensus MIN_CONSENSUS] [--n-levels N_LEVELS] [--threads THREADS] [--force] [-v]
+usage: phylotypy classify [-h] -i INPUT -d DB -o OUT [--save-db SAVE_DB] [--res-extended] [--terminal-report] [--report-rank REPORT_RANK]
+                          [--report-top REPORT_TOP] [--kmer-size KMER_SIZE] [--num-bootstrap NUM_BOOTSTRAP] [--min-consensus MIN_CONSENSUS]
+                          [--n-levels N_LEVELS] [--threads THREADS] [--force] [-v]
 
 options:
   -h, --help            show this help message and exit
@@ -230,6 +291,12 @@ options:
   -o, --out OUT         output path for classification results (.tsv or .csv; default tab-separated)
   --save-db SAVE_DB     if --db is a raw fasta, add a file path to save the built classifier here for reuse (avoids rebuilding it on the next run)
   --res-extended        Created an extended results report including qiime formatted lineage, lineages split into taxonomic levels
+  --terminal-report, --t-report
+                        print a bar-chart summary of the classifications to the terminal after writing the results
+  --report-rank REPORT_RANK
+                        taxonomic rank to summarize with --terminal-report: kingdom, phylum, class, order, family, genus or species (default: phylum)
+  --report-top REPORT_TOP
+                        maximum number of taxa to chart with --terminal-report; the rest are folded into an 'Other' row, 0 for no limit (default: 15)
   --kmer-size KMER_SIZE
                         k-mer size; must match the database's k-mer size (default: 8)
   --num-bootstrap NUM_BOOTSTRAP
