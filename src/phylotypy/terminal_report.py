@@ -78,7 +78,12 @@ class RankSummary:
 
     @property
     def n_taxa(self) -> int:
-        """Number of distinct named (non-placeholder) taxa at this rank."""
+        """Number of distinct taxa at this rank, ``*_unclassified`` included."""
+        return int(len(self.counts))
+
+    @property
+    def n_named_taxa(self) -> int:
+        """Distinct taxa at this rank, excluding ``*_unclassified`` placeholders."""
         return int(sum(not is_unclassified(taxon) for taxon in self.counts.index))
 
     @property
@@ -238,12 +243,18 @@ def render_report(classified: pd.DataFrame | dict,
         rows = rows[:top]
 
     total = summary.n_sequences
-    largest = int(counts.iloc[0]) if len(counts) else 1
+    other_total = int(sum(c for _, c in folded))
+    # Bars are scaled to the largest row actually drawn, the "Other" row
+    # included: at genus and below the folded tail routinely outweighs every
+    # individual taxon, and clamping its bar to the full width would make it
+    # look no larger than the top row.
+    largest = max([int(c) for _, c in rows] + [other_total]) or 1
 
+    other_label = f"Other ({len(folded)} taxa)" if folded else ""
     label_width = min(max((len(str(t)) for t, _ in rows), default=10), 30)
     if folded:
-        label_width = max(label_width, len(f"Other ({len(folded)} taxa)"))
-    count_width = max(len(f"{int(c)}") for _, c in rows) if rows else 1
+        label_width = max(label_width, len(other_label))
+    count_width = max([len(f"{int(c)}") for _, c in rows] + [len(str(other_total))])
     # label + 2 spaces + bar + 2 spaces + count + 1 space + "100.0%"
     bar_width = max(10, width - label_width - count_width - 12)
 
@@ -259,6 +270,10 @@ def render_report(classified: pd.DataFrame | dict,
     title = f"{summary.rank}-level summary"
     subtitle = (f"{total} sequence{'s' if total != 1 else ''} · "
                 f"{summary.n_taxa} {'taxon' if summary.n_taxa == 1 else 'taxa'}")
+    if summary.n_named_taxa != summary.n_taxa:
+        # Otherwise the header count and the "Other (n taxa)" label appear to
+        # contradict each other, since one excludes placeholders and one does not.
+        subtitle += f" ({summary.n_named_taxa} named)"
     header = _paint(title, _ANSI['bold'], painted) + _paint(f"  {subtitle}", _ANSI['dim'], painted)
     rule = _paint("─" * width, _ANSI['dim'], painted)
 
@@ -278,8 +293,7 @@ def render_report(classified: pd.DataFrame | dict,
         lines.append(row_line(taxon, int(count), code))
 
     if folded:
-        lines.append(row_line(f"Other ({len(folded)} taxa)",
-                              int(sum(c for _, c in folded)), _ANSI["dim"]))
+        lines.append(row_line(other_label, other_total, _ANSI["dim"]))
 
     lines.append(rule)
 

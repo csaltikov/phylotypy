@@ -75,7 +75,8 @@ class TestSummarizeRank(unittest.TestCase):
         summary = terminal_report.summarize_rank(self.results, "phylum")
         self.assertEqual(summary.n_unclassified, 1)
         self.assertEqual(summary.n_classified, 3)
-        self.assertEqual(summary.n_taxa, 2)  # placeholder excluded from named taxa
+        self.assertEqual(summary.n_taxa, 3)        # placeholder included
+        self.assertEqual(summary.n_named_taxa, 2)  # placeholder excluded
 
     def test_mean_confidence_is_per_taxon(self):
         summary = terminal_report.summarize_rank(self.results, "phylum")
@@ -146,6 +147,33 @@ class TestRenderReport(unittest.TestCase):
     def test_top_folds_the_tail_into_an_other_row(self):
         report = self.render(top=1)
         self.assertIn("Other (2 taxa)", report)
+
+    def test_a_dominant_other_row_is_not_clamped_to_the_top_rows_bar(self):
+        # At deep ranks the folded tail routinely outweighs every single taxon.
+        # Its bar must be the longest one, not merely tied with the top row.
+        tail = [("ASV1", "Bacteria(100);Pseudomonadota(100)")]
+        tail += [(f"ASV{i}", f"Bacteria(100);Phylum{i}(100)") for i in range(2, 40)]
+        report = terminal_report.render_report(make_results(tail), rank="phylum",
+                                               top=1, color=False, width=70)
+        lines = [ln for ln in report.splitlines() if "█" in ln]
+        top_bar = lines[0].count("█")
+        other_bar = next(ln for ln in lines if ln.startswith("Other")).count("█")
+        self.assertGreater(other_bar, top_bar)
+
+    def test_header_notes_named_taxa_when_placeholders_are_present(self):
+        self.assertIn("3 taxa (2 named)", self.render())
+
+    def test_header_omits_the_named_count_when_nothing_is_unclassified(self):
+        clean = make_results([("ASV1", "Bacteria(100);Bacillota(92)"),
+                              ("ASV2", "Bacteria(100);Bacteroidota(95)")])
+        report = terminal_report.render_report(clean, color=False, width=60)
+        self.assertIn("2 taxa", report)
+        self.assertNotIn("named", report)
+
+    def test_header_count_and_other_label_add_up(self):
+        report = self.render(top=1)
+        self.assertIn("3 taxa (2 named)", report)
+        self.assertIn("Other (2 taxa)", report)  # 1 charted + 2 folded == 3
 
     def test_no_color_leaves_no_escape_sequences(self):
         self.assertNotIn("\033", self.render())

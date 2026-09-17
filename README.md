@@ -213,23 +213,37 @@ phylotypy classify --input dna_moving_pictures.fasta \
 ```
 
 ```text
-Phylum-level summary  393 sequences · 17 taxa
+Phylum-level summary  770 sequences · 20 taxa (19 named)
 ────────────────────────────────────────────────────────────────────────────────
-Pseudomonadota         ████████████████████████████████████████████  120  30.5%
-Bacillota              ███████████████████████████████▍              85  21.6%
-Bacteroidota           ██████████████████████▏                       60  15.3%
-Actinomycetota         ███████████████▌                              42  10.7%
-Verrucomicrobiota      ██████▋                                       18   4.6%
-Bacteria_unclassified  █████▏                                        14   3.6%
-Desulfobacterota       ████▍                                         12   3.1%
-Other (10 taxa)        ███████████▊                                  32   8.1%
+Bacillota              ████████████████████████████████████████████  277  36.0%
+Pseudomonadota         ███████████████████████▉                      150  19.5%
+Bacteroidota           █████████████████████▊                        137  17.8%
+Bacteria_unclassified  ██████████▋                                    67   8.7%
+Actinomycetota         ██████████                                     63   8.2%
+Fusobacteriota         ███▋                                           23   3.0%
+Cyanobacteriota        █▍                                              9   1.2%
+Campylobacterota       █▏                                              7   0.9%
+Verrucomicrobiota      █                                               6   0.8%
+Plantae                █                                               6   0.8%
+Spirochaetota          █                                               6   0.8%
+Mycoplasmatota         ▌                                               3   0.4%
+Planctomycetota        ▌                                               3   0.4%
+Acidobacteriota        ▌                                               3   0.4%
+Synergistota           ▍                                               2   0.3%
+Other (5 taxa)         █▎                                              8   1.0%
 ────────────────────────────────────────────────────────────────────────────────
-resolved at phylum: 379/393 (96.4%) · mean confidence 91.4
+resolved at phylum: 703/770 (91.3%) · mean confidence 98.4
 ```
 
-Bars are scaled to the most abundant taxon; the counts are numbers of sequences
-(ASVs/OTUs), not read abundances. `*_unclassified` rows are drawn dim and are
-excluded from the taxa count and from "resolved at <rank>".
+Bars are scaled to the longest row drawn, the `Other` row included, so a folded
+tail that outweighs every individual taxon is shown as the largest bar rather
+than being clamped to the top row's length — this matters at genus level and
+below, where the tail is usually dominant.
+
+The counts are numbers of sequences (ASVs/OTUs), **not read abundances**: a
+phylum with 277 ASVs is 36% of your distinct sequences, not necessarily 36% of
+your community. `*_unclassified` rows are drawn dim, and are excluded from the
+"named" count in the header and from "resolved at <rank>" in the footer.
 
 Use `--report-rank` for a different rank and `--report-top` to change how many
 taxa are charted before the tail is folded into an "Other" row
