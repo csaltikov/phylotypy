@@ -5,6 +5,29 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-09-23
+
+### Added
+
+- Added a `phylotypy report` subcommand that prints the terminal bar-chart
+  summary (the same one `classify --terminal-report` writes) from an
+  already-classified results file, without re-classifying. Takes the same
+  `--report-rank`/`--report-top` options.
+
+### Changed
+
+- Expanded the top-level `phylotypy --help` description to say what the tool
+  actually classifies and against what, and added an epilog pointing to
+  `phylotypy <command> --help` for per-subcommand options.
+
+### Docs
+
+- Split the README's reference-data prep walkthrough, full CLI reference, and
+  API guide out into `docs/training-data.md`, `docs/cli-reference.md`, and
+  `docs/api-guide.md`. The README now leads with a CLI-first quickstart (with
+  a short API equivalent) and links out to the docs for detail.
+- Added a brief AI-assistance note to the README.
+
 ## [0.8.0] - 2026-09-22
 
 ### Added
