@@ -12,9 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Added `terminal_report.py`: a `--terminal-report`/`--t-report` flag for
   `phylotypy classify` that prints a Unicode bar-chart summary of the
   classification results to the terminal after writing the output file. Shows
-  sequence counts per taxon at a chosen rank (`--report-rank`, default
+  sequence counts per taxon at a selected rank (`--report-rank`, default
   phylum), mean bootstrap confidence per taxon, the fraction of sequences
-  resolved at that rank, and folds low-count taxa into an "Other (N taxa)"
+  resolved at that rank, and collapses low-count taxa into an "Other (N taxa)"
   row (`--report-top`, default 15, 0 for no limit). Falls back to the
   deepest rank the classifications actually reach if the requested rank is
   too deep, and reports named vs. `_unclassified` taxa counts separately to
