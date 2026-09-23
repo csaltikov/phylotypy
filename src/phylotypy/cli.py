@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Command-line interface for phylotypy.
 
-Two subcommands:
+Three subcommands:
   phylotypy build     -- build a classifier database from a reference fasta and save it (pickle)
   phylotypy classify  -- classify a fasta of sequences against a database
+  phylotypy report    -- create a taxon summary chart on the commmand line
 
 `classify --db` accepts either a prebuilt classifier (.pkl/.pickle, from `build`)
 or a raw reference fasta -- in the latter case the classifier is built on the fly
@@ -45,6 +46,17 @@ def _add_common_classify_args(parser: argparse.ArgumentParser) -> None:
                         help="skip the memory-safety check before bootstrap sampling")
     parser.add_argument("-v", "--verbose", action="store_true",
                         help="print progress messages")
+
+
+def _add_report_args(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--report-rank", default="phylum",
+                        help="taxonomic rank to summarize: kingdom, phylum, class, order, "
+                             "family, genus or species (default: phylum)"
+                        )
+    parser.add_argument("--report-top", type=int, default=15,
+                        help="maximum number of taxa to chart; the rest are folded"
+                             " into an 'Other' row, 0 for no limit (default: 15)"
+                        )
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -123,19 +135,20 @@ def build_parser() -> argparse.ArgumentParser:
                               help="print a bar-chart summary of the classifications to the "
                                    "terminal after writing the results"
                               )
-    classify_cmd.add_argument("--report-rank", default="phylum",
-                              help="taxonomic rank to summarize with --terminal-report: "
-                                   "kingdom, phylum, class, order, family, genus or species "
-                                   "(default: phylum)"
-                              )
-    classify_cmd.add_argument("--report-top", type=int, default=15,
-                              help="maximum number of taxa to chart with --terminal-report; "
-                                   "the rest are folded into an 'Other' row, 0 for no limit "
-                                   "(default: 15)"
-                              )
+    _add_report_args(classify_cmd)
     _add_common_classify_args(classify_cmd)
     classify_cmd.set_defaults(func=run_classify)
 
+    # --- report ---
+    report_cmd = subparsers.add_parser(
+        "report",
+        help="create a taxon summary chart on the command line",
+    )
+    report_cmd.add_argument("-i", "--input", required=True, type=_existing_file,
+                            help="csv/tsv of the classified results "
+                            )
+    _add_report_args(report_cmd)
+    report_cmd.set_defaults(func=run_report)
     return parser
 
 
@@ -222,6 +235,15 @@ def run_classify(args: argparse.Namespace) -> None:
                                          top=args.report_top)
         except terminal_report.ReportError as e:
             print(f"Could not build the terminal report: {e}", file=sys.stderr)
+
+
+def run_report(args: argparse.Namespace) -> None:
+    import pandas as pd
+    from phylotypy import terminal_report
+
+    sep = "," if args.input.suffix.lower() == ".csv" else "\t"
+    classified_results = pd.read_csv(args.input, sep=sep)
+    terminal_report.print_report(classified_results, rank=args.report_rank, top=args.report_top)
 
 
 def main(argv: list[str] | None = None) -> int:
