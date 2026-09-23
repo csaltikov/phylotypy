@@ -5,6 +5,31 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-09-22
+
+### Added
+
+- Added `terminal_report.py`: a `--terminal-report`/`--t-report` flag for
+  `phylotypy classify` that prints a Unicode bar-chart summary of the
+  classification results to the terminal after writing the output file. Shows
+  sequence counts per taxon at a chosen rank (`--report-rank`, default
+  phylum), mean bootstrap confidence per taxon, the fraction of sequences
+  resolved at that rank, and folds low-count taxa into an "Other (N taxa)"
+  row (`--report-top`, default 15, 0 for no limit). Falls back to the
+  deepest rank the classifications actually reach if the requested rank is
+  too deep, and reports named vs. `_unclassified` taxa counts separately to
+  avoid ambiguity in the header. Auto-detects terminal width and color
+  support (honors `NO_COLOR`); bars are scaled to the largest row actually
+  drawn (the folded "Other" row included) so it isn't misleadingly
+  under-scaled relative to individual taxa.
+
+### Tests
+
+- Added `tests/test_terminal_report.py` and extended `tests/test_cli.py`
+  covering the new flag: rank resolution/aliases, fallback to shallower
+  ranks, bar scaling, taxa counting with `_unclassified` placeholders, and
+  `ReportError` handling for bad `--report-rank` values.
+
 ## [0.7.5] - 2026-09-07
 
 ### Fixed
