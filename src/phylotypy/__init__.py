@@ -12,5 +12,7 @@ warnings.filterwarnings(
 from .cond_prob_c import cond_prob_cython
 from .classify_bootstraps import classify_bootstraps_cython
 from .utilities import read_fasta
+from .utilities.read_fasta import read_taxa_fasta
 from .utilities import write_fasta
+from .utilities.write_fasta import df_to_fasta
 from .utilities import helpers
