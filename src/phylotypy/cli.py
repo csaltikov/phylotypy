@@ -62,7 +62,11 @@ def _add_report_args(parser: argparse.ArgumentParser) -> None:
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
         prog="phylotypy",
-        description="Naive Bayes classifier for 16S rRNA sequence data.",
+        description="Naive Bayes classifier for 16S rRNA sequences: classifies ASVs/OTUs "
+                     "from DADA2, QIIME2, or raw FASTA files against a reference database "
+                     "(e.g. RDP, Silva).",
+        epilog="Run 'phylotypy <command> --help' for options specific to that command "
+               "(e.g. 'phylotypy classify --help').",
     )
     parser.add_argument("--version", action="version", version=f"phylotypy {__version__}")
 

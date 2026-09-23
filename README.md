@@ -94,9 +94,16 @@ Actinomycetota         ██████████                           
 resolved at phylum: 703/770 (91.3%) · mean confidence 98.4
 ```
 
+You can also regenerate that same chart later from a results file, without
+re-classifying, using `phylotypy report`:
+
+```shell
+phylotypy report --input classified_seqs.tsv
+```
+
 See [docs/cli-reference.md](docs/cli-reference.md) for reusing a saved database,
-the terminal report's rank/top options, and full `--help` output for both
-`build` and `classify` subcommands.
+the terminal report's rank/top options, the `report` subcommand, and full
+`--help` output for `build`, `classify`, and `report`.
 
 ### Using the API instead
 
