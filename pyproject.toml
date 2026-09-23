@@ -84,6 +84,7 @@ dependencies = [
 [project.urls]
 Homepage = "https://github.com/csaltikov/phylotypy"
 Repository = "https://github.com/csaltikov/phylotypy"
+Documentation = "https://github.com/csaltikov/phylotypy/tree/main/docs"
 "Bug Tracker" = "https://github.com/csaltikov/phylotypy/issues"
 
 [project.scripts]

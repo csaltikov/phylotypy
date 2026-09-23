@@ -65,7 +65,7 @@ uv pip install phylotypy
 ## Quickstart
 
 Download the RDP reference training set and an example dataset (see
-[Training Data](docs/training-data.md) for details and download links), then classify
+[Training Data](https://github.com/csaltikov/phylotypy/blob/main/docs/training-data.md) for details and download links), then classify
 from the command line:
 
 ```shell
@@ -101,7 +101,7 @@ re-classifying, using `phylotypy report`:
 phylotypy report --input classified_seqs.tsv
 ```
 
-See [docs/cli-reference.md](docs/cli-reference.md) for reusing a saved database,
+See [docs/cli-reference.md](https://github.com/csaltikov/phylotypy/blob/main/docs/cli-reference.md) for reusing a saved database,
 the terminal report's rank/top options, the `report` subcommand, and full
 `--help` output for `build`, `classify`, and `report`.
 
@@ -122,19 +122,19 @@ classified = results.summarize_predictions(classified)
 classified.to_csv("classified_results.csv")
 ```
 
-See [docs/api-guide.md](docs/api-guide.md) for the full walkthrough, including
+See [docs/api-guide.md](https://github.com/csaltikov/phylotypy/blob/main/docs/api-guide.md) for the full walkthrough, including
 formatting/export options and example output.
 
 ---
 ## Documentation
 
-- [docs/training-data.md](docs/training-data.md) — downloading reference data, required
+- [docs/training-data.md](https://github.com/csaltikov/phylotypy/blob/main/docs/training-data.md) — downloading reference data, required
   FASTA header format, and fixing "ragged" (inconsistent-depth) taxonomy strings
-- [docs/cli-reference.md](docs/cli-reference.md) — full CLI usage: building/reusing a
+- [docs/cli-reference.md](https://github.com/csaltikov/phylotypy/blob/main/docs/cli-reference.md) — full CLI usage: building/reusing a
   database, the terminal report, and `--help` output for every subcommand
-- [docs/api-guide.md](docs/api-guide.md) — step-by-step API usage and a complete code
+- [docs/api-guide.md](https://github.com/csaltikov/phylotypy/blob/main/docs/api-guide.md) — step-by-step API usage and a complete code
   example
-- [benchmarks/](benchmarks/README.md) — speed comparisons against other 16S
+- [benchmarks/](https://github.com/csaltikov/phylotypy/blob/main/benchmarks/README.md) — speed comparisons against other 16S
   classification tools
 
 ---
