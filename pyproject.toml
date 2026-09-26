@@ -13,7 +13,7 @@ include-package-data = true
 
 [project]
 name = "phylotypy"
-version = "0.9.0"
+version = "0.9.1"
 keywords = [
     "16S rRNA",
     "naive bayes",
@@ -55,6 +55,7 @@ classifiers = [
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 
     # License
     "License :: OSI Approved :: MIT License",
@@ -74,7 +75,8 @@ readme = "README.md"
 requires-python = ">=3.11"
 dependencies = [
     "numpy>=2.0",
-    "numba>=0.61.0,<0.63.0",
+    "numba>=0.61.0",
+    "numba>=0.63; python_version >= '3.14'",
     "pandas>=2.2",
     "requests",
     "pyarrow",
