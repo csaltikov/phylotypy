@@ -1,7 +1,8 @@
 import gzip
+import os
 from pathlib import Path
-
 import pandas as pd
+from . import helpers
 
 
 def df_to_fasta(df: pd.DataFrame, fasta_file: str | Path, line_width: int = 60) -> None:
@@ -24,7 +25,9 @@ def df_to_fasta(df: pd.DataFrame, fasta_file: str | Path, line_width: int = 60) 
     open_func = gzip.open if gz_file else open
     mode = "wt" if gz_file else "w"
 
-    with open_func(fasta_file, mode) as f:
+    fasta = helpers.path_helper(fasta_file)
+
+    with open_func(Path(fasta), mode) as f:
         for seq_id, sequence in zip(df["id"], df["sequence"]):
             f.write(f">{seq_id}\n")
             if line_width > 0:

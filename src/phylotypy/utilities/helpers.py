@@ -3,6 +3,7 @@ import gzip
 import json
 import time
 from collections import defaultdict
+import os
 from pathlib import Path
 import pickle
 import re
@@ -19,6 +20,15 @@ FASTA_EXTS = (
     ".fasta", ".fa", ".fna", ".faa", ".ffn", ".frn", ".fas", ".seq",
     ".fasta.gz", ".fa.gz", ".fna.gz", ".faa.gz", ".ffn.gz", ".frn.gz", ".fas.gz", ".seq.gz"
 )
+
+
+def path_helper(p: str| bytes | os.PathLike) -> Path:
+    """Convert any path like string and/or object to an absolute path"""
+    if p == None:
+        raise TypeError("Path cannot be none")
+    new_path = os.fsdecode(p).strip()
+    new_path = os.path.expandvars(new_path)
+    return Path(new_path).expanduser().resolve()
 
 
 def dataframe_to_fasta(df, fasta_file):
