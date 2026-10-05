@@ -77,6 +77,7 @@ dependencies = [
     "numpy>=2.0",
     "numba>=0.61.0",
     "numba>=0.63; python_version >= '3.14'",
+    "numba<0.63; sys_platform == 'darwin' and platform_machine == 'x86_64'",
     "pandas>=2.2",
     "requests",
     "pyarrow",

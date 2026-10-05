@@ -22,13 +22,37 @@ FASTA_EXTS = (
 )
 
 
-def path_helper(p: str| bytes | os.PathLike) -> Path:
-    """Convert any path like string and/or object to an absolute path"""
-    if p == None:
-        raise TypeError("Path cannot be none")
-    new_path = os.fsdecode(p).strip()
+def path_helper(p: str | bytes | os.PathLike, must_exist: bool = False) -> Path:
+    """Convert any path-like string or object to an absolute ``Path``.
+
+    Strips surrounding whitespace, expands environment variables and ``~``,
+    and resolves to an absolute path. Use ``must_exist=True`` for input
+    files so a bad path fails here with a clear message rather than deeper
+    inside a file reader.
+
+    Args:
+        p: Path as ``str``, ``bytes`` or any ``os.PathLike`` object.
+        must_exist: If True, raise ``FileNotFoundError`` when the resolved
+            path does not exist.
+
+    Raises:
+        TypeError: If ``p`` is None or not a path-like object.
+        ValueError: If ``p`` is empty or whitespace only.
+        FileNotFoundError: If ``must_exist`` is True and the path is missing.
+    """
+    if p is None:
+        raise TypeError("Path cannot be None")
+    try:
+        new_path = os.fsdecode(p).strip()
+    except TypeError as e:
+        raise TypeError(f"Expected str, bytes or os.PathLike, got {type(p).__name__}") from e
+    if not new_path:
+        raise ValueError("Path cannot be empty")
     new_path = os.path.expandvars(new_path)
-    return Path(new_path).expanduser().resolve()
+    resolved = Path(new_path).expanduser().resolve()
+    if must_exist and not resolved.exists():
+        raise FileNotFoundError(f"Path does not exist: {resolved}")
+    return resolved
 
 
 def dataframe_to_fasta(df, fasta_file):

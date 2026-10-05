@@ -1,3 +1,4 @@
+import os
 import tempfile
 import unittest
 from pathlib import Path
@@ -89,3 +90,69 @@ class TestLoadAndValidateSeqs(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class TestPathHelper(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.tmp_dir = Path(self.tmp.name).resolve()
+        self.existing = self.tmp_dir / "seqs.fa"
+        self.existing.write_text(">s1\nACGT\n")
+
+    def tearDown(self) -> None:
+        self.tmp.cleanup()
+
+    def test_str_is_resolved_to_absolute_path(self):
+        out = helpers.path_helper(str(self.existing))
+        self.assertIsInstance(out, Path)
+        self.assertTrue(out.is_absolute())
+        self.assertEqual(out, self.existing)
+
+    def test_pathlike_passthrough(self):
+        self.assertEqual(helpers.path_helper(self.existing), self.existing)
+
+    def test_bytes_input(self):
+        self.assertEqual(helpers.path_helper(os.fsencode(self.existing)), self.existing)
+
+    def test_strips_whitespace(self):
+        self.assertEqual(helpers.path_helper(f"  {self.existing}\n"), self.existing)
+
+    def test_expands_tilde(self):
+        out = helpers.path_helper("~/mypath/fasta.fa")
+        self.assertEqual(out, (Path.home() / "mypath" / "fasta.fa").resolve())
+        self.assertNotIn("~", str(out))
+
+    def test_expands_env_var(self):
+        os.environ["PHYLOTYPY_TEST_DIR"] = str(self.tmp_dir)
+        try:
+            out = helpers.path_helper("$PHYLOTYPY_TEST_DIR/seqs.fa")
+        finally:
+            del os.environ["PHYLOTYPY_TEST_DIR"]
+        self.assertEqual(out, self.existing)
+
+    def test_relative_path_resolved_against_cwd(self):
+        out = helpers.path_helper("some/relative/file.fa")
+        self.assertEqual(out, (Path.cwd() / "some/relative/file.fa").resolve())
+
+    def test_none_raises_type_error(self):
+        with self.assertRaises(TypeError):
+            helpers.path_helper(None)
+
+    def test_non_pathlike_raises_type_error(self):
+        with self.assertRaises(TypeError):
+            helpers.path_helper(123)
+
+    def test_empty_string_raises_value_error(self):
+        with self.assertRaises(ValueError):
+            helpers.path_helper("   ")
+
+    def test_must_exist_passes_for_existing_file(self):
+        self.assertEqual(helpers.path_helper(self.existing, must_exist=True), self.existing)
+
+    def test_must_exist_raises_for_missing_file(self):
+        with self.assertRaises(FileNotFoundError):
+            helpers.path_helper(self.tmp_dir / "nope.fa", must_exist=True)
+
+    def test_missing_file_allowed_by_default(self):
+        out = helpers.path_helper(self.tmp_dir / "nope.fa")
+        self.assertEqual(out, self.tmp_dir / "nope.fa")

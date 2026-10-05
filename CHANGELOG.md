@@ -5,6 +5,47 @@ All notable changes to this project are documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-10-04
+
+### Added
+
+- Added `path_helper()` to `utilities/helpers.py`: normalizes any path-like
+  input (`str`, `bytes`, or `os.PathLike`) to an absolute `Path`, stripping
+  whitespace and expanding `~` and environment variables. `df_to_fasta` now
+  runs its output path through it, so path-like objects and untidy path
+  strings are handled consistently.
+
+### Fixed
+
+- Restored installs on Intel (x86_64) macOS. Relaxing the numba pin in 0.9.1
+  let uv/pip resolve numba 0.63+, which no longer ships macOS x86_64 wheels
+  (numba 0.62.1 / llvmlite 0.45.1 are the last releases that do). On Intel
+  Macs the install fell back to a from-source numba build that failed. A
+  platform-specific marker (`numba<0.63; sys_platform == 'darwin' and
+  platform_machine == 'x86_64'`) now keeps Intel Macs on the 0.62.x wheels
+  while other platforms get current numba. Intel macOS is therefore limited
+  to Python <= 3.13; the 3.14 and Intel-macOS markers conflict by design so
+  that combination fails at resolution with a clear message instead of a
+  compiler error.
+
+## [0.9.1] - 2026-09-25
+
+### Added
+
+- Python 3.14 support. The `numba>=0.61.0,<0.63.0` cap, which only allowed
+  numba versions supporting Python <3.14, is replaced by an open floor plus a
+  `numba>=0.63; python_version >= '3.14'` marker so 3.14 interpreters always
+  resolve to a numba release that supports them. Added the
+  `Programming Language :: Python :: 3.14` classifier.
+
+### Changed
+
+- Added Python 3.14 to the test (`python-package.yml`) and publish
+  (`python-publish.yml`) workflow matrices.
+- README doc links now point to the full GitHub URLs so they resolve from the
+  PyPI project page, and a `Documentation` URL was added to the project
+  metadata.
+
 ## [0.9.0] - 2026-09-23
 
 ### Added
